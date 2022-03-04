@@ -43,7 +43,12 @@ int main(int argc, char **argv)
     FILE *input_f = fopen(argv[1], "r");
 
     int N; // num nodes
-    fscanf(input_f, "%d ", &N);
+    if (fscanf(input_f, "%d ", &N) < 1)
+    {
+        printf("malformed input: couldn't match number N of vertices\n");
+        return -1;
+    }
+
     printf("allocating memory...\n");
     float *C = (float *)malloc(N * N * sizeof(float));
     printf("parsing input matrix...\n");
@@ -52,8 +57,8 @@ int main(int argc, char **argv)
         char inputValue[100];
         for (int j = 0; j < N; j++)
         {
-            fscanf(input_f, "%[^,\n]s", inputValue);
-            if (inputValue[0] != '\0')
+            int numValues = fscanf(input_f, "%[^,\n]s", inputValue);
+            if (numValues == 1)
             {
                 C[i * N + j] = strtof(inputValue, NULL);
             }
@@ -61,8 +66,7 @@ int main(int argc, char **argv)
             {
                 C[i * N + j] = INFINITY;
             }
-            fgetc(input_f);
-            inputValue[0] = '\0'; // ensures we don't accidentally reuse old inputValue
+            fgetc(input_f); // skip ',' or '\n'
         }
     }
     fclose(input_f);
