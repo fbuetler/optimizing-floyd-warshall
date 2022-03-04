@@ -3,7 +3,7 @@
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
-/* Computes all shortest paths between any pair of vertices by applying the FW algorithm */
-void floydWarshall(float **C, int N);
+/* Computes the shortest paths between any pair of vertices and stores their lengths in C. N is the number of nodes.*/
+void floydWarshall(float *C, int N);
 
 #endif
