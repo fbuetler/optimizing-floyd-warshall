@@ -123,7 +123,7 @@ int main(int argc, char **argv)
     fclose(input_f);
 
 #ifdef __x86_64__
-    fprintf(stderr, "finding shortest paths...\n");
+    fprintf(stderr, "finding transitive closure...\n");
     double r = rdtsc(C, N);
     fprintf(stderr, "#cycles on avg: ");
     printf("%lf\n", r);
