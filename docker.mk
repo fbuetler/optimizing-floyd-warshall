@@ -7,5 +7,8 @@ BUILD_DIR=$(MAKE_BUILD_DIR)
 
 # Topmost rule must be to build the optimized C code
 
-go-ref-shortest-path:
+c-naive-shortest-path: shortest-path/c-naive/*.c shortest-path/c-naive/*.h
+	cd shortest-path/c-naive && gcc-11 -O3 -o $(BUILD_DIR)/c-naive-shortest-path main.c
+
+go-ref-shortest-path: shortest-path/go/*.go shortest-path/go/go.mod
 	cd shortest-path/go && go build -o ${BUILD_DIR}/go-ref-shortest-path .
