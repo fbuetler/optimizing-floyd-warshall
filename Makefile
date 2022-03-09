@@ -16,6 +16,9 @@ DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} ${DOCKER_ENV_VARS} -t ${IMAGE_TAG}
 c-naive-shortest-path: docker shortest-path/c-naive/*.c shortest-path/c-naive/*.h
 	docker run ${DOCKER_RUN_ARGS} make c-naive-shortest-path
 
+c-naive-transitive-closure: docker transitive-closure/c-naive/*.c transitive-closure/c-naive/*.h
+	docker run ${DOCKER_RUN_ARGS} make c-naive-transitive-closure
+
 go-ref-shortest-path: docker shortest-path/go/*
 	docker run ${DOCKER_RUN_ARGS} make go-ref-shortest-path
 

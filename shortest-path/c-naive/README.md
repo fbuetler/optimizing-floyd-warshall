@@ -3,7 +3,7 @@
 ## Build the binary
 
 ```bash
-gcc -O2 -o main.o main.c
+gcc -O2 -o main.o sp.c main.c
 ```
 
 ## Run

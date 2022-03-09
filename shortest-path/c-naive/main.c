@@ -3,21 +3,7 @@
 #include <string.h>
 #include <malloc.h>
 #include <math.h>
-#include "main.h"
-
-void floydWarshall(float *C, int N)
-{
-    for (int k = 0; k < N; k++)
-    {
-        for (int i = 0; i < N; i++)
-        {
-            for (int j = 0; j < N; j++)
-            {
-                C[i * N + j] = MIN(C[i * N + j], C[i * N + k] + C[k * N + j]);
-            }
-        }
-    }
-}
+#include "sp.h"
 
 void showMatrix(float *C, int N)
 {
