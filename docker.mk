@@ -7,11 +7,11 @@ BUILD_DIR=$(MAKE_BUILD_DIR)
 
 # Topmost rule must be to build the optimized C code
 
-c-naive-shortest-path: shortest-path/c-naive/*.c shortest-path/c-naive/*.h
-	cd shortest-path/c-naive && gcc-11 -O3 -o $(BUILD_DIR)/c-naive-shortest-path sp.c main.c
+c-naive-shortest-path: shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
+	cd shortest-path/c && gcc-11 -O3 -o $(BUILD_DIR)/c-naive-shortest-path impl/naive.c main.c
 
-c-naive-transitive-closure: transitive-closure/c-naive/*.c transitive-closure/c-naive/*.h
-	cd transitive-closure/c-naive && gcc-11 -O3 -o $(BUILD_DIR)/c-naive-transitive-closure tc.c main.c
+c-naive-transitive-closure: transitive-closure/c/*.c transitive-closure/c/impl/naive.c transitive-closure/c/impl/tc.h
+	cd transitive-closure/c && gcc-11 -O3 -o $(BUILD_DIR)/c-naive-transitive-closure impl/naive.c main.c
 
 go-ref-shortest-path: shortest-path/go/*.go shortest-path/go/go.mod
 	cd shortest-path/go && go build -o ${BUILD_DIR}/go-ref-shortest-path .

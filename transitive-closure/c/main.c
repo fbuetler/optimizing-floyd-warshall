@@ -3,15 +3,15 @@
 #include <string.h>
 #include <malloc.h>
 #include <math.h>
-#include "sp.h"
+#include "impl/tc.h"
 
-void showMatrix(float *C, int N)
+void showMatrix(char *C, int N)
 {
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N; j++)
         {
-            printf("%f, ", C[i * N + j]);
+            printf("%d, ", C[i * N + j]);
         }
         printf("\n");
     }
@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     }
 
     printf("allocating memory...\n");
-    float *C = (float *)malloc(N * N * sizeof(float));
+    char *C = (char *)malloc(N * N * sizeof(char));
     printf("parsing input matrix...\n");
     for (int i = 0; i < N; i++)
     {
@@ -46,27 +46,28 @@ int main(int argc, char **argv)
             int numValues = fscanf(input_f, "%[^,\n]s", inputValue);
             if (numValues == 1)
             {
-                C[i * N + j] = strtof(inputValue, NULL);
+                C[i * N + j] = 1;
             }
             else
             {
-                C[i * N + j] = INFINITY;
+                C[i * N + j] = 0;
             }
             fgetc(input_f); // skip ',' or '\n'
         }
     }
     fclose(input_f);
 
-    printf("finding shortest paths...\n");
-    floydWarshall(C, N);
+    printf("finding transitive closure...\n");
+    warshall(C, N);
+    showMatrix(C, N);
 
-    printf("outputting shortest-path matrix to %s...\n", argv[2]);
+    printf("outputting transitive closure matrix to %s...\n", argv[2]);
     FILE *output_f = fopen(argv[2], "w+");
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N; j++)
         {
-            fprintf(output_f, "%f", C[i * N + j]);
+            fprintf(output_f, "%d", C[i * N + j]);
             if (j < N - 1)
             {
                 fputc(',', output_f);

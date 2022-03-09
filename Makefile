@@ -13,10 +13,10 @@ DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} ${DOCKER_ENV_VARS} -t ${IMAGE_TAG}
 
 # Topmost rule must be to build the optimized C code
 
-c-naive-shortest-path: docker shortest-path/c-naive/*.c shortest-path/c-naive/*.h
+c-naive-shortest-path: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make c-naive-shortest-path
 
-c-naive-transitive-closure: docker transitive-closure/c-naive/*.c transitive-closure/c-naive/*.h
+c-naive-transitive-closure: docker transitive-closure/c/*.c transitive-closure/c/impl/naive.c transitive-closure/c/impl/tc.h
 	docker run ${DOCKER_RUN_ARGS} make c-naive-transitive-closure
 
 go-ref-shortest-path: docker shortest-path/go/*
