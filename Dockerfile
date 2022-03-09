@@ -18,3 +18,4 @@ COPY docker.mk Makefile
 
 COPY shortest-path ./shortest-path
 COPY transitive-closure ./transitive-closure
+COPY max-min ./max-min

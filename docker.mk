@@ -13,5 +13,8 @@ c-naive-shortest-path: shortest-path/c/*.c shortest-path/c/impl/naive.c shortest
 c-naive-transitive-closure: transitive-closure/c/*.c transitive-closure/c/impl/naive.c transitive-closure/c/impl/tc.h
 	cd transitive-closure/c && gcc-11 -O3 -o $(BUILD_DIR)/c-naive-transitive-closure impl/naive.c main.c
 
+c-naive-max-min: max-min/c/*.c max-min/c/impl/naive.c max-min/c/impl/mm.h
+	cd max-min/c && gcc-11 -O3 -o $(BUILD_DIR)/c-naive-max-min impl/naive.c main.c
+
 go-ref-shortest-path: shortest-path/go/*.go shortest-path/go/go.mod
 	cd shortest-path/go && go build -o ${BUILD_DIR}/go-ref-shortest-path .
