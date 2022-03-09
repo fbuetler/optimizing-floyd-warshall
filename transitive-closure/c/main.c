@@ -3,26 +3,91 @@
 #include <string.h>
 #include <malloc.h>
 #include <math.h>
+
 #include "impl/tc.h"
 
-void showMatrix(char *C, int N)
+#ifdef __x86_64__
+#include "tsc_x86.h"
+#endif
+
+#define NUM_RUNS 1
+#define CYCLES_REQUIRED 1e8
+#define FREQUENCY 2.3e9
+#define CALIBRATE
+
+void printMatrix(char *C, int N)
 {
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N; j++)
         {
-            printf("%d, ", C[i * N + j]);
+            fprintf(stderr, "%d, ", C[i * N + j]);
         }
-        printf("\n");
+        fprintf(stderr, "\n");
     }
 }
+
+#ifdef __x86_64__
+/*
+ * Timing function based on the TimeStep Counter of the CPU.
+ *
+ * We don't particularly care about the input, so we just
+ * run FW on the same matrix C for each run even though it
+ * modifies it in-place.
+ *
+ * The function returns the average number of cycles per run.
+ */
+double rdtsc(char *C, int N)
+{
+    int i, num_runs;
+    myInt64 cycles;
+    myInt64 start;
+    num_runs = NUM_RUNS;
+
+#ifdef CALIBRATE
+    while (num_runs < (1 << 14))
+    {
+        start = start_tsc();
+        for (i = 0; i < num_runs; ++i)
+        {
+            warshall(C, N);
+        }
+        cycles = stop_tsc(start);
+
+        if (cycles >= CYCLES_REQUIRED)
+            break;
+
+        num_runs *= 2;
+    }
+#endif
+
+    fprintf(stderr, "#runs: ");
+    printf("%d\n", num_runs);
+
+    /*
+     * Alternatives to the current approach:
+     * - Measure #cycles for each run separately
+     *  --> Suffers from timing bias and requires cache warmup
+     *  --> Allows for more fine-grained statistics, e.g. median, variance, etc.
+     */
+
+    start = start_tsc();
+    for (i = 0; i < num_runs; ++i)
+    {
+        warshall(C, N);
+    }
+    cycles = stop_tsc(start) / num_runs;
+
+    return (double)cycles;
+}
+#endif
 
 int main(int argc, char **argv)
 {
     if (argc != 3)
     {
-        printf("incorrect number of arguments\n");
-        printf("call as: ./main input_filename output_filename\n");
+        fprintf(stderr, "incorrect number of arguments\n");
+        fprintf(stderr, "call as: ./main input_filename output_filename\n");
         return -1;
     }
 
@@ -31,13 +96,13 @@ int main(int argc, char **argv)
     int N; // num nodes
     if (fscanf(input_f, "%d ", &N) < 1)
     {
-        printf("malformed input: couldn't match number N of vertices\n");
+        fprintf(stderr, "malformed input: couldn't match number N of vertices\n");
         return -1;
     }
 
-    printf("allocating memory...\n");
+    fprintf(stderr, "allocating memory...\n");
     char *C = (char *)malloc(N * N * sizeof(char));
-    printf("parsing input matrix...\n");
+    fprintf(stderr, "parsing input matrix...\n");
     for (int i = 0; i < N; i++)
     {
         char inputValue[100];
@@ -57,11 +122,14 @@ int main(int argc, char **argv)
     }
     fclose(input_f);
 
-    printf("finding transitive closure...\n");
-    warshall(C, N);
-    showMatrix(C, N);
+#ifdef __x86_64__
+    fprintf(stderr, "finding shortest paths...\n");
+    double r = rdtsc(C, N);
+    fprintf(stderr, "#cycles on avg: ");
+    printf("%lf\n", r);
+#endif
 
-    printf("outputting transitive closure matrix to %s...\n", argv[2]);
+    fprintf(stderr, "outputting transitive closure matrix to %s...\n", argv[2]);
     FILE *output_f = fopen(argv[2], "w+");
     for (int i = 0; i < N; i++)
     {
