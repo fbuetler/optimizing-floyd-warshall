@@ -50,7 +50,7 @@ double rdtsc(char *C, int N)
         start = start_tsc();
         for (i = 0; i < num_runs; ++i)
         {
-            warshall(C, N);
+            floydWarshall(C, N);
         }
         cycles = stop_tsc(start);
 
@@ -74,7 +74,7 @@ double rdtsc(char *C, int N)
     start = start_tsc();
     for (i = 0; i < num_runs; ++i)
     {
-        warshall(C, N);
+        floydWarshall(C, N);
     }
     cycles = stop_tsc(start) / num_runs;
 

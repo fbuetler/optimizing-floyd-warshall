@@ -1,6 +1,9 @@
 #include "tc.h"
 
-void warshall(char *C, int N)
+/*
+unoptimized version of the modified Floyd-Warshall transitive-closure algorithm
+*/
+void floydWarshall(char *C, int N)
 {
     for (int k = 0; k < N; k++)
     {

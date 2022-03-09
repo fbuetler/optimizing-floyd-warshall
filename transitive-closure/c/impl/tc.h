@@ -4,6 +4,6 @@
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 /* Computes the transitive closure of and stores it in C. N is the number of nodes.*/
-void warshall(char *C, int N);
+void floydWarshall(char *C, int N);
 
 #endif
