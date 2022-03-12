@@ -43,6 +43,7 @@ def read_weighted(path: str) -> list[list[float]]:
 def write_weighted(path: str, c: list[list[float]]) -> None:
     '''write a real-valued matrix to the target path'''
     with open(path, 'w') as f:
+        f.write(f'{len(c)}\n')
         for line in c:
             for dist in line:
                 if dist != inf:

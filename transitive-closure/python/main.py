@@ -36,6 +36,7 @@ def read_boolean(path: str) -> list[list[bool]]:
 def write_boolean(path: str, c: list[list[bool]]) -> None:
     '''write the weighted matrix to the target path'''
     with open(path, 'w') as f:
+        f.write(f'{len(c)}\n')
         for line in c:
             for reach in line:
                 if reach:
