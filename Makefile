@@ -13,16 +13,16 @@ DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} ${DOCKER_ENV_VARS} -t ${IMAGE_TAG}
 
 # Topmost rule must be to build the optimized C code
 
-c-naive-shortest-path: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
+build-c-naive-shortest-path: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make c-naive-shortest-path
 
-c-naive-transitive-closure: docker transitive-closure/c/*.c transitive-closure/c/impl/naive.c transitive-closure/c/impl/tc.h
+build-c-naive-transitive-closure: docker transitive-closure/c/*.c transitive-closure/c/impl/naive.c transitive-closure/c/impl/tc.h
 	docker run ${DOCKER_RUN_ARGS} make c-naive-transitive-closure
 
-c-naive-max-min: docker max-min/c/*.c max-min/c/impl/naive.c max-min/c/impl/mm.h
+build-c-naive-max-min: docker max-min/c/*.c max-min/c/impl/naive.c max-min/c/impl/mm.h
 	docker run ${DOCKER_RUN_ARGS} make c-naive-max-min
 
-go-ref-shortest-path: docker shortest-path/go/*
+build-go-ref-shortest-path: docker shortest-path/go/*
 	docker run ${DOCKER_RUN_ARGS} make go-ref-shortest-path
 
 .PHONY: docker
