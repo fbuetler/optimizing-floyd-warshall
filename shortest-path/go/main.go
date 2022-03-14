@@ -63,13 +63,11 @@ func writeMatrix(fileName string, matrix [][]float64) {
 	w.WriteString(fmt.Sprintf("%d\n", len(matrix)))
 	for i, row := range matrix {
 		var sb strings.Builder
-		for j, el := range row {
+		for _, el := range row {
 			if el != math.MaxFloat64 {
 				sb.WriteString(fmt.Sprintf("%.2f", el))
 			}
-			if j < len(row)-1 {
-				sb.WriteString(",")
-			}
+			sb.WriteString(",")
 		}
 		if i < len(matrix)-1 {
 			sb.WriteString("\n")
