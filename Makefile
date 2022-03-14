@@ -25,6 +25,16 @@ build-c-naive-max-min: docker max-min/c/*.c max-min/c/impl/naive.c max-min/c/imp
 build-go-ref-shortest-path: docker shortest-path/go/*
 	docker run ${DOCKER_RUN_ARGS} make go-ref-shortest-path
 
+generate-graph: ${ROOT_DIR}/generator/graph_generator.py
+	python3 ${ROOT_DIR}/generator/graph_generator.py \
+    --nodes 30 \
+    --edges 42 \
+    --connected \
+    --no-neg-cycle \
+    --min-weight 0.0 \
+    --max-weight 10.0 \
+    --output ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt
+
 .PHONY: docker
 docker: Dockerfile .dockerignore
 	docker build -t ${IMAGE_TAG} .
