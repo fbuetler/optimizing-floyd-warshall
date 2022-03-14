@@ -26,6 +26,7 @@ build-go-ref-shortest-path: docker shortest-path/go/*
 	docker run ${DOCKER_RUN_ARGS} make go-ref-shortest-path
 
 generate-graph: ${ROOT_DIR}/generator/graph_generator.py
+	mkdir -p "$(shell dirname ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt)"; \
 	python3 ${ROOT_DIR}/generator/graph_generator.py \
     --nodes 30 \
     --edges 42 \
