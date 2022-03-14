@@ -60,6 +60,7 @@ func writeMatrix(fileName string, matrix [][]float64) {
 	defer f.Close()
 
 	w := bufio.NewWriter(f)
+	w.WriteString(fmt.Sprintf("%d\n", len(matrix)))
 	for i, row := range matrix {
 		var sb strings.Builder
 		for j, el := range row {
