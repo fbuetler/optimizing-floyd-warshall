@@ -61,7 +61,7 @@ func writeMatrix(fileName string, matrix [][]float64) {
 
 	w := bufio.NewWriter(f)
 	w.WriteString(fmt.Sprintf("%d\n", len(matrix)))
-	for i, row := range matrix {
+	for _, row := range matrix {
 		var sb strings.Builder
 		for _, el := range row {
 			if el != math.MaxFloat64 {
@@ -69,9 +69,7 @@ func writeMatrix(fileName string, matrix [][]float64) {
 			}
 			sb.WriteString(",")
 		}
-		if i < len(matrix)-1 {
-			sb.WriteString("\n")
-		}
+		sb.WriteString("\n")
 		w.WriteString(sb.String())
 	}
 
