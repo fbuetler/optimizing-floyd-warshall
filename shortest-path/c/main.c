@@ -18,6 +18,7 @@
 void printMatrix(float *C, int N) {
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
+            fprintf(stderr, "%.2f, ", C[i * N + j]);
         }
         fprintf(stderr, "\n");
     }
@@ -134,20 +135,12 @@ int main(int argc, char **argv) {
 
     fprintf(stderr, "outputting shortest-path matrix to %s...\n", argv[2]);
     FILE *output_f = fopen(argv[2], "w+");
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            fprintf(output_f, "%f", C[i * N + j]);
-            if (j < N - 1)
-            {
-                fputc(',', output_f);
-            }
-            else
-            {
-                fputc('\n', output_f);
-            }
+    fprintf(output_f, "%d\n", N);
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            fprintf(output_f, "%.2f,", C[i * N + j]);
         }
+        fputc('\n', output_f);
     }
 
     free(C);
