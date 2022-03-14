@@ -40,6 +40,11 @@ run-go-ref-shortest-path: ${BUILD_DIR_LOCAL}/go-ref-shortest-path ${ROOT_DIR}/te
 		-input-filename ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt \
 		-output-filename ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.out.txt
 
+run-python-ref-shortest-path: ${ROOT_DIR}/shortest-path/python/main.py ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt
+	python3 ${ROOT_DIR}/shortest-path/python/main.py \
+		-i ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt \
+		-o ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.out.txt
+	
 .PHONY: docker
 docker: Dockerfile .dockerignore
 	docker build -t ${IMAGE_TAG} .
