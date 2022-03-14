@@ -25,6 +25,8 @@ func readMatrix(fileName string) [][]float64 {
 
 	scanner := bufio.NewScanner(file)
 	matrix := [][]float64{}
+	scanner.Scan()
+	_ = scanner.Text()
 	for scanner.Scan() {
 		line := scanner.Text()
 		mlRaw := strings.Split(line, ",")
