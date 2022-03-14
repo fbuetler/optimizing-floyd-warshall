@@ -35,6 +35,11 @@ generate-graph: ${ROOT_DIR}/generator/graph_generator.py
     --max-weight 10.0 \
     --output ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt
 
+run-go-ref-shortest-path: ${BUILD_DIR_LOCAL}/go-ref-shortest-path ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt
+	${BUILD_DIR_LOCAL}/go-ref-shortest-path \
+		-input-filename ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt \
+		-output-filename ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.out.txt
+
 .PHONY: docker
 docker: Dockerfile .dockerignore
 	docker build -t ${IMAGE_TAG} .
