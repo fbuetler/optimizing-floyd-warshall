@@ -2,6 +2,8 @@
 """Use to compare two matrices."""
 import sys
 import getopt
+from os import walk
+from pathlib import Path
 from math import inf
 import numpy as np
 import graphviz as gv
@@ -47,6 +49,44 @@ def compare(m1: np.ndarray, m2: np.ndarray, tgt: str = '',
     return np.all(comp)
 
 
+def compare_recursive(path: str, precision: float = 0.000_000_1) -> bool:
+    """Recursively compare the files within the provided directory.
+
+    TODO: apply file naming convention
+
+    :path: root directory to do comparisions in
+    :precision: precision to use for comparisions
+    """
+    print()
+    suc, tot = 0, 0  # passes / total tests
+    for (curpath, _, files) in walk(path):
+        if not files:  # empty directory
+            continue
+
+        # find valid pairs
+        files = sorted(files)
+        print(f'Directory: {curpath:>40}:\n'
+              f'==========={40*"="}=')
+        for x, y in zip(files, files[1:]):
+            if (stem := x.split('.')[0]) != y.split('.')[0]:
+                continue  # different names
+            px, py = Path(x), Path(y)
+            if ('.out' not in px.suffixes) or ('.ref' not in py.suffixes):
+                continue  # not valid out-ref pair
+            res = compare(read_matrix(f'{curpath}/{x}'),
+                          read_matrix(f'{curpath}/{y}'),
+                          tgt='', precision=precision)
+            msg = '\033[92mPASS\033[0m' if res else '\033[93mFAIL\033[0m'
+            print(f'- {stem+":":45} {msg}')
+            tot += 1
+            suc += int(res)
+        print()
+
+    print(f'{suc} of {tot} tests ({suc/tot:.0%}) passed!')
+
+    return suc == tot
+
+
 def main(argv: list[str]) -> None:
     """Read two matrices from file, then compare them.
 
@@ -57,37 +97,48 @@ def main(argv: list[str]) -> None:
           saved to that location (with differing edges in red).
     -s or --silent to disable output message.
     -h or --help to print this message.
+    -r or --recursive to iterate through a directory and compare files in it.
+          In this case, only supply one argument - the root dir to do the
+          comparisons in.
 
     :return: 0 if the two matrices are equal
              1 if they differ
              2 if an error occured (like unable to read matrices, or bad input)
+             In case the recursive flag was used, the outputs are similar, but
+             for every found pair of files (i.e. 0 -> all found files match).
     """
     # parse options
     try:
-        opts, args = getopt.getopt(argv, 'si:p:',
-                                   ['img=', 'precision=', 'silent'])
+        opts, args = getopt.getopt(argv, 'si:p:r', ['img=', 'precision=',
+                                                    'silent', 'recursive'])
     except getopt.GetoptError:
         print('bad input')
         return(2)
-    if len(args) != 2:
-        print(f'invalid number of input files: {len(args)} given, '
-              f'but 2 required')
-        return(2)
+    # if len(args) != 2:
+    #     print(f'invalid number of input files: {len(args)} given, '
+    #           f'but 2 required')
+    #     return(2)
     img = ''
     prec = 0.01
     silent = False
+    rec = False
     for opt, arg in opts:
         if opt in ('--img', '-i'):
             img = arg
         elif opt in ('--precision', '-p') and arg == 'inf':
-            print('hey')
             prec = inf
         elif opt in ('--precision', '-p'):
             prec = float(arg)
         elif opt in ('-s', '--silent'):
             silent = True
+        elif opt in ('-r', '--recursive'):
+            rec = True
 
-    # read input
+    # recursive case?
+    if rec:
+        return int(not compare_recursive(args[0], prec))
+
+    # otherwise, read input
     try:
         m1 = read_matrix(args[0])
         m2 = read_matrix(args[1])
