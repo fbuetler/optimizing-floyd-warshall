@@ -79,12 +79,15 @@ def compare_recursive(path: str, precision: float = 0.000_000_1) -> bool:
             res = compare(read_matrix(f'{curpath}/{x}'),
                           read_matrix(f'{curpath}/{y}'),
                           tgt='', precision=curprec)
-            msg = '\033[92mPASS\033[0m' if res else '\033[93mFAIL\033[0m'
+            msg = "\033[92mPASS\033[0m" if res else "\033[93mFAIL\033[0m"
             print(f'- {stem+px.suffixes[0]+":":45} {msg}')
             tot += 1
             suc += int(res)
         print()
 
+    if tot == 0:
+        print("No Testcases Found!")
+        return 2
     print(f'{suc} of {tot} tests ({suc/tot:.0%}) passed!')
 
     return suc == tot
