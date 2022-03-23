@@ -19,4 +19,6 @@ python3 graph_generator.py \
     --output graph.txt
 ```
 
-**Note**: You cannot use both flags `--connect` and `--directed` at the same time.
+**Note**: Connectivity for directed graphs is determined by weak connectivity.
+A directed graph is weakly connected iff the underlying undirected graph (i.e. every directed edge
+is turned into an undirected edge) is connected.

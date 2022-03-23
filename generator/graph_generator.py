@@ -1,6 +1,6 @@
 import argparse
 import random
-from networkx import gnm_random_graph, is_connected, negative_edge_cycle, adjacency_matrix
+from networkx import gnm_random_graph, is_connected, is_weakly_connected, negative_edge_cycle, adjacency_matrix
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--nodes", help="number of nodes in the graph", type=int, default=30)
@@ -20,17 +20,27 @@ m = args.edges
 G = None
 
 redo_graph = True
+tries = 0
+max_try = 1e4
 while redo_graph:
+    if tries > max_try:
+        print("Took too many tries to generate graph with n={} and m={}".format(n, m))
+        exit(1)
+
+    tries += 1
     redo_graph = False
 
     G = gnm_random_graph(n, m, None, args.directed)
 
-    if args.connected and not is_connected(G):
+    if args.connected and (not args.directed and not is_connected(G) or args.directed and not is_weakly_connected(G)):
         redo_graph = True
         continue
 
     for u, v in G.edges:
-        G[u][v]["weight"] = random.normalvariate((args.max_weight - args.min_weight) / 2.0, (args.max_weight - args.min_weight) / 8)
+        G[u][v]["weight"] = random.normalvariate((args.max_weight - args.min_weight) / 2.0, (args.max_weight - args.min_weight) / 3.0)
+        while G[u][v]["weight"] < args.min_weight or G[u][v]["weight"] > args.max_weight:
+            G[u][v]["weight"] = random.normalvariate((args.max_weight - args.min_weight) / 2.0, (args.max_weight - args.min_weight) / 3.0)
+
 
     if args.no_neg_cycle and negative_edge_cycle(G):
         redo_graph = True
