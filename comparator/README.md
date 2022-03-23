@@ -28,7 +28,9 @@ To compare everything within a given directory and all its subdirectories use `-
 ./compare.py -r path/to/root/directory
 ```
 
-The only extra argument that is compatible with recursive is `-p` / `--precision=`.
+The only extra argument that is compatible with recursive is `-p` / `--precision=`. It will be used for everything except `.tc` files (so for `.fw` and `.mm`).
 
-The script will compare each pair of out- and reference-files, and print the result. At the end, it will also print the total number of passes and tests.
+The script will compare each pair of out- and reference-files (see wiki: Input and Output Formats), and print the result.
+At the end, it will also print the total number of passes and tests.
+
 Exit codes are similar to comparing 2 files: 0 if everything passes, 1 if at least one test fails, 2 in case of an error.
