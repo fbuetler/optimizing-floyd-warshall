@@ -11,7 +11,7 @@ IMAGE_TAG:=asl-build
 DOCKER_ENV_VARS:=-e MAKE_BUILD_DIR=${BUILD_DIR_DOCKER}
 DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} ${DOCKER_ENV_VARS} -t ${IMAGE_TAG}
 
-TESTCASE_IN_PATH=${ROOT_DIR}/testcases/example/2/graph_n30_e42_min0_max10_connected.txt
+TESTCASE_IN_PATH=${ROOT_DIR}/testcases/example/2/graph_n30_e42_min0_max10_connected.in.txt
 TESTCASE_OUT_PATH=${ROOT_DIR}/testcases/example/2/graph_n30_e42_min0_max10_connected.out.txt
 # Topmost rule must be to build the optimized C code
 
