@@ -569,4 +569,3 @@ build/*
 output/*
 !output/.gitkeep
 *.out.*
-!/testcases/**/*.out.*
