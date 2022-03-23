@@ -1,4 +1,5 @@
 import argparse
+from cProfile import label
 import csv
 import os
 
@@ -21,22 +22,22 @@ performance_data = list()
 with open(data_file) as f:
     reader = csv.reader(f, delimiter=",", quoting=csv.QUOTE_NONNUMERIC)
     n_list = reader.__next__()
-    for row in reader:
-        performance_data.append(row)
+    runs_list = reader.__next__()
+    cycles_list = reader.__next__()
 
-plot_args = list()
-for pd in performance_data:
-    plot_args += [n_list, pd, "o-"]
-plt.plot(*plot_args)
+plt.plot(n_list, runs_list, "-o", label="runs")
+plt.plot(n_list, cycles_list, "-o", label="cycles")
 
-plt.xticks(n_list[0::2])
+plt.xticks(n_list)
 
-ymax = max([max(l) for l in performance_data])
+runs_max = max(runs_list)
+cycles_max = max(cycles_list)
+ymax = max(runs_max, cycles_max)
 plt.ylim([0, max(2, ymax + 0.1 * ymax)])
 
 plt.grid(True, which="major", axis="y")
 
-plt.legend("runs,cycles")
+plt.legend()
 
 plt.title(title)
 plt.xlabel("n")
