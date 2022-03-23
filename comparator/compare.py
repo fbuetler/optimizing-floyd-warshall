@@ -52,10 +52,9 @@ def compare(m1: np.ndarray, m2: np.ndarray, tgt: str = '',
 def compare_recursive(path: str, precision: float = 0.000_000_1) -> bool:
     """Recursively compare the files within the provided directory.
 
-    TODO: apply file naming convention
-
     :path: root directory to do comparisions in
-    :precision: precision to use for comparisions
+    :precision: precision to use for comparisions (will be used for everything
+                except .tc files)
     """
     print()
     suc, tot = 0, 0  # passes / total tests
@@ -71,11 +70,15 @@ def compare_recursive(path: str, precision: float = 0.000_000_1) -> bool:
             if (stem := x.split('.')[0]) != y.split('.')[0]:
                 continue  # different names
             px, py = Path(x), Path(y)
+            if len(px.suffixes) != 3 or len(py.suffixes) != 3 \
+               or px.suffixes[0] != py.suffixes[0]:
+                continue
             if ('.out' not in px.suffixes) or ('.ref' not in py.suffixes):
                 continue  # not valid out-ref pair
+            curprec = inf if px.suffixes[0] == '.tc' else precision
             res = compare(read_matrix(f'{curpath}/{x}'),
                           read_matrix(f'{curpath}/{y}'),
-                          tgt='', precision=precision)
+                          tgt='', precision=curprec)
             msg = '\033[92mPASS\033[0m' if res else '\033[93mFAIL\033[0m'
             print(f'- {stem+":":45} {msg}')
             tot += 1
