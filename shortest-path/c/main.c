@@ -15,9 +15,12 @@
 #define FREQUENCY 2.3e9
 #define CALIBRATE
 
-void printMatrix(float *C, int N) {
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
+void printMatrix(float *C, int N)
+{
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
             fprintf(stderr, "%.2f, ", C[i * N + j]);
         }
         fprintf(stderr, "\n");
@@ -28,13 +31,25 @@ void printMatrix(float *C, int N) {
 Copies data from one matrix to another.
 Assumes matrices 'from' and 'to' point to separate memory locations.
 */
-void copyMatrix(float *from, float *to, int N) {
+void copyMatrix(float *from, float *to, int N)
+{
 #pragma ivdep
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
             to[i * N + j] = from[i * N + j];
         }
     }
+}
+
+/*
+ * Runs the FW implementation once for testing purposes
+ * Note that the matrix C is modified in-place
+ */
+void outfile(float *C, int N)
+{
+    floydWarshall(C, N);
 }
 
 #ifdef __x86_64__
@@ -47,7 +62,8 @@ void copyMatrix(float *from, float *to, int N) {
  *
  * The function returns the average number of cycles per run.
  */
-double rdtsc(float *C, int N) {
+double rdtsc(float *C, int N)
+{
     int i, num_runs;
     myInt64 cycles;
     myInt64 start;
@@ -60,9 +76,11 @@ double rdtsc(float *C, int N) {
      * avoid measurements bias due to the timing overhead.
      */
 #ifdef CALIBRATE
-    while (num_runs < (1 << 14)) {
+    while (num_runs < (1 << 14))
+    {
         start = start_tsc();
-        for (i = 0; i < num_runs; ++i) {
+        for (i = 0; i < num_runs; ++i)
+        {
             floydWarshall(C, N);
         }
         cycles = stop_tsc(start);
@@ -85,7 +103,8 @@ double rdtsc(float *C, int N) {
      */
 
     start = start_tsc();
-    for (i = 0; i < num_runs; ++i) {
+    for (i = 0; i < num_runs; ++i)
+    {
         floydWarshall(C, N);
     }
     cycles = stop_tsc(start) / num_runs;
@@ -94,8 +113,31 @@ double rdtsc(float *C, int N) {
 }
 #endif
 
-int main(int argc, char **argv) {
-    if (argc != 3) {
+void output_matrix(char *filename, float *C, int N)
+{
+    fprintf(stderr, "outputting shortest-path matrix to %s...\n", filename);
+    FILE *output_f = fopen(filename, "w+");
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            fprintf(output_f, "%f", C[i * N + j]);
+            if (j < N - 1)
+            {
+                fputc(',', output_f);
+            }
+            else
+            {
+                fputc('\n', output_f);
+            }
+        }
+    }
+}
+
+int main(int argc, char **argv)
+{
+    if (argc != 3)
+    {
         fprintf(stderr, "incorrect number of arguments\n");
         fprintf(stderr, "call as: ./main input_filename output_filename\n");
         return -1;
@@ -103,8 +145,9 @@ int main(int argc, char **argv) {
 
     FILE *input_f = fopen(argv[1], "r");
 
-    int N;  // num nodes
-    if (fscanf(input_f, "%d ", &N) < 1) {
+    int N; // num nodes
+    if (fscanf(input_f, "%d ", &N) < 1)
+    {
         fprintf(stderr, "malformed input: couldn't match number N of vertices\n");
         return -1;
     }
@@ -112,19 +155,33 @@ int main(int argc, char **argv) {
     fprintf(stderr, "allocating memory...\n");
     float *C = (float *)malloc(N * N * sizeof(float));
     fprintf(stderr, "parsing input matrix...\n");
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++)
+    {
         char inputValue[100];
-        for (int j = 0; j < N; j++) {
+        for (int j = 0; j < N; j++)
+        {
             int numValues = fscanf(input_f, "%[^,\n]s", inputValue);
-            if (numValues == 1) {
+            if (numValues == 1)
+            {
                 C[i * N + j] = strtof(inputValue, NULL);
-            } else {
+            }
+            else
+            {
                 C[i * N + j] = INFINITY;
             }
-            fgetc(input_f);  // skip ',' or '\n'
+            fgetc(input_f); // skip ',' or '\n'
         }
     }
     fclose(input_f);
+
+    float *D = (float *)malloc(N * N * sizeof(float));
+    memcpy(D, C, N * N * sizeof(char));
+    fprintf(stderr, "generating test output...\n");
+    outfile(D, N);
+    char ref_output[256];
+    sprintf(ref_output, "%s.sp.out.txt", argv[2]);
+    output_matrix(ref_output, D, N);
+    free(D);
 
 #ifdef __x86_64__
     fprintf(stderr, "finding shortest paths...\n");
@@ -132,16 +189,6 @@ int main(int argc, char **argv) {
     fprintf(stderr, "#cycles on avg: ");
     printf("%lf\n", r);
 #endif
-
-    fprintf(stderr, "outputting shortest-path matrix to %s...\n", argv[2]);
-    FILE *output_f = fopen(argv[2], "w+");
-    fprintf(output_f, "%d\n", N);
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            fprintf(output_f, "%.2f,", C[i * N + j]);
-        }
-        fputc('\n', output_f);
-    }
 
     free(C);
 }

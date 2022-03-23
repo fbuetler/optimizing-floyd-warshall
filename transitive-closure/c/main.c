@@ -27,6 +27,17 @@ void printMatrix(char *C, int N)
     }
 }
 
+// TODO: Include cache warmup
+
+/*
+ * Runs the FW implementation once for testing purposes
+ * Note that the matrix C is modified in-place
+ */
+void outfile(char *C, int N)
+{
+    floydWarshall(C, N);
+}
+
 #ifdef __x86_64__
 /*
  * Timing function based on the TimeStep Counter of the CPU.
@@ -82,6 +93,27 @@ double rdtsc(char *C, int N)
 }
 #endif
 
+void output_matrix(char *filename, char *C, int N)
+{
+    fprintf(stderr, "outputting transitive closure matrix to %s...\n", filename);
+    FILE *output_f = fopen(filename, "w+");
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            fprintf(output_f, "%d", C[i * N + j]);
+            if (j < N - 1)
+            {
+                fputc(',', output_f);
+            }
+            else
+            {
+                fputc('\n', output_f);
+            }
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     if (argc != 3)
@@ -122,30 +154,21 @@ int main(int argc, char **argv)
     }
     fclose(input_f);
 
+    char *D = (char *)malloc(N * N * sizeof(char));
+    memcpy(D, C, N * N * sizeof(char));
+    fprintf(stderr, "generating test output...\n");
+    outfile(D, N);
+    char ref_output[256];
+    sprintf(ref_output, "%s.tc.out.txt", argv[2]);
+    output_matrix(ref_output, D, N);
+    free(D);
+
 #ifdef __x86_64__
-    fprintf(stderr, "finding transitive closure...\n");
+    fprintf(stderr, "running optimized version...\n");
     double r = rdtsc(C, N);
     fprintf(stderr, "#cycles on avg: ");
     printf("%lf\n", r);
 #endif
-
-    fprintf(stderr, "outputting transitive closure matrix to %s...\n", argv[2]);
-    FILE *output_f = fopen(argv[2], "w+");
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            fprintf(output_f, "%d", C[i * N + j]);
-            if (j < N - 1)
-            {
-                fputc(',', output_f);
-            }
-            else
-            {
-                fputc('\n', output_f);
-            }
-        }
-    }
 
     free(C);
 }
