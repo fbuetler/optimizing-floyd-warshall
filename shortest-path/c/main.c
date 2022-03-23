@@ -47,7 +47,7 @@ void copyMatrix(float *from, float *to, int N)
  * Runs the FW implementation once for testing purposes
  * Note that the matrix C is modified in-place
  */
-void outfile(float *C, int N)
+void ref_output(float *C, int N)
 {
     floydWarshall(C, N);
 }
@@ -176,11 +176,11 @@ int main(int argc, char **argv)
     fclose(input_f);
 
     float *D = (float *)malloc(N * N * sizeof(float));
-    memcpy(D, C, N * N * sizeof(char));
+    memcpy(D, C, N * N * sizeof(float));
     fprintf(stderr, "generating test output...\n");
-    outfile(D, N);
+    ref_output(D, N);
     char ref_output[256];
-    sprintf(ref_output, "%s.sp.out.txt", argv[2]);
+    sprintf(ref_output, "%s.fw.out.txt", argv[2]);
     output_matrix(ref_output, D, N);
     free(D);
 
