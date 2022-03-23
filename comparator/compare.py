@@ -64,7 +64,7 @@ def compare_recursive(path: str, precision: float = 0.000_000_1) -> bool:
 
         # find valid pairs
         files = sorted(files)
-        print(f'Directory: {curpath:>40}:\n'
+        print(f'Directory:{"testcases"+curpath.split("testcases")[1]:>40}:\n'
               f'==========={40*"="}=')
         for x, y in zip(files, files[1:]):
             if (stem := x.split('.')[0]) != y.split('.')[0]:
