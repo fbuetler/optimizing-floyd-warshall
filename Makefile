@@ -38,6 +38,9 @@ generate-graph: ${ROOT_DIR}/generator/graph_generator.py
     --max-weight 10.0 \
     --output ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt
 
+compare:
+	${ROOT_DIR}/comparator/compare.py -r ${ROOT_DIR}/testcases/
+
 run-c-naive-shortest-path: ${BUILD_DIR_LOCAL}/c-naive-shortest-path ${TESTCASE_IN_PATH}
 	${BUILD_DIR_LOCAL}/c-naive-shortest-path \
 		${TESTCASE_IN_PATH} \
@@ -52,7 +55,7 @@ run-python-ref-shortest-path: ${ROOT_DIR}/shortest-path/python/main.py ${TESTCAS
 	python3 ${ROOT_DIR}/shortest-path/python/main.py \
 		-i ${TESTCASE_IN_PATH} \
 		-o ${TESTCASE_OUT_PATH}
-	
+
 .PHONY: docker
 docker: Dockerfile .dockerignore
 	docker build -t ${IMAGE_TAG} .
