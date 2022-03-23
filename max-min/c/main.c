@@ -28,6 +28,15 @@ void printMatrix(float *C, int N)
 }
 
 /*
+ * Runs the FW implementation once for testing purposes
+ * Note that the matrix C is modified in-place
+ */
+void outfile(float *C, int N)
+{
+    floydWarshall(C, N);
+}
+
+/*
 Copies data from one matrix to another.
 Assumes matrices 'from' and 'to' point to separate memory locations.
 */
@@ -104,6 +113,27 @@ double rdtsc(float *C, int N)
 }
 #endif
 
+void output_matrix(char *filename, float *C, int N)
+{
+    fprintf(stderr, "outputting max-min matrix to %s...\n", filename);
+    FILE *output_f = fopen(filename, "w+");
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            fprintf(output_f, "%f", C[i * N + j]);
+            if (j < N - 1)
+            {
+                fputc(',', output_f);
+            }
+            else
+            {
+                fputc('\n', output_f);
+            }
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     if (argc != 3)
@@ -144,30 +174,21 @@ int main(int argc, char **argv)
     }
     fclose(input_f);
 
+    float *D = (float *)malloc(N * N * sizeof(float));
+    memcpy(D, C, N * N * sizeof(char));
+    fprintf(stderr, "generating test output...\n");
+    outfile(D, N);
+    char ref_output[256];
+    sprintf(ref_output, "%s.mm.out.txt", argv[2]);
+    output_matrix(ref_output, D, N);
+    free(D);
+
 #ifdef __x86_64__
     fprintf(stderr, "finding max-min...\n");
     double r = rdtsc(C, N);
     fprintf(stderr, "#cycles on avg: ");
     printf("%lf\n", r);
 #endif
-
-    fprintf(stderr, "outputting max-min matrix to %s...\n", argv[2]);
-    FILE *output_f = fopen(argv[2], "w+");
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            fprintf(output_f, "%f", C[i * N + j]);
-            if (j < N - 1)
-            {
-                fputc(',', output_f);
-            }
-            else
-            {
-                fputc('\n', output_f);
-            }
-        }
-    }
 
     free(C);
 }
