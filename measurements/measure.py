@@ -12,7 +12,7 @@ parser.add_argument(
 parser.add_argument(
     "-m",
     "--measurements",
-    help="directory to save the measuremente",
+    help="directory to save the measurements",
     type=str,
     required=True,
 )
