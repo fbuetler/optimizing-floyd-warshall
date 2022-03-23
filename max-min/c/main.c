@@ -21,7 +21,7 @@ void printMatrix(float *C, int N)
     {
         for (int j = 0; j < N; j++)
         {
-            fprintf(stderr, "%f, ", C[i * N + j]);
+            fprintf(stderr, "%.2f, ", C[i * N + j]);
         }
         fprintf(stderr, "\n");
     }
@@ -122,7 +122,7 @@ void output_matrix(char *filename, float *C, int N)
     {
         for (int j = 0; j < N; j++)
         {
-            fprintf(output_f, "%f", C[i * N + j]);
+            fprintf(output_f, "%.2f", C[i * N + j]);
             if (j < N - 1)
             {
                 fputc(',', output_f);
