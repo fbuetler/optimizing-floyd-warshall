@@ -117,6 +117,7 @@ void output_matrix(char *filename, float *C, int N)
 {
     fprintf(stderr, "outputting max-min matrix to %s...\n", filename);
     FILE *output_f = fopen(filename, "w+");
+    fprintf(output_f, "%d\n", N);
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N; j++)
