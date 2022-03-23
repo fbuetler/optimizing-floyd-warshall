@@ -11,6 +11,8 @@ IMAGE_TAG:=asl-build
 DOCKER_ENV_VARS:=-e MAKE_BUILD_DIR=${BUILD_DIR_DOCKER}
 DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} ${DOCKER_ENV_VARS} -t ${IMAGE_TAG}
 
+TESTCASE_IN_PATH=${ROOT_DIR}/testcases/example/2/graph_n30_e42_min0_max10_connected.txt
+TESTCASE_OUT_PATH=${ROOT_DIR}/testcases/example/2/graph_n30_e42_min0_max10_connected.out.txt
 # Topmost rule must be to build the optimized C code
 
 build-c-naive-shortest-path: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
@@ -36,20 +38,20 @@ generate-graph: ${ROOT_DIR}/generator/graph_generator.py
     --max-weight 10.0 \
     --output ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt
 
-run-c-naive-shortest-path: ${BUILD_DIR_LOCAL}/c-naive-shortest-path ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt
+run-c-naive-shortest-path: ${BUILD_DIR_LOCAL}/c-naive-shortest-path ${TESTCASE_IN_PATH}
 	${BUILD_DIR_LOCAL}/c-naive-shortest-path \
-		${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt \
-		${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.out.txt
+		${TESTCASE_IN_PATH} \
+		${TESTCASE_OUT_PATH}
 
-run-go-ref-shortest-path: ${BUILD_DIR_LOCAL}/go-ref-shortest-path ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt
+run-go-ref-shortest-path: ${BUILD_DIR_LOCAL}/go-ref-shortest-path ${TESTCASE_IN_PATH}
 	${BUILD_DIR_LOCAL}/go-ref-shortest-path \
-		-input-filename ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt \
-		-output-filename ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.out.txt
+		-input-filename ${TESTCASE_IN_PATH} \
+		-output-filename ${TESTCASE_OUT_PATH}
 
-run-python-ref-shortest-path: ${ROOT_DIR}/shortest-path/python/main.py ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt
+run-python-ref-shortest-path: ${ROOT_DIR}/shortest-path/python/main.py ${TESTCASE_IN_PATH}
 	python3 ${ROOT_DIR}/shortest-path/python/main.py \
-		-i ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.txt \
-		-o ${ROOT_DIR}/testcases/2/graph_n30_e42_min0_max10_connected.out.txt
+		-i ${TESTCASE_IN_PATH} \
+		-o ${TESTCASE_OUT_PATH}
 	
 .PHONY: docker
 docker: Dockerfile .dockerignore
