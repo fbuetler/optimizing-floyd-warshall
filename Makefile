@@ -56,6 +56,12 @@ run-python-ref-shortest-path: ${ROOT_DIR}/shortest-path/python/main.py ${TESTCAS
 		-i ${TESTCASE_IN_PATH} \
 		-o ${TESTCASE_OUT_PATH}
 
+measure-c-naive-shortest-path: ${BUILD_DIR_LOCAL}/c-naive-shortest-path ${ROOT_DIR}/testcases/example ${ROOT_DIR}/measurements/data
+	python3 ${ROOT_DIR}/measurements/measure.py \
+		--binary ${BUILD_DIR_LOCAL}/c-naive-shortest-path \
+		--testsuite ${ROOT_DIR}/testcases/example \
+		--measurements ${ROOT_DIR}/measurements/data 
+	
 .PHONY: docker
 docker: Dockerfile .dockerignore
 	docker build -t ${IMAGE_TAG} .
