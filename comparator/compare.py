@@ -80,7 +80,7 @@ def compare_recursive(path: str, precision: float = 0.000_000_1) -> bool:
                           read_matrix(f'{curpath}/{y}'),
                           tgt='', precision=curprec)
             msg = '\033[92mPASS\033[0m' if res else '\033[93mFAIL\033[0m'
-            print(f'- {stem+":":45} {msg}')
+            print(f'- {stem+px.suffixes[0]+":":45} {msg}')
             tot += 1
             suc += int(res)
         print()
@@ -90,7 +90,7 @@ def compare_recursive(path: str, precision: float = 0.000_000_1) -> bool:
     return suc == tot
 
 
-def main(argv: list[str]) -> None:
+def main(argv: list) -> None:
     """Read two matrices from file, then compare them.
 
     Extra arguments (have to come before the two files to compare):
