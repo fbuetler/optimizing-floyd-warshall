@@ -34,3 +34,14 @@ The script will compare each pair of out- and reference-files (see wiki: Input a
 At the end, it will also print the total number of passes and tests.
 
 Exit codes are similar to comparing 2 files: 0 if everything passes, 1 if at least one test fails, 2 in case of an error.
+
+# Binary Runner
+Run a binary against all input-files within a specified directory and its subdirectories.
+
+## Run Runner
+The runner takes 4 arguments:
+1. `-b` / `--binary`: the binary to use on all found input-files.
+2. `-a` / `--algorithm`: the algorithm-part to use in output file-endings (see wiki).
+   For instance, `fw` for floyd-warshall.
+3. `-o` / `--output`: output-type to use in file-ending (`ref` for reference files, `out` for out-files).
+4. `-d` / `--directory`: root directory to traverse / find testcases in.
