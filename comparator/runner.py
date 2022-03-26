@@ -29,14 +29,14 @@ def run_recursive(path: str, binary: str, ending: str):
             cmd = f'{binary} {in_path} {out_path}'
 
             print(f'running command: "{cmd}"')
-            args = (
+            b_args = (
                 binary,
                 in_path,
                 out_path
             )
-            popen = subprocess.Popen(args, stdout=subprocess.PIPE,
-                                     stderr=subprocess.DEVNULL)
-            popen.wait()
+            with subprocess.Popen(b_args, stdout=subprocess.PIPE,
+                                  stderr=subprocess.DEVNULL) as popen:
+                popen.wait()
 
 
 if __name__ == '__main__':
@@ -45,14 +45,18 @@ if __name__ == '__main__':
                         required=True)
     parser.add_argument("-a", "--algorithm",
                         help="algorithm-id to use in file-ending", type=str,
-                        required=True)
+                        required=False)
     parser.add_argument("-o", "--output",
                         help="output-type ('ref' or 'out') for file-ending",
-                        type=str, required=True)
+                        type=str, required=False)
     parser.add_argument("-d", "--directory",
                         help="directory to search for inputs / "
                         "generate outputs in",
                         type=str, required=True)
     args = parser.parse_args()
-    run_recursive(args.directory, args.binary,
-                  f".{args.algorithm}.{args.output}.txt")
+    if args.algorithm is None and args.output is None:
+        run_recursive(args.directory, args.binary,
+                      "")
+    else:
+        run_recursive(args.directory, args.binary,
+                      f".{args.algorithm}.{args.output}.txt")
