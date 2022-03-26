@@ -13,6 +13,7 @@ DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} ${DOCKER_ENV_VARS} -t ${IMAGE_TAG}
 
 TESTCASE_IN_PATH=${ROOT_DIR}/testcases/example/2/graph_n30_e42_min0_max10_connected.in.txt
 TESTCASE_OUT_PATH=${ROOT_DIR}/testcases/example/2/graph_n30_e42_min0_max10_connected.out.txt
+TESTCASE_DIR=${ROOT_DIR}/testcases/
 # Topmost rule must be to build the optimized C code
 
 build-c-naive-shortest-path: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
@@ -41,10 +42,20 @@ generate-graph: ${ROOT_DIR}/generator/graph_generator.py
 compare:
 	${ROOT_DIR}/comparator/compare.py -r ${ROOT_DIR}/testcases/
 
-run-c-naive-shortest-path: ${BUILD_DIR_LOCAL}/c-naive-shortest-path ${TESTCASE_IN_PATH}
-	${BUILD_DIR_LOCAL}/c-naive-shortest-path \
-		${TESTCASE_IN_PATH} \
-		${TESTCASE_OUT_PATH}
+run-c-naive-transitive-closure: ${BUILD_DIR_LOCAL}/c-naive-transitive-closure ${TESTCASE_DIR}
+	${ROOT_DIR}/comparator/runner.py \
+		-b ${BUILD_DIR_LOCAL}/c-naive-transitive-closure \
+		-d ${TESTCASE_DIR}
+
+run-c-naive-max-min: ${BUILD_DIR_LOCAL}/c-naive-max-min ${TESTCASE_DIR}
+	${ROOT_DIR}/comparator/runner.py \
+		-b ${BUILD_DIR_LOCAL}/c-naive-max-min \
+		-d ${TESTCASE_DIR}
+
+run-c-naive-shortest-path: ${BUILD_DIR_LOCAL}/c-naive-shortest-path ${TESTCASE_DIR}
+	${ROOT_DIR}/comparator/runner.py \
+		-b ${BUILD_DIR_LOCAL}/c-naive-shortest-path \
+		-d ${TESTCASE_DIR}
 
 run-go-ref-shortest-path: ${BUILD_DIR_LOCAL}/go-ref-shortest-path ${TESTCASE_IN_PATH}
 	${BUILD_DIR_LOCAL}/go-ref-shortest-path \
@@ -67,7 +78,7 @@ plot-c-naive-shortest-path: ${ROOT_DIR}/measurements/plot.py ${ROOT_DIR}/measure
 		--data ${ROOT_DIR}/measurements/data/c-naive-shortest-path_example.csv \
 		--plot ${ROOT_DIR}/measurements/plots \
 		--title "Example"
-	
+
 .PHONY: docker
 docker: Dockerfile .dockerignore
 	docker build -t ${IMAGE_TAG} .
