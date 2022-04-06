@@ -17,30 +17,34 @@ PLOTS_DIR="${ROOT_DIR}/measurements/plots"
 function printUsage() {
     echo "Usage: $0"
     echo "Commands:"
-    echo "  build <ALGORITHM|REF_IMPL>"
+    echo "  build <ALGORITHM> <IMPLEMENTATION>"
     echo "  generate-test-in <MIN_N> <MAX_N> <STEP_N>"
-    echo "  generate-test-out <REF_IMPL> <INPUT_CATEGORY>"
-    echo "  validate <ALGORITHM> <COMPILER>"
-    echo "  measure <ALGORITHM> <COMPILER> (<INPUT_CATEGORY>)"
-    echo "  plot <ALGORITHM> <COMPILER> <TESTCASE> <PLOT_TITLE>"
+    echo "  generate-test-out <ALGORITHM> <REF_IMPL> <INPUT_CATEGORY>"
+    echo "  validate <ALGORITHM> <IMPLEMENTATION> <COMPILER>"
+    echo "  measure <ALGORITHM> <IMPLEMENTATION> <COMPILER> (<INPUT_CATEGORY>)"
+    echo "  plot <ALGORITHM> <IMPLEMENTATION> <COMPILER> <TESTCASE> <PLOT_TITLE>"
     echo "  clean"
     echo "Algorithms:"
-    echo "  c-naive-shortest-path"
-    echo "  c-naive-transitive-closure"
-    echo "  c-naive-max-min"
+    echo "  fw (floyd-wahrshal)"
+    echo "  tc (transitive closure)"
+    echo "  mm (max-min)"
+    echo "Implementations:"
+    echo "  c-naive"
+    echo "  go-ref"
     echo "Compilers:"
     echo "  gcc"
     echo "  clang"
     echo "Input categories:"
     echo "  $(ls -m $INPUT_CATEGORY_DIR | sed 's/,/\n /g')"
     echo "Reference implementations:"
-    echo "  go-ref-shortest-path"
+    echo "  go-ref"
     exit 1
 }
 
 function build() {
     ALGORITHM="$1"
-    make "build-$ALGORITHM"
+    IMPLEMENTATION="$2"
+    make "build-${ALGORITHM}-${IMPLEMENTATION}"
 }
 
 function generate-test-in() {
@@ -56,12 +60,13 @@ function generate-test-in() {
 }
 
 function generate-test-out() {
-    REF_IMPL="$1"
-    INPUT_CATEGORY="$2"
+    ALGORITHM="$1"
+    REF_IMPL="$2"
+    INPUT_CATEGORY="$3"
     TESTCASES=$(find ${INPUT_CATEGORY_DIR}/${INPUT_CATEGORY} -name "*.in.txt")
     # TODO generate mm.ref and tc.ref too
     for TESTCASE_IN in $TESTCASES; do
-        "${BUILD_DIR}/$REF_IMPL" \
+        "${BUILD_DIR}/${ALGORITHM}_${REF_IMPL}" \
             -input-filename "${TESTCASE_IN}" \
             -output-filename "${TESTCASE_IN%%.in.txt}.fw.ref.txt"
     done
@@ -69,10 +74,11 @@ function generate-test-out() {
 
 function validate() {
     ALGORITHM="$1"
-    COMPILER="$2"
+    IMPLEMENTATION="$2"
+    COMPILER="$3"
     # TODO generate mm.out and tc.out too
     python3 "${ROOT_DIR}/comparator/runner.py" \
-        -b "${BUILD_DIR}/${ALGORITHM}_${COMPILER}" \
+        -b "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}" \
         -d "${TESTCASE_DIR}" \
         -a "fw" \
         -o "out"
@@ -85,20 +91,22 @@ function validate() {
 
 function measure() {
     ALGORITHM="$1"
-    COMPILER="$2"
-    INPUT_CATEGORY="$3"
+    IMPLEMENTATION="$2"
+    COMPILER="$3"
+    INPUT_CATEGORY="$4"
     python3 "${ROOT_DIR}/measurements/measure.py" \
-        --binary "${BUILD_DIR}/${ALGORITHM}_${COMPILER}" \
+        --binary "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}" \
         --testsuite "${INPUT_CATEGORY_DIR}/${INPUT_CATEGORY}" \
-        --output "${MEASUREMENTS_DIR}/${ALGORITHM}_${COMPILER}"
+        --output "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}"
 }
 
 function plot() {
     ALGORITHM="$1"
-    COMPILER="$2"
-    PLOT_TITLE="$3"
+    IMPLEMENTATION="$2"
+    COMPILER="$3"
+    PLOT_TITLE="$4"
     python3 "${ROOT_DIR}/measurements/perf-plots.py" \
-        --data "${MEASUREMENTS_DIR}/${ALGORITHM}_${COMPILER}.csv" \
+        --data "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}.csv" \
         --plot "${PLOTS_DIR}" \
         --title "$PLOT_TITLE"
 }
@@ -116,11 +124,12 @@ fi
 case "$COMMAND" in
 build)
     ALGORITHM="${2:-}"
-    if [[ -z "$ALGORITHM" ]]; then
+    IMPLEMENTATION="${3:-}"
+    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" ]]; then
         printUsage "$0"
     fi
     echo "Building $ALGORITHM"
-    build "$ALGORITHM"
+    build "$ALGORITHM" "$IMPLEMENTATION"
     echo
     ;;
 generate-test-in)
@@ -135,45 +144,49 @@ generate-test-in)
     echo
     ;;
 generate-test-out)
-    REF_IMPL="${2:-}"
-    INPUT_CATEGORY="${3:-}"
-    if [[ -z "$REF_IMPL" || -z "$INPUT_CATEGORY" ]]; then
+    ALGORITHM="${2:-}"
+    REF_IMPL="${3:-}"
+    INPUT_CATEGORY="${4:-}"
+    if [[ -z "$ALGORITHM" || -z "$REF_IMPL" || -z "$INPUT_CATEGORY" ]]; then
         printUsage "$0"
     fi
-    echo "Generating expected ouput of input category $INPUT_CATEGORY with $REF_IMPL"
-    generate-test-out "$REF_IMPL" "$INPUT_CATEGORY"
+    echo "Generating expected ouput of input category $INPUT_CATEGORY with $ALGORITHM/$REF_IMPL"
+    generate-test-out "$ALGORITHM" "$REF_IMPL" "$INPUT_CATEGORY"
     echo
     ;;
 validate)
     ALGORITHM="${2:-}"
-    COMPILER="${3:-}"
-    if [[ -z "$ALGORITHM" || -z "$COMPILER" ]]; then
+    IMPLEMENTATION="${3:-}"
+    COMPILER="${4:-}"
+    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$COMPILER" ]]; then
         printUsage "$0"
     fi
-    echo "Validating $ALGORITHM"
-    validate $ALGORITHM $COMPILER
+    echo "Validating $ALGORITHM/$IMPLEMENTATION"
+    validate $ALGORITHM "$IMPLEMENTATION" $COMPILER
     echo
     ;;
 measure)
     ALGORITHM="${2:-}"
-    COMPILER="${3:-}"
-    INPUT_CATEGORY="${4:-bench-inputs}"
-    if [[ -z "$ALGORITHM" || -z "$COMPILER" || -z "$INPUT_CATEGORY" ]]; then
+    IMPLEMENTATION="${3:-}"
+    COMPILER="${4:-}"
+    INPUT_CATEGORY="${5:-bench-inputs}"
+    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$COMPILER" || -z "$INPUT_CATEGORY" ]]; then
         printUsage "$0"
     fi
-    echo "Measuring $ALGORITHM compiled with $COMPILER on $INPUT_CATEGORY"
-    measure "$ALGORITHM" "$COMPILER" "$INPUT_CATEGORY"
+    echo "Measuring $ALGORITHM/$IMPLEMENTATION compiled with $COMPILER on $INPUT_CATEGORY"
+    measure "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$INPUT_CATEGORY"
     echo
     ;;
 plot)
     ALGORITHM="${2:-}"
-    COMPILER="${3:-}"
-    PLOT_TITLE="${4:-}"
-    if [[ -z "$ALGORITHM" || -z "$COMPILER" || -z "$PLOT_TITLE" ]]; then
+    IMPLEMENTATION="${3:-}"
+    COMPILER="${4:-}"
+    PLOT_TITLE="${5:-}"
+    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$COMPILER" || -z "$PLOT_TITLE" ]]; then
         printUsage "$0"
     fi
-    echo "Plotting $ALGORITHM compiled with $COMPILER as $PLOT_TITLE"
-    plot "$ALGORITHM" "$COMPILER" "$PLOT_TITLE"
+    echo "Plotting $ALGORITHM/$IMPLEMENTATION compiled with $COMPILER as $PLOT_TITLE"
+    plot "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$PLOT_TITLE"
     echo
     ;;
 clean)
