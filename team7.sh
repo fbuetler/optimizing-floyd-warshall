@@ -8,18 +8,19 @@ set -euCo pipefail
 # Configuration variables
 ROOT_DIR=$(dirname "$0")
 BUILD_DIR="${ROOT_DIR}/build"
-TESTCASE_DIR="${ROOT_DIR}/testcases"
-MEASUREMENT_DATA_DIR="${ROOT_DIR}/measurements/data"
-MEASUREMENT_PLOT_DIR="${ROOT_DIR}/measurements/plots"
+INPUT_CATEGORY_DIR="${ROOT_DIR}/testcases"
+TESTCASE_DIR="${INPUT_CATEGORY_DIR}/test-inputs"
+BENCHMARK_DIR="${INPUT_CATEGORY_DIR}/bench-inputs"
+MEASUREMENTS_DIR="${ROOT_DIR}/measurements/data"
+PLOTS_DIR="${ROOT_DIR}/measurements/plots"
 
 function printUsage() {
     echo "Usage: $0"
     echo "Commands:"
     echo "  build <ALGORITHM|REF_IMPL>"
     echo "  generate-test-in <MIN_N> <MAX_N> <STEP_N>"
-    echo "  generate-test-out <REF_IMPL> <TESTCASE>"
-    echo "  run <ALGORITHM> <COMPILER>"
-    echo "  compare"
+    echo "  generate-test-out <REF_IMPL> <INPUT_CATEGORY>"
+    echo "  validate <ALGORITHM> <COMPILER>"
     echo "  measure <ALGORITHM> <COMPILER> <TESTCASE>"
     echo "  plot <ALGORITHM> <COMPILER> <TESTCASE> <PLOT_TITLE>"
     echo "  clean"
@@ -30,8 +31,8 @@ function printUsage() {
     echo "Compilers:"
     echo "  gcc"
     echo "  clang"
-    echo "Testcases:"
-    echo "  see $TESTCASE_DIR"
+    echo "Input categories:"
+    echo "  $(ls -m $INPUT_CATEGORY_DIR | sed 's/,/\n /g')"
     echo "Reference implementations:"
     echo "  go-ref-shortest-path"
     exit 1
@@ -56,8 +57,9 @@ function generate-test-in() {
 
 function generate-test-out() {
     REF_IMPL="$1"
-    TESTCASE="$2"
-    TESTCASES=$(find ${TESTCASE_DIR}/${TESTCASE} -name "*.in.txt")
+    INPUT_CATEGORY="$2"
+    TESTCASES=$(find ${INPUT_CATEGORY_DIR}/${INPUT_CATEGORY} -name "*.in.txt")
+    # TODO generate mm.ref and tc.ref too
     for TESTCASE_IN in $TESTCASES; do
         "${BUILD_DIR}/$REF_IMPL" \
             -input-filename "${TESTCASE_IN}" \
@@ -65,36 +67,38 @@ function generate-test-out() {
     done
 }
 
-function run() {
+function validate() {
     ALGORITHM="$1"
     COMPILER="$2"
+    # TODO generate mm.out and tc.out too
     python3 "${ROOT_DIR}/comparator/runner.py" \
         -b "${BUILD_DIR}/${ALGORITHM}_${COMPILER}" \
-        -d "${TESTCASE_DIR}"
-}
+        -d "${TESTCASE_DIR}" \
+        -a "fw" \
+        -o "out"
 
-function compare() {
-    python3 "${ROOT_DIR}/comparator/compare.py" -r "${TESTCASE_DIR}"
+    python3 "${ROOT_DIR}/comparator/compare.py" \
+        --recursive \
+        --silent \
+        "${TESTCASE_DIR}"
 }
 
 function measure() {
     ALGORITHM="$1"
     COMPILER="$2"
-    TESTCASE="$3"
     python3 "${ROOT_DIR}/measurements/measure.py" \
         --binary "${BUILD_DIR}/${ALGORITHM}_${COMPILER}" \
-        --testsuite "${TESTCASE_DIR}/$TESTCASE" \
-        --measurements "${MEASUREMENT_DATA_DIR}"
+        --testsuite "${BENCHMARK_DIR}" \
+        --output "${MEASUREMENTS_DIR}/${ALGORITHM}_${COMPILER}"
 }
 
 function plot() {
     ALGORITHM="$1"
     COMPILER="$2"
-    TESTCASE="$3"
-    PLOT_TITLE="$4"
-    python3 "${ROOT_DIR}/measurements/plot.py" \
-        --data "${MEASUREMENT_DATA_DIR}/${ALGORITHM}_${COMPILER}_${TESTCASE}.csv" \
-        --plot "${MEASUREMENT_PLOT_DIR}" \
+    PLOT_TITLE="$3"
+    python3 "${ROOT_DIR}/measurements/perf-plots.py" \
+        --data "${MEASUREMENTS_DIR}/${ALGORITHM}_${COMPILER}.csv" \
+        --plot "${PLOTS_DIR}" \
         --title "$PLOT_TITLE"
 }
 
@@ -130,50 +134,43 @@ generate-test-in)
     ;;
 generate-test-out)
     REF_IMPL="${2:-}"
-    TESTCASE="${3:-}"
-    if [[ -z "$REF_IMPL" || -z "$TESTCASE" ]]; then
+    INPUT_CATEGORY="${3:-}"
+    if [[ -z "$REF_IMPL" || -z "$INPUT_CATEGORY" ]]; then
         printUsage "$0"
     fi
-    echo "Generating expected ouput of testcase category $TESTCASE with $REF_IMPL"
-    generate-test-out "$REF_IMPL" "$TESTCASE"
+    echo "Generating expected ouput of input category $INPUT_CATEGORY with $REF_IMPL"
+    generate-test-out "$REF_IMPL" "$INPUT_CATEGORY"
     echo
     ;;
-run)
+validate)
     ALGORITHM="${2:-}"
     COMPILER="${3:-}"
     if [[ -z "$ALGORITHM" || -z "$COMPILER" ]]; then
         printUsage "$0"
     fi
-    echo "Run $ALGORITHM compiled with $COMPILER against testcases"
-    run "$ALGORITHM" "$COMPILER"
-    echo
-    ;;
-compare)
-    echo "Comparing actual output against expected output"
-    compare
+    echo "Validating $ALGORITHM"
+    validate $ALGORITHM $COMPILER
     echo
     ;;
 measure)
     ALGORITHM="${2:-}"
     COMPILER="${3:-}"
-    TESTCASE="${4:-}"
-    if [[ -z "$ALGORITHM" || -z "$COMPILER" || -z "$TESTCASE" ]]; then
+    if [[ -z "$ALGORITHM" || -z "$COMPILER" ]]; then
         printUsage "$0"
     fi
-    echo "Measuring $ALGORITHM compiled with $COMPILER on $TESTCASE"
-    measure "$ALGORITHM" "$COMPILER" "$TESTCASE"
+    echo "Measuring $ALGORITHM compiled with $COMPILER"
+    measure "$ALGORITHM" "$COMPILER"
     echo
     ;;
 plot)
     ALGORITHM="${2:-}"
     COMPILER="${3:-}"
-    TESTCASE="${4:-}"
-    PLOT_TITLE="${5:-}"
-    if [[ -z "$ALGORITHM" || -z "$COMPILER" || -z "$TESTCASE" || -z "$PLOT_TITLE" ]]; then
+    PLOT_TITLE="${4:-}"
+    if [[ -z "$ALGORITHM" || -z "$COMPILER" || -z "$PLOT_TITLE" ]]; then
         printUsage "$0"
     fi
-    echo "Plotting $ALGORITHM compiled with $COMPILER on $TESTCASE as $PLOT_TITLE"
-    plot "$ALGORITHM" "$COMPILER" "$TESTCASE" "$PLOT_TITLE"
+    echo "Plotting $ALGORITHM compiled with $COMPILER as $PLOT_TITLE"
+    plot "$ALGORITHM" "$COMPILER" "$PLOT_TITLE"
     echo
     ;;
 clean)

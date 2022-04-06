@@ -10,9 +10,9 @@ parser.add_argument(
     "-t", "--testsuite", help="directory with testcases", type=str, required=True
 )
 parser.add_argument(
-    "-m",
-    "--measurements",
-    help="directory to save the measurements",
+    "-o",
+    "--output",
+    help="path of the genereated csv file",
     type=str,
     required=True,
 )
@@ -26,7 +26,7 @@ parser.add_argument(
 args = parser.parse_args()
 binary = args.binary
 testsuite_dir = args.testsuite
-measurements_dir = args.measurements
+out_filepath = args.output
 turbo_boost_allowed = args.allow_turbo_boost
 
 if not turbo_boost_allowed:
@@ -37,7 +37,8 @@ if not turbo_boost_allowed:
 nodes_list = list()
 runs_list = list()
 cycles_list = list()
-for testcase in os.listdir(testsuite_dir):
+testcases = os.listdir(testsuite_dir)
+for testcase in testcases:
     print("Processing testcase: {}".format(testcase))
 
     # get input file
@@ -74,18 +75,21 @@ for testcase in os.listdir(testsuite_dir):
     runs = int(lines[0].strip())
     cycles = float(lines[1].strip())
 
-    print("Number of nodes: {}".format(nodes))
-    print("Number of runs: {}".format(runs))
-    print("Number of cycles: {}".format(cycles))
+    print("\tNumber of nodes: {}".format(nodes))
+    print("\tNumber of runs: {}".format(runs))
+    print("\tNumber of cycles: {}".format(cycles))
 
     nodes_list.append(nodes)
     runs_list.append(runs)
     cycles_list.append(cycles)
 
+# sort by nodes ascending
+nodes_list_sorted, runs_list_sorted, cycles_list_sorted = zip(
+    *sorted(zip(nodes_list, runs_list, cycles_list))
+)
+
 binary_name = os.path.basename(binary)
 testsuite_name = os.path.basename(testsuite_dir)
-with open(
-    "{}/{}_{}.csv".format(measurements_dir, binary_name, testsuite_name), "w"
-) as f:
+with open("{}.csv".format(out_filepath), "w") as f:
     writer = csv.writer(f)
-    writer.writerows([nodes_list, runs_list, cycles_list])
+    writer.writerows([nodes_list_sorted, runs_list_sorted, cycles_list_sorted])
