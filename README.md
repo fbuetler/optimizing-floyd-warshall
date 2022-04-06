@@ -4,6 +4,12 @@
 
 ![ASL Overview](./assets/ASL_Overview.png)
 
+## The almighty bash script
+
+```bash
+$ ./team7.sh
+```
+
 ## Building
 
 For reproducible builds we use [docker](https://www.docker.com/get-started) in combination with [make](https://www.gnu.org/software/make).
