@@ -43,7 +43,7 @@ mpl.rcParams["axes.prop_cycle"] = mpl.cycler(
     color=COLOR_LIST
 )  # sets colors using given cycle
 
-plt.plot(n_list, cycles_list, "-o", label="cycles", marker="^")
+plt.plot(n_list, cycles_list, label="cycles", marker="^")
 
 plt.xticks(n_list)
 
