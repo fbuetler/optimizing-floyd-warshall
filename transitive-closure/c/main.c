@@ -160,7 +160,7 @@ int main(int argc, char **argv)
     fprintf(stderr, "generating test output...\n");
     ref_output(D, N);
     char ref_output[256];
-    sprintf(ref_output, "%s.tc.out.txt", argv[2]);
+    sprintf(ref_output, "%s", argv[2]);
     output_matrix(ref_output, D, N);
     free(D);
 
