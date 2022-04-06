@@ -21,7 +21,7 @@ function printUsage() {
     echo "  generate-test-in <MIN_N> <MAX_N> <STEP_N>"
     echo "  generate-test-out <REF_IMPL> <INPUT_CATEGORY>"
     echo "  validate <ALGORITHM> <COMPILER>"
-    echo "  measure <ALGORITHM> <COMPILER> <TESTCASE>"
+    echo "  measure <ALGORITHM> <COMPILER> (<INPUT_CATEGORY>)"
     echo "  plot <ALGORITHM> <COMPILER> <TESTCASE> <PLOT_TITLE>"
     echo "  clean"
     echo "Algorithms:"
@@ -86,9 +86,10 @@ function validate() {
 function measure() {
     ALGORITHM="$1"
     COMPILER="$2"
+    INPUT_CATEGORY="$3"
     python3 "${ROOT_DIR}/measurements/measure.py" \
         --binary "${BUILD_DIR}/${ALGORITHM}_${COMPILER}" \
-        --testsuite "${BENCHMARK_DIR}" \
+        --testsuite "${INPUT_CATEGORY_DIR}/${INPUT_CATEGORY}" \
         --output "${MEASUREMENTS_DIR}/${ALGORITHM}_${COMPILER}"
 }
 
@@ -104,6 +105,7 @@ function plot() {
 
 function clean() {
     make clean
+    rm $(find "${INPUT_CATEGORY_DIR}" -name "*.out.*")
 }
 
 COMMAND=${1:-}
@@ -155,11 +157,12 @@ validate)
 measure)
     ALGORITHM="${2:-}"
     COMPILER="${3:-}"
-    if [[ -z "$ALGORITHM" || -z "$COMPILER" ]]; then
+    INPUT_CATEGORY="${4:-bench-inputs}"
+    if [[ -z "$ALGORITHM" || -z "$COMPILER" || -z "$INPUT_CATEGORY" ]]; then
         printUsage "$0"
     fi
-    echo "Measuring $ALGORITHM compiled with $COMPILER"
-    measure "$ALGORITHM" "$COMPILER"
+    echo "Measuring $ALGORITHM compiled with $COMPILER on $INPUT_CATEGORY"
+    measure "$ALGORITHM" "$COMPILER" "$INPUT_CATEGORY"
     echo
     ;;
 plot)
