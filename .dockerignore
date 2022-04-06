@@ -1,2 +1,11 @@
 Makefile
 README.md
+requirements.txt
+team7.sh
+
+assets
+build
+comparator
+generator
+measurements
+testcases
