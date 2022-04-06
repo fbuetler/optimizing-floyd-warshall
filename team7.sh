@@ -30,14 +30,13 @@ function printUsage() {
     echo "  mm (max-min)"
     echo "Implementations:"
     echo "  c-naive"
+    echo "Reference implementations:"
     echo "  go-ref"
     echo "Compilers:"
     echo "  gcc"
     echo "  clang"
     echo "Input categories:"
     echo "  $(ls -m $INPUT_CATEGORY_DIR | sed 's/,/\n /g')"
-    echo "Reference implementations:"
-    echo "  go-ref"
     exit 1
 }
 
