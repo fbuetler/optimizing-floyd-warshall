@@ -20,43 +20,50 @@ def run_recursive(path: str, binary: str, ending: str):
         # find input-file(s)
         for f in files:
             p = Path(f)
-            if p.suffixes != ['.in', '.txt']:  # not input-format
+            if p.suffixes != [".in", ".txt"]:  # not input-format
                 continue
 
-            stem = f.split('.')[0]
-            in_path = f'{curpath}/{f}'
-            out_path = f'{curpath}/{stem}{ending}'
-            cmd = f'{binary} {in_path} {out_path}'
+            stem = f.split(".")[0]
+            in_path = f"{curpath}/{f}"
+            out_path = f"{curpath}/{stem}{ending}"
+            cmd = f"{binary} {in_path} {out_path}"
 
-            print(f'running command: "{cmd}"')
-            b_args = (
-                binary,
-                in_path,
-                out_path
-            )
-            with subprocess.Popen(b_args, stdout=subprocess.PIPE,
-                                  stderr=subprocess.DEVNULL) as popen:
+            # print(f'running command: "{cmd}"')
+            b_args = (binary, in_path, out_path)
+            with subprocess.Popen(
+                b_args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+            ) as popen:
                 popen.wait()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-b", "--binary", help="binary to run", type=str,
-                        required=True)
-    parser.add_argument("-a", "--algorithm",
-                        help="algorithm-id to use in file-ending", type=str,
-                        required=False)
-    parser.add_argument("-o", "--output",
-                        help="output-type ('ref' or 'out') for file-ending",
-                        type=str, required=False)
-    parser.add_argument("-d", "--directory",
-                        help="directory to search for inputs / "
-                        "generate outputs in",
-                        type=str, required=True)
+    parser.add_argument("-b", "--binary", help="binary to run", type=str, required=True)
+    parser.add_argument(
+        "-a",
+        "--algorithm",
+        help="algorithm-id to use in file-ending",
+        type=str,
+        required=False,
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="output-type ('ref' or 'out') for file-ending",
+        type=str,
+        required=False,
+    )
+    parser.add_argument(
+        "-d",
+        "--directory",
+        help="directory to search for inputs / " "generate outputs in",
+        type=str,
+        required=True,
+    )
     args = parser.parse_args()
     if args.algorithm is None and args.output is None:
-        run_recursive(args.directory, args.binary,
-                      "")
+        run_recursive(args.directory, args.binary, "")
     else:
-        run_recursive(args.directory, args.binary,
-                      f".{args.algorithm}.{args.output}.txt")
+        run_recursive(
+            args.directory, args.binary, f".{args.algorithm}.{args.output}.txt"
+        )
