@@ -39,6 +39,11 @@ with open(data_file) as f:
     runs_list = reader.__next__()
     cycles_list = reader.__next__()
 
+# compute performance (flops = n^3)
+perf_list = list();
+for (n, c, r) in zip(n_list, cycles_list, runs_list):
+    perf_list.append((n*n*n) / c)
+
 mpl.rcParams["axes.prop_cycle"] = mpl.cycler(
     color=COLOR_LIST
 )  # sets colors using given cycle
@@ -62,7 +67,30 @@ plt.xlabel("n")
 plt.ylabel("cycles")
 
 data_file_name = os.path.basename(data_file).replace(".csv", "")
-outfile = "{}/{}.png".format(plots_dir, data_file_name)
+outfile = "{}/{}-cycles.png".format(plots_dir, data_file_name)
+plt.savefig(outfile)
+plt.clf()
+
+print("stored cycle plot to {}".format(outfile))
+
+
+plt.plot(n_list, perf_list, label="performance", marker="^")
+
+plt.xticks(n_list)
+
+print(perf_list)
+perf_max=max(perf_list)
+plt.ylim(0, perf_max + 0.1 * perf_max)
+
+plt.grid(True, which="major", axis="y")
+
+plt.legend()
+
+plt.title(title)
+plt.xlabel("n")
+plt.ylabel("cycles")
+
+outfile = "{}/{}-perf.png".format(plots_dir, data_file_name)
 plt.savefig(outfile)
 plt.clf()
 
