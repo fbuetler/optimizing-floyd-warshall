@@ -17,12 +17,12 @@ PLOTS_DIR="${ROOT_DIR}/measurements/plots"
 function printUsage() {
     echo "Usage: $0"
     echo "Commands:"
-    echo "  build <ALGORITHM> <IMPLEMENTATION> <OPTIMIZATIONS>"
+    echo "  build <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <OPTIMIZATIONS_LIST>"
     echo "  generate-test-in <MIN_N> <MAX_N> <STEP_N>"
     echo "  generate-test-out <ALGORITHM> <REF_IMPL> <INPUT_CATEGORY>"
-    echo "  validate <ALGORITHM> <IMPLEMENTATION> <COMPILER> <OPTIMIZATIONS>"
-    echo "  measure <ALGORITHM> <IMPLEMENTATION> <COMPILER> <OPTIMIZATIONS> (<INPUT_CATEGORY>)"
-    echo "  plot <ALGORITHM> <IMPLEMENTATION> <COMPILER> <OPTIMIZATIONS> (<INPUT_CATEGORY>) <PLOT_TITLE>"
+    echo "  validate <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST>"
+    echo "  measure <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST> (<INPUT_CATEGORY>)"
+    echo "  plot <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST> (<INPUT_CATEGORY>) <PLOT_TITLE>"
     echo "  clean"
     echo "Algorithms:"
     echo "  fw (floyd-wahrshal)"
@@ -41,6 +41,8 @@ function printUsage() {
     echo "  -O3 -ffast-math -march=native -mfma"
     echo "Input categories:"
     echo "  $(ls -m $INPUT_CATEGORY_DIR | sed 's/,/\n /g')"
+    echo "NOTE:"
+    echo "  input lists have to be comma separated"
     exit 1
 }
 
@@ -139,6 +141,8 @@ function plot() {
 function clean() {
     make clean
     rm $(find "${INPUT_CATEGORY_DIR}" -name "*.out.*")
+    rm $(find "${MEASUREMENTS_DIR}" -name "*test-inputs*")
+    rm $(find "${PLOTS_DIR}" -name "*test-inputs*")
 }
 
 COMMAND=${1:-}
@@ -148,15 +152,27 @@ fi
 
 case "$COMMAND" in
 build)
-    ALGORITHM="${2:-}"
-    IMPLEMENTATION="${3:-}"
-    OPTIMIZATIONS="${4:-}"
-    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$OPTIMIZATIONS" ]]; then
+    ALGORITHM_LIST="${2:-}"
+    IMPLEMENTATION_LIST="${3:-}"
+    OPTIMIZATIONS_LIST="${4:-}"
+    if [[ -z "$ALGORITHM_LIST" || -z "$IMPLEMENTATION_LIST" || -z "$OPTIMIZATIONS_LIST" ]]; then
         printUsage "$0"
     fi
-    echo "Building $ALGORITHM"
-    build "$ALGORITHM" "$IMPLEMENTATION" "$OPTIMIZATIONS"
-    echo
+
+    IFS=','
+    read -ra ALGORITHMS <<<"$ALGORITHM_LIST"
+    read -ra IMPLEMENTATIONS <<<"$IMPLEMENTATION_LIST"
+    read -ra OPTS <<<"$OPTIMIZATIONS_LIST"
+
+    for ALGORITHM in "${ALGORITHMS[@]}"; do
+        for IMPLEMENTATION in "${IMPLEMENTATIONS[@]}"; do
+            for OPTIMIZATIONS in "${OPTS[@]}"; do
+                echo "Building $ALGORITHM"
+                build "$ALGORITHM" "$IMPLEMENTATION" "$OPTIMIZATIONS"
+                echo
+            done
+        done
+    done
     ;;
 generate-test-in)
     MIN_N="${2:-}"
@@ -181,43 +197,88 @@ generate-test-out)
     echo
     ;;
 validate)
-    ALGORITHM="${2:-}"
-    IMPLEMENTATION="${3:-}"
-    COMPILER="${4:-}"
-    OPTIMIZATIONS="${5:-}"
-    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$COMPILER" || -z "$OPTIMIZATIONS" ]]; then
+    ALGORITHM_LIST="${2:-}"
+    IMPLEMENTATION_LIST="${3:-}"
+    COMPILER_LIST="${4:-}"
+    OPTIMIZATIONS_LIST="${5:-}"
+    if [[ -z "$ALGORITHM_LIST" || -z "$IMPLEMENTATION_LIST" || -z "$COMPILER_LIST" || -z "$OPTIMIZATIONS_LIST" ]]; then
         printUsage "$0"
     fi
-    echo "Validating $ALGORITHM/$IMPLEMENTATION"
-    validate $ALGORITHM "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS"
-    echo
+
+    IFS=','
+    read -ra ALGORITHMS <<<"$ALGORITHM_LIST"
+    read -ra IMPLEMENTATIONS <<<"$IMPLEMENTATION_LIST"
+    read -ra COMPILERS <<<"$COMPILER_LIST"
+    read -ra OPTS <<<"$OPTIMIZATIONS_LIST"
+
+    for ALGORITHM in "${ALGORITHMS[@]}"; do
+        for IMPLEMENTATION in "${IMPLEMENTATIONS[@]}"; do
+            for COMPILER in "${COMPILERS[@]}"; do
+                for OPTIMIZATIONS in "${OPTS[@]}"; do
+                    echo "Validating $ALGORITHM/$IMPLEMENTATION"
+                    validate $ALGORITHM "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS"
+                    echo
+                done
+            done
+        done
+    done
     ;;
 measure)
-    ALGORITHM="${2:-}"
-    IMPLEMENTATION="${3:-}"
-    COMPILER="${4:-}"
-    OPTIMIZATIONS="${5:-}"
+    ALGORITHM_LIST="${2:-}"
+    IMPLEMENTATION_LIST="${3:-}"
+    COMPILER_LIST="${4:-}"
+    OPTIMIZATIONS_LIST="${5:-}"
     INPUT_CATEGORY="${6:-bench-inputs}"
-    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$COMPILER" || -z "$OPTIMIZATIONS" || -z "$INPUT_CATEGORY" ]]; then
+    if [[ -z "$ALGORITHM_LIST" || -z "$IMPLEMENTATION_LIST" || -z "$COMPILER_LIST" || -z "$OPTIMIZATIONS_LIST" || -z "$INPUT_CATEGORY" ]]; then
         printUsage "$0"
     fi
-    echo "Measuring $ALGORITHM/$IMPLEMENTATION compiled with $COMPILER and $OPTIMIZATIONS on $INPUT_CATEGORY"
-    measure "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$INPUT_CATEGORY"
-    echo
+
+    IFS=','
+    read -ra ALGORITHMS <<<"$ALGORITHM_LIST"
+    read -ra IMPLEMENTATIONS <<<"$IMPLEMENTATION_LIST"
+    read -ra COMPILERS <<<"$COMPILER_LIST"
+    read -ra OPTS <<<"$OPTIMIZATIONS_LIST"
+
+    for ALGORITHM in "${ALGORITHMS[@]}"; do
+        for IMPLEMENTATION in "${IMPLEMENTATIONS[@]}"; do
+            for COMPILER in "${COMPILERS[@]}"; do
+                for OPTIMIZATIONS in "${OPTS[@]}"; do
+                    echo "Measuring $ALGORITHM/$IMPLEMENTATION compiled with '$COMPILER' and '$OPTIMIZATIONS' on '$INPUT_CATEGORY'"
+                    measure "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$INPUT_CATEGORY"
+                    echo
+                done
+            done
+        done
+    done
     ;;
 plot)
-    ALGORITHM="${2:-}"
-    IMPLEMENTATION="${3:-}"
-    COMPILER="${4:-}"
-    OPTIMIZATIONS="${5:-}"
+    ALGORITHM_LIST="${2:-}"
+    IMPLEMENTATION_LIST="${3:-}"
+    COMPILER_LIST="${4:-}"
+    OPTIMIZATIONS_LIST="${5:-}"
     INPUT_CATEGORY="${6:-bench-inputs}"
     PLOT_TITLE="${7:-}"
-    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$COMPILER" || -z "$OPTIMIZATIONS" || -z "$PLOT_TITLE" ]]; then
+    if [[ -z "$ALGORITHM_LIST" || -z "$IMPLEMENTATION_LIST" || -z "$COMPILER_LIST" || -z "$OPTIMIZATIONS_LIST" || -z "$PLOT_TITLE" ]]; then
         printUsage "$0"
     fi
-    echo "Plotting $ALGORITHM/$IMPLEMENTATION compiled with $COMPILER and $OPTIMIZATIONS as $PLOT_TITLE"
-    plot "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$INPUT_CATEGORY" "$PLOT_TITLE"
-    echo
+
+    IFS=','
+    read -ra ALGORITHMS <<<"$ALGORITHM_LIST"
+    read -ra IMPLEMENTATIONS <<<"$IMPLEMENTATION_LIST"
+    read -ra COMPILERS <<<"$COMPILER_LIST"
+    read -ra OPTS <<<"$OPTIMIZATIONS_LIST"
+
+    for ALGORITHM in "${ALGORITHMS[@]}"; do
+        for IMPLEMENTATION in "${IMPLEMENTATIONS[@]}"; do
+            for COMPILER in "${COMPILERS[@]}"; do
+                for OPTIMIZATIONS in "${OPTS[@]}"; do
+                    echo "Plotting $ALGORITHM/$IMPLEMENTATION compiled with $COMPILER and $OPTIMIZATIONS as $PLOT_TITLE"
+                    plot "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$INPUT_CATEGORY" "$PLOT_TITLE"
+                    echo
+                done
+            done
+        done
+    done
     ;;
 clean)
     echo "Cleaning"
