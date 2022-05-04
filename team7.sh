@@ -22,7 +22,7 @@ function printUsage() {
     echo "  generate-test-out <ALGORITHM> <REF_IMPL> <INPUT_CATEGORY>"
     echo "  validate <ALGORITHM> <IMPLEMENTATION> <COMPILER> <OPTIMIZATIONS>"
     echo "  measure <ALGORITHM> <IMPLEMENTATION> <COMPILER> <OPTIMIZATIONS> (<INPUT_CATEGORY>)"
-    echo "  plot <ALGORITHM> <IMPLEMENTATION> <COMPILER> <OPTIMIZATIONS> <PLOT_TITLE>"
+    echo "  plot <ALGORITHM> <IMPLEMENTATION> <COMPILER> <OPTIMIZATIONS> (<INPUT_CATEGORY>) <PLOT_TITLE>"
     echo "  clean"
     echo "Algorithms:"
     echo "  fw (floyd-wahrshal)"
@@ -98,7 +98,7 @@ function validate() {
     OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
     # TODO generate mm.out and tc.out too
     python3 "${ROOT_DIR}/comparator/runner.py" \
-        -b "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_$OPTIMIZATIONS" \
+        -b "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}" \
         -d "${TESTCASE_DIR}" \
         -a "fw" \
         -o "out"
@@ -119,7 +119,7 @@ function measure() {
     python3 "${ROOT_DIR}/measurements/measure.py" -tb \
         --binary "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_$OPTIMIZATIONS" \
         --testsuite "${INPUT_CATEGORY_DIR}/${INPUT_CATEGORY}" \
-        --output "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_$OPTIMIZATIONS"
+        --output "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}_${INPUT_CATEGORY}"
 }
 
 function plot() {
@@ -128,9 +128,10 @@ function plot() {
     COMPILER="$3"
     OPTIMIZATIONS_RAW="$4"
     OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
-    PLOT_TITLE="$5"
+    INPUT_CATEGORY="$5"
+    PLOT_TITLE="$6"
     python3 "${ROOT_DIR}/measurements/perf-plots.py" \
-        --data "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_$OPTIMIZATIONS.csv" \
+        --data "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}_${INPUT_CATEGORY}.csv" \
         --plot "${PLOTS_DIR}" \
         --title "$PLOT_TITLE"
 }
@@ -209,12 +210,13 @@ plot)
     IMPLEMENTATION="${3:-}"
     COMPILER="${4:-}"
     OPTIMIZATIONS="${5:-}"
-    PLOT_TITLE="${6:-}"
+    INPUT_CATEGORY="${6:-bench-inputs}"
+    PLOT_TITLE="${7:-}"
     if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$COMPILER" || -z "$OPTIMIZATIONS" || -z "$PLOT_TITLE" ]]; then
         printUsage "$0"
     fi
     echo "Plotting $ALGORITHM/$IMPLEMENTATION compiled with $COMPILER and $OPTIMIZATIONS as $PLOT_TITLE"
-    plot "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$PLOT_TITLE"
+    plot "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$INPUT_CATEGORY" "$PLOT_TITLE"
     echo
     ;;
 clean)
