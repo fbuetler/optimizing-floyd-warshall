@@ -569,3 +569,5 @@ build/*
 output/*
 !output/.gitkeep
 *.out.*
+
+measurements/**/*test-inputs*
