@@ -17,12 +17,12 @@ PLOTS_DIR="${ROOT_DIR}/measurements/plots"
 function printUsage() {
     echo "Usage: $0"
     echo "Commands:"
-    echo "  build <ALGORITHM> <IMPLEMENTATION>"
+    echo "  build <ALGORITHM> <IMPLEMENTATION> <OPTIMIZATIONS>"
     echo "  generate-test-in <MIN_N> <MAX_N> <STEP_N>"
     echo "  generate-test-out <ALGORITHM> <REF_IMPL> <INPUT_CATEGORY>"
-    echo "  validate <ALGORITHM> <IMPLEMENTATION> <COMPILER>"
-    echo "  measure <ALGORITHM> <IMPLEMENTATION> <COMPILER> (<INPUT_CATEGORY>)"
-    echo "  plot <ALGORITHM> <IMPLEMENTATION> <COMPILER> <TESTCASE> <PLOT_TITLE>"
+    echo "  validate <ALGORITHM> <IMPLEMENTATION> <COMPILER> <OPTIMIZATIONS>"
+    echo "  measure <ALGORITHM> <IMPLEMENTATION> <COMPILER> <OPTIMIZATIONS> (<INPUT_CATEGORY>)"
+    echo "  plot <ALGORITHM> <IMPLEMENTATION> <COMPILER> <OPTIMIZATIONS> <PLOT_TITLE>"
     echo "  clean"
     echo "Algorithms:"
     echo "  fw (floyd-wahrshal)"
@@ -35,15 +35,34 @@ function printUsage() {
     echo "Compilers:"
     echo "  gcc"
     echo "  clang"
+    echo "Optimization examples:"
+    echo "  -O0"
+    echo "  -O3 -fno-tree-vectorize"
+    echo "  -O3 -ffast-math -march=native -mfma"
     echo "Input categories:"
     echo "  $(ls -m $INPUT_CATEGORY_DIR | sed 's/,/\n /g')"
     exit 1
 }
 
+function optimizations_format() {
+    OPTIMIZATIONS_RAW="$1"
+    echo $OPTIMIZATIONS_RAW | tr " " "_"
+}
+
 function build() {
     ALGORITHM="$1"
     IMPLEMENTATION="$2"
-    make "build-${ALGORITHM}-${IMPLEMENTATION}"
+    OPTIMIZATIONS_RAW="$3"
+
+    make "build-${ALGORITHM}-${IMPLEMENTATION}" -e CFLAGS_DOCKER="$OPTIMIZATIONS_RAW"
+
+    # HACK: filenames are at the moment hardcoded in the docker make file
+    OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
+    echo $OPTIMIZATIONS
+    find ./build \
+        -type f \
+        -regex ".*/${ALGORITHM}_${IMPLEMENTATION}_\(gcc\|clang\)$" \
+        -exec mv --force {} {}_$OPTIMIZATIONS \;
 }
 
 function generate-test-in() {
@@ -75,9 +94,11 @@ function validate() {
     ALGORITHM="$1"
     IMPLEMENTATION="$2"
     COMPILER="$3"
+    OPTIMIZATIONS_RAW="$4"
+    OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
     # TODO generate mm.out and tc.out too
     python3 "${ROOT_DIR}/comparator/runner.py" \
-        -b "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}" \
+        -b "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_$OPTIMIZATIONS" \
         -d "${TESTCASE_DIR}" \
         -a "fw" \
         -o "out"
@@ -92,20 +113,24 @@ function measure() {
     ALGORITHM="$1"
     IMPLEMENTATION="$2"
     COMPILER="$3"
-    INPUT_CATEGORY="$4"
-    python3 "${ROOT_DIR}/measurements/measure.py" \
-        --binary "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}" \
+    OPTIMIZATIONS_RAW="$4"
+    OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
+    INPUT_CATEGORY="$5"
+    python3 "${ROOT_DIR}/measurements/measure.py" -tb \
+        --binary "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_$OPTIMIZATIONS" \
         --testsuite "${INPUT_CATEGORY_DIR}/${INPUT_CATEGORY}" \
-        --output "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}"
+        --output "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_$OPTIMIZATIONS"
 }
 
 function plot() {
     ALGORITHM="$1"
     IMPLEMENTATION="$2"
     COMPILER="$3"
-    PLOT_TITLE="$4"
+    OPTIMIZATIONS_RAW="$4"
+    OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
+    PLOT_TITLE="$5"
     python3 "${ROOT_DIR}/measurements/perf-plots.py" \
-        --data "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}.csv" \
+        --data "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_$OPTIMIZATIONS.csv" \
         --plot "${PLOTS_DIR}" \
         --title "$PLOT_TITLE"
 }
@@ -124,11 +149,12 @@ case "$COMMAND" in
 build)
     ALGORITHM="${2:-}"
     IMPLEMENTATION="${3:-}"
-    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" ]]; then
+    OPTIMIZATIONS="${4:-}"
+    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$OPTIMIZATIONS" ]]; then
         printUsage "$0"
     fi
     echo "Building $ALGORITHM"
-    build "$ALGORITHM" "$IMPLEMENTATION"
+    build "$ALGORITHM" "$IMPLEMENTATION" "$OPTIMIZATIONS"
     echo
     ;;
 generate-test-in)
@@ -157,35 +183,38 @@ validate)
     ALGORITHM="${2:-}"
     IMPLEMENTATION="${3:-}"
     COMPILER="${4:-}"
-    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$COMPILER" ]]; then
+    OPTIMIZATIONS="${5:-}"
+    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$COMPILER" || -z "$OPTIMIZATIONS" ]]; then
         printUsage "$0"
     fi
     echo "Validating $ALGORITHM/$IMPLEMENTATION"
-    validate $ALGORITHM "$IMPLEMENTATION" $COMPILER
+    validate $ALGORITHM "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS"
     echo
     ;;
 measure)
     ALGORITHM="${2:-}"
     IMPLEMENTATION="${3:-}"
     COMPILER="${4:-}"
-    INPUT_CATEGORY="${5:-bench-inputs}"
-    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$COMPILER" || -z "$INPUT_CATEGORY" ]]; then
+    OPTIMIZATIONS="${5:-}"
+    INPUT_CATEGORY="${6:-bench-inputs}"
+    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$COMPILER" || -z "$OPTIMIZATIONS" || -z "$INPUT_CATEGORY" ]]; then
         printUsage "$0"
     fi
-    echo "Measuring $ALGORITHM/$IMPLEMENTATION compiled with $COMPILER on $INPUT_CATEGORY"
-    measure "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$INPUT_CATEGORY"
+    echo "Measuring $ALGORITHM/$IMPLEMENTATION compiled with $COMPILER and $OPTIMIZATIONS on $INPUT_CATEGORY"
+    measure "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$INPUT_CATEGORY"
     echo
     ;;
 plot)
     ALGORITHM="${2:-}"
     IMPLEMENTATION="${3:-}"
     COMPILER="${4:-}"
-    PLOT_TITLE="${5:-}"
-    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$COMPILER" || -z "$PLOT_TITLE" ]]; then
+    OPTIMIZATIONS="${5:-}"
+    PLOT_TITLE="${6:-}"
+    if [[ -z "$ALGORITHM" || -z "$IMPLEMENTATION" || -z "$COMPILER" || -z "$OPTIMIZATIONS" || -z "$PLOT_TITLE" ]]; then
         printUsage "$0"
     fi
-    echo "Plotting $ALGORITHM/$IMPLEMENTATION compiled with $COMPILER as $PLOT_TITLE"
-    plot "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$PLOT_TITLE"
+    echo "Plotting $ALGORITHM/$IMPLEMENTATION compiled with $COMPILER and $OPTIMIZATIONS as $PLOT_TITLE"
+    plot "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$PLOT_TITLE"
     echo
     ;;
 clean)

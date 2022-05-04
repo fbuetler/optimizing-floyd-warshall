@@ -6,9 +6,10 @@
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 BUILD_DIR_LOCAL:=${ROOT_DIR}/build
 BUILD_DIR_DOCKER:=/build
+CFLAGS_DOCKER:="-O3"
 BUILD_DIR_MOUNT:=--mount type=bind,source=${BUILD_DIR_LOCAL},target=${BUILD_DIR_DOCKER}
 IMAGE_TAG:=asl-build
-DOCKER_ENV_VARS:=-e MAKE_BUILD_DIR=${BUILD_DIR_DOCKER}
+DOCKER_ENV_VARS:=-e MAKE_BUILD_DIR=${BUILD_DIR_DOCKER} -e MAKE_CFLAGS="${CFLAGS_DOCKER}"
 DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} ${DOCKER_ENV_VARS} -t ${IMAGE_TAG}
 
 # Topmost rule must be to build the optimized C code
