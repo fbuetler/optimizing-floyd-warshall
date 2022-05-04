@@ -17,7 +17,7 @@ PLOTS_DIR="${ROOT_DIR}/measurements/plots"
 function printUsage() {
     echo "Usage: $0"
     echo "Commands:"
-    echo "  build <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <OPTIMIZATIONS_LIST>"
+    echo "  build <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST>"
     echo "  generate-test-in <MIN_N> <MAX_N> <STEP_N>"
     echo "  generate-test-out <ALGORITHM> <REF_IMPL> <INPUT_CATEGORY>"
     echo "  validate <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST>"
@@ -54,17 +54,13 @@ function optimizations_format() {
 function build() {
     ALGORITHM="$1"
     IMPLEMENTATION="$2"
-    OPTIMIZATIONS_RAW="$3"
-
-    make "build-${ALGORITHM}-${IMPLEMENTATION}" -e CFLAGS_DOCKER="$OPTIMIZATIONS_RAW"
-
-    # HACK: filenames are at the moment hardcoded in the docker make file
+    COMPILER="$3"
+    OPTIMIZATIONS_RAW="$4"
     OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
-    echo $OPTIMIZATIONS
-    find ./build \
-        -type f \
-        -regex ".*/${ALGORITHM}_${IMPLEMENTATION}_\(gcc\|clang\)$" \
-        -exec mv --force {} {}_$OPTIMIZATIONS \;
+
+    make "build-${ALGORITHM}-${IMPLEMENTATION}-${COMPILER}" \
+        -e BUILD_NAME_DOCKER="${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}" \
+        -e CFLAGS_DOCKER="$OPTIMIZATIONS_RAW"
 }
 
 function generate-test-in() {
@@ -154,22 +150,26 @@ case "$COMMAND" in
 build)
     ALGORITHM_LIST="${2:-}"
     IMPLEMENTATION_LIST="${3:-}"
-    OPTIMIZATIONS_LIST="${4:-}"
-    if [[ -z "$ALGORITHM_LIST" || -z "$IMPLEMENTATION_LIST" || -z "$OPTIMIZATIONS_LIST" ]]; then
+    COMPILER_LIST="${4:-}"
+    OPTIMIZATIONS_LIST="${5:-}"
+    if [[ -z "$ALGORITHM_LIST" || -z "$IMPLEMENTATION_LIST" || -z "$COMPILER_LIST" || -z "$OPTIMIZATIONS_LIST" ]]; then
         printUsage "$0"
     fi
 
     IFS=','
     read -ra ALGORITHMS <<<"$ALGORITHM_LIST"
     read -ra IMPLEMENTATIONS <<<"$IMPLEMENTATION_LIST"
+    read -ra COMPILERS <<<"$COMPILER_LIST"
     read -ra OPTS <<<"$OPTIMIZATIONS_LIST"
 
     for ALGORITHM in "${ALGORITHMS[@]}"; do
         for IMPLEMENTATION in "${IMPLEMENTATIONS[@]}"; do
-            for OPTIMIZATIONS in "${OPTS[@]}"; do
-                echo "Building $ALGORITHM"
-                build "$ALGORITHM" "$IMPLEMENTATION" "$OPTIMIZATIONS"
-                echo
+            for COMPILER in "${COMPILERS[@]}"; do
+                for OPTIMIZATIONS in "${OPTS[@]}"; do
+                    echo "Building $ALGORITHM with '$COMPILER' and '$OPTIMIZATIONS'"
+                    build "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS"
+                    echo
+                done
             done
         done
     done
