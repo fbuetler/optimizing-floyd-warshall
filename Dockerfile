@@ -9,7 +9,9 @@ RUN apt-get install -y --no-install-recommends \
     libc6-dev \
     make \
     python3 \
-    golang
+    golang \
+    g++ \
+    libboost-dev
 
 RUN mkdir -p /home/work
 WORKDIR /home/work
