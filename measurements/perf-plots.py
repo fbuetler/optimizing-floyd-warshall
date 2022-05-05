@@ -18,42 +18,45 @@ COLOR_LIST = [
 ]
 
 parser = argparse.ArgumentParser(
-    description="generate performance plot using data from a csv file"
+    description="Generate performance plot using data from one or more csv files. One line is added for each csv file."
 )
-parser.add_argument("-d", "--data", help="csv file with data", type=str, required=True)
+parser.add_argument("-d", "--data", help="list of csv data files", type=str, nargs='+', required=True)
 parser.add_argument(
-    "-p", "--plot", help="directory to save the plots", type=str, required=True
+    "-p", "--plot", help="directory to save the generated plot", type=str, required=True
 )
 parser.add_argument("-t", "--title", help="title for the plot", type=str, required=True)
 
+# TODO: Add upper performance bound in plot (optional)
+
 args = parser.parse_args()
 
-data_file = args.data
+data_file_list = args.data
 plots_dir = args.plot
 title = args.title
-
-performance_data = list()
-with open(data_file) as f:
-    reader = csv.reader(f, delimiter=",", quoting=csv.QUOTE_NONNUMERIC)
-    n_list = reader.__next__()
-    runs_list = reader.__next__()
-    cycles_list = reader.__next__()
-
-# compute performance (flops = n^3)
-perf_list = list()
-for (n, c, r) in zip(n_list, cycles_list, runs_list):
-    perf_list.append((2 * n * n * n) / c)
 
 mpl.rcParams["axes.prop_cycle"] = mpl.cycler(
     color=COLOR_LIST
 )  # sets colors using given cycle
 
-plt.plot(n_list, perf_list, label="performance", marker="^")
+perf_max = 0.0
 
-plt.xticks(n_list)
+for data_file in data_file_list:
+    performance_data = list()
+    with open(data_file) as f:
+        reader = csv.reader(f, delimiter=",", quoting=csv.QUOTE_NONNUMERIC)
+        n_list = reader.__next__()
+        runs_list = reader.__next__()
+        cycles_list = reader.__next__()
 
-print(perf_list)
-perf_max = max(perf_list)
+    # compute performance (flops = n^3)
+    perf_list = list()
+    for (n, c, r) in zip(n_list, cycles_list, runs_list):
+        perf_list.append((2 * n * n * n) / c)
+
+    plt.plot(n_list, perf_list, label="performance", marker="^")
+
+    perf_max = max(perf_list + [perf_max])
+
 plt.ylim(0, perf_max + 0.1 * perf_max)
 
 plt.grid(True, which="major", axis="y")
