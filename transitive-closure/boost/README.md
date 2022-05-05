@@ -10,5 +10,5 @@ g++ -O3 -o main.o main.cpp
 ## Run
 
 ```bash
-./main.o example/simple.in example/simple.out
+./main.o file.in file.out
 ```
