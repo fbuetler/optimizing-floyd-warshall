@@ -1,7 +1,6 @@
 import argparse
 import csv
 import os
-from cProfile import label
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -18,43 +17,57 @@ COLOR_LIST = [
 ]
 
 parser = argparse.ArgumentParser(
-    description="generate performance plot using data from a csv file"
+    description="Generate performance plot using data from one or more csv files. One line is added for each csv file."
 )
-parser.add_argument("-d", "--data", help="csv file with data", type=str, required=True)
+parser.add_argument("-d", "--data", help="list of csv data files", type=str, nargs='+', required=True)
+parser.add_argument("-l", "--labels", help="list of labels to use for plot data", type=str, nargs='+', required=True)
 parser.add_argument(
-    "-p", "--plot", help="directory to save the plots", type=str, required=True
+    "-p", "--plot", help="directory to save the generated plot", type=str, required=True
 )
 parser.add_argument("-t", "--title", help="title for the plot", type=str, required=True)
+parser.add_argument("-pi", "--peak", help="maximum achievable performance in flops/cycle", type=float, default=0.0)
 
 args = parser.parse_args()
 
-data_file = args.data
+data_file_list = args.data
+label_list = args.labels
 plots_dir = args.plot
 title = args.title
+peak = args.peak
 
-performance_data = list()
-with open(data_file) as f:
-    reader = csv.reader(f, delimiter=",", quoting=csv.QUOTE_NONNUMERIC)
-    n_list = reader.__next__()
-    runs_list = reader.__next__()
-    cycles_list = reader.__next__()
+if len(data_file_list) != len(label_list):
+    raise Exception('List of labels must have the same length as the list of data file names: data had len {}, labels {}'.format(len(data_file_list), len(label_list)))
 
-# compute performance (flops = n^3)
-perf_list = list()
-for (n, c, r) in zip(n_list, cycles_list, runs_list):
-    perf_list.append((2 * n * n * n) / c)
+data_label_list = zip(data_file_list, label_list)
+
+if peak != 0.0:
+    _, ax = plt.subplots()
+    plt.axhline(y=peak, label='P ≤ π', linewidth=1, color=next(ax._get_lines.prop_cycler)['color'])
 
 mpl.rcParams["axes.prop_cycle"] = mpl.cycler(
     color=COLOR_LIST
 )  # sets colors using given cycle
 
-plt.plot(n_list, perf_list, label="performance", marker="^")
+perf_max = 0.0
 
-plt.xticks(n_list)
+for data_file, label in data_label_list:
+    performance_data = list()
+    with open(data_file) as f:
+        reader = csv.reader(f, delimiter=",", quoting=csv.QUOTE_NONNUMERIC)
+        n_list = reader.__next__()
+        runs_list = reader.__next__()
+        cycles_list = reader.__next__()
 
-print(perf_list)
-perf_max = max(perf_list)
-plt.ylim(0, perf_max + 0.1 * perf_max)
+    # compute performance (flops = n^3)
+    perf_list = list()
+    for (n, c, r) in zip(n_list, cycles_list, runs_list):
+        perf_list.append((2 * n * n * n) / c)
+
+    plt.plot(n_list, perf_list, label=label, marker="^")
+
+    perf_max = max(perf_list + [perf_max])
+
+plt.ylim(0, max(perf_max + 0.1 * perf_max, peak + 0.1 * peak))
 
 plt.grid(True, which="major", axis="y")
 
