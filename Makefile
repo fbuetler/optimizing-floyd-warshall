@@ -36,6 +36,9 @@ build-mm-c-naive-clang: docker max-min/c/*.c max-min/c/impl/naive.c max-min/c/im
 build-fw-go-ref: docker shortest-path/go/*
 	docker run ${DOCKER_RUN_ARGS} make fw-go-ref
 
+build-tc-boost-ref: docker transitive-closure/boost/*
+	docker run ${DOCKER_RUN_ARGS} make tc-boost-ref
+
 .PHONY: docker
 docker: Dockerfile .dockerignore
 	docker build -t ${IMAGE_TAG} .
