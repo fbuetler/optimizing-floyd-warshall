@@ -36,5 +36,8 @@ mm-c-naive-clang: max-min/c/*.c max-min/c/impl/naive.c max-min/c/impl/mm.h
 fw-go-ref: shortest-path/go/*.go shortest-path/go/go.mod
 	cd shortest-path/go && go build -o ${BUILD_DIR}/fw_go-ref .
 
+fw-boost-ref: shortest-path/boost/*
+	cd shortest-path/boost && g++ $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) main.cpp
+
 tc-boost-ref: transitive-closure/boost/*
 	cd transitive-closure/boost && g++ $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) main.cpp
