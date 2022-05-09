@@ -21,6 +21,12 @@ build-fw-c-naive-gcc: docker shortest-path/c/*.c shortest-path/c/impl/naive.c sh
 build-fw-c-naive-clang: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make fw-c-naive-clang
 
+build-fw-c-unroll-gcc: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-unroll-gcc
+
+build-fw-c-unroll-clang: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-unroll-clang
+
 build-tc-c-naive-gcc: docker transitive-closure/c/*.c transitive-closure/c/impl/naive.c transitive-closure/c/impl/tc.h
 	docker run ${DOCKER_RUN_ARGS} make tc-c-naive-gcc
 

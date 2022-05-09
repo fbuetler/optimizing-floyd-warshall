@@ -9,6 +9,14 @@ CFLAGS=$(MAKE_CFLAGS)
 
 # Topmost rule must be to build the optimized C code
 
+fw-c-unroll-gcc: shortest-path/c/*.c shortest-path/c/impl/unroll.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/unroll.c main.c; 
+
+fw-c-unroll-clang: shortest-path/c/*.c shortest-path/c/impl/unroll.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/unroll.c main.c;
+
 fw-c-naive-gcc: shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
 	cd shortest-path/c; \
 	gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/naive.c main.c; 
