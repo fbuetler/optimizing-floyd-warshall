@@ -45,6 +45,10 @@ for testcase in testcases:
     testcase_dir = os.path.join(testsuite_dir, testcase)
     input_files = [f for f in os.listdir(testcase_dir) if re.match(r".*\.in\.txt$", f)]
     if len(input_files) != 1:
+        print("=== OUTPUT ===")
+        for files in input_files:
+            print(files)
+        print("==============")
         raise Exception(
             "Unexpected number of testcase input files found. Expexted exactly one."
         )
@@ -53,6 +57,10 @@ for testcase in testcases:
     # generate output file
     file_parts = input_file.split(".")
     if len(file_parts) != 3:
+        print("=== OUTPUT ===")
+        for parts in file_parts:
+            print(parts)
+        print("==============")
         raise Exception("Unexpected number of file paths found. Expected exactly 3.")
     output_file = "{}.out.{}".format(file_parts[0], file_parts[2])
 
@@ -67,6 +75,10 @@ for testcase in testcases:
     lines = popen.stdout.read().decode("utf-8").split("\n")
     if len(lines) != 3:
         # numbe of runs/number of cycles/newline
+        print("=== OUTPUT ===")
+        for line in lines:
+            print(line)
+        print("==============")
         raise Exception("Unexpected number of lines found. Expected exactly 3.")
 
     # parse measurements
