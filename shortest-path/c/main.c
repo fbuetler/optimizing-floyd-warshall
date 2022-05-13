@@ -125,8 +125,10 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    FILE *input_f = fopen(argv[1], "r");
+    char *input_fname = argv[1];
+    char *output_fname = argv[2];
 
+    FILE *input_f = fopen(input_fname, "r");
     int N;  // num nodes
     if (fscanf(input_f, "%d ", &N) < 1) {
         fprintf(stderr, "malformed input: couldn't match number N of vertices\n");
@@ -150,12 +152,13 @@ int main(int argc, char **argv) {
     }
     fclose(input_f);
 
+    remove(output_fname);
     float *D = (float *)malloc(N * N * sizeof(float));
     memcpy(D, C, N * N * sizeof(float));
     fprintf(stderr, "generating test output...\n");
     ref_output(D, N);
     char ref_output[256];
-    sprintf(ref_output, "%s", argv[2]);
+    sprintf(ref_output, "%s", output_fname);
     output_matrix(ref_output, D, N);
     free(D);
 
