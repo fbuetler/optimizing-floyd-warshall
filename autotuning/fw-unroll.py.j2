@@ -25,14 +25,14 @@ int floydWarshall(float *C, int N) {
                 // compute
                 {% for u_i in range(unroll_i) -%}
                 {% for u_j in range(unroll_j) -%}
-                {{ "float res{}{} = MIN(ci{}j{}, ci{}k + ckj{});".format(u_i, u_j, u_i, u_j, u_i, u_j) }}
+                {{ "float res{}_{} = MIN(ci{}j{}, ci{}k + ckj{});".format(u_i, u_j, u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% endfor %}
 
                 // store
                 {% for u_i in range(unroll_i) -%}
                 {% for u_j in range(unroll_j) -%}
-                {{ "C[(i + {}) * N + j + {}] = res{}{};".format(u_i, u_j, u_i, u_j) }}
+                {{ "C[(i + {}) * N + j + {}] = res{}_{};".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% endfor %}
             }
