@@ -15,16 +15,19 @@
 #define FREQUENCY 2.3e9
 #define CALIBRATE
 
-void printMatrix(char *C, int N)
-{
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            fprintf(stderr, "%d, ", C[i * N + j]);
-        }
-        fprintf(stderr, "\n");
+void printMatrix(char *C, int N) {
+  int bpl = ceil(N / 8.0); // bytes per matrix line
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      int bind = j % 8;
+      char cur = C[i * bpl + j / 8];
+      if (cur & (1 << bind))
+        fprintf(stderr, "1, ");
+      else
+        fprintf(stderr, "0, ");
     }
+    fprintf(stderr, "\n");
+  }
 }
 
 // TODO: Include cache warmup
@@ -93,26 +96,26 @@ double rdtsc(char *C, int N)
 }
 #endif
 
-void output_matrix(char *filename, char *C, int N)
-{
-    fprintf(stderr, "outputting transitive closure matrix to %s...\n", filename);
-    FILE *output_f = fopen(filename, "w+");
-    fprintf(output_f, "%d\n", N);
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            fprintf(output_f, "%d", C[i * N + j]);
-            if (j < N - 1)
-            {
-                fputc(',', output_f);
-            }
-            else
-            {
-                fputc('\n', output_f);
-            }
-        }
+void output_matrix(char *filename, char *C, int N) {
+  int bpl = ceil(N / 8.0); // bytes per matrix line
+  fprintf(stderr, "outputting transitive closure matrix to %s...\n", filename);
+  FILE *output_f = fopen(filename, "w+");
+  fprintf(output_f, "%d\n", N);
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      int bind = j % 8;
+      char cur = C[i * bpl + j / 8];
+      if (cur & (1 << bind))
+        fprintf(output_f, "1");
+      else
+        fprintf(output_f, "0");
+      if (j < N - 1) {
+        fputc(',', output_f);
+      } else {
+        fputc('\n', output_f);
+      }
     }
+  }
 }
 
 int main(int argc, char **argv)
@@ -134,29 +137,31 @@ int main(int argc, char **argv)
     }
 
     fprintf(stderr, "allocating memory...\n");
-    char *C = (char *)malloc(N * N * sizeof(char));
+    int bpl = ceil(N / 8.0);
+    char *C = (char *)malloc(N * bpl * sizeof(char));
     fprintf(stderr, "parsing input matrix...\n");
     for (int i = 0; i < N; i++)
     {
         char inputValue[100];
+        char curbyte = 0;
         for (int j = 0; j < N; j++)
         {
+            int bj = j % 8;
+            if (bj == 0) curbyte = 0; // new byte - set all 0
+
             int numValues = fscanf(input_f, "%[^,\n]s", inputValue);
             if (numValues == 1)
             {
-                C[i * N + j] = 1;
-            }
-            else
-            {
-                C[i * N + j] = 0;
+              curbyte |= 1 << bj;
             }
             fgetc(input_f); // skip ',' or '\n'
+            C[i * bpl + j / 8] = curbyte;
         }
     }
     fclose(input_f);
 
-    char *D = (char *)malloc(N * N * sizeof(char));
-    memcpy(D, C, N * N * sizeof(char));
+    char *D = (char *)malloc(N * bpl * sizeof(char));
+    memcpy(D, C, N * bpl * sizeof(char));
     fprintf(stderr, "generating test output...\n");
     ref_output(D, N);
     char ref_output[256];
