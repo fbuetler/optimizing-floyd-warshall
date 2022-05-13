@@ -63,6 +63,8 @@ def compare_recursive(path: str, precision: float = 0.000_000_1) -> bool:
         if not files:  # empty directory
             continue
 
+        compared_at_least_one = False
+
         # find valid pairs
         files = sorted(files)
         print(
@@ -92,6 +94,10 @@ def compare_recursive(path: str, precision: float = 0.000_000_1) -> bool:
             print(f'- {stem+px.suffixes[0]+":":45} {msg}')
             tot += 1
             suc += int(res)
+            compared_at_least_one = True
+
+        if not compared_at_least_one:
+            print(f'- {"No testcases found:":45} \033[93mFAIL\033[0m')
         print()
 
     if tot == 0:
