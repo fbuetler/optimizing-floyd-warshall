@@ -81,6 +81,15 @@ mm-c-unroll-clang: max-min/c/*.c max-min/c/impl/unroll.c max-min/c/impl/mm.h
 	cd max-min/c; \
 	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/unroll.c main.c;
 
+# max-min: vector
+mm-c-vector-gcc: max-min/c/*.c max-min/c/impl/vector.c max-min/c/impl/mm.h
+	cd max-min/c; \
+	gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/vector.c main.c;
+
+mm-c-vector-clang: max-min/c/*.c max-min/c/impl/vector.c max-min/c/impl/mm.h
+	cd max-min/c; \
+	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/vector.c main.c;
+
 # fw - go ref
 fw-go-ref: shortest-path/go/*.go shortest-path/go/go.mod
 	cd shortest-path/go && go build -o ${BUILD_DIR}/fw_go-ref .
