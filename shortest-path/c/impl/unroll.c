@@ -1,17 +1,19 @@
 #include "sp.h"
 
 /* minimally optimized version of floyd-warshall:
- * - the innermost loop is unrolled by a factor of 4
- * - the constant value C[i * N + k] is only acessed once before the innermost loop
+ * - the two innermost loops are unrolled by a factor of 4
+ * - the constant value C[i0..3 * N + k] is only loaded once before the innermost loop
 */
 void floydWarshall(float *C, int N) {
   for (int k = 0; k < N; k++) {
     int i = 0;
-    for (; i < N - 1; i += 2) {
+    for (; i < N - 3; i += 4) {
 
       int j = 0;
       float ci0k = C[(i + 0) * N + k];
       float ci1k = C[(i + 1) * N + k];
+      float ci2k = C[(i + 2) * N + k];
+      float ci3k = C[(i + 3) * N + k];
       for (; j < N - 3; j += 4) {
         // load
         float ci0j0 = C[(i + 0) * N + j + 0];
@@ -22,6 +24,14 @@ void floydWarshall(float *C, int N) {
         float ci1j1 = C[(i + 1) * N + j + 1];
         float ci1j2 = C[(i + 1) * N + j + 2];
         float ci1j3 = C[(i + 1) * N + j + 3];
+        float ci2j0 = C[(i + 2) * N + j + 0];
+        float ci2j1 = C[(i + 2) * N + j + 1];
+        float ci2j2 = C[(i + 2) * N + j + 2];
+        float ci2j3 = C[(i + 2) * N + j + 3];
+        float ci3j0 = C[(i + 3) * N + j + 0];
+        float ci3j1 = C[(i + 3) * N + j + 1];
+        float ci3j2 = C[(i + 3) * N + j + 2];
+        float ci3j3 = C[(i + 3) * N + j + 3];
 
         float ckj0 = C[k * N + j + 0];
         float ckj1 = C[k * N + j + 1];
@@ -37,6 +47,14 @@ void floydWarshall(float *C, int N) {
         float res11 = MIN(ci1j1, ci1k + ckj1);
         float res12 = MIN(ci1j2, ci1k + ckj2);
         float res13 = MIN(ci1j3, ci1k + ckj3);
+        float res20 = MIN(ci2j0, ci2k + ckj0);
+        float res21 = MIN(ci2j1, ci2k + ckj1);
+        float res22 = MIN(ci2j2, ci2k + ckj2);
+        float res23 = MIN(ci2j3, ci2k + ckj3);
+        float res30 = MIN(ci3j0, ci3k + ckj0);
+        float res31 = MIN(ci3j1, ci3k + ckj1);
+        float res32 = MIN(ci3j2, ci3k + ckj2);
+        float res33 = MIN(ci3j3, ci3k + ckj3);
 
         // store
         C[(i + 0) * N + j + 0] = res00;
@@ -47,10 +65,20 @@ void floydWarshall(float *C, int N) {
         C[(i + 1) * N + j + 1] = res11;
         C[(i + 1) * N + j + 2] = res12;
         C[(i + 1) * N + j + 3] = res13;
+        C[(i + 2) * N + j + 0] = res20;
+        C[(i + 2) * N + j + 1] = res21;
+        C[(i + 2) * N + j + 2] = res22;
+        C[(i + 2) * N + j + 3] = res23;
+        C[(i + 3) * N + j + 0] = res30;
+        C[(i + 3) * N + j + 1] = res31;
+        C[(i + 3) * N + j + 2] = res32;
+        C[(i + 3) * N + j + 3] = res33;
       }
       for (; j < N; j++) {
         C[(i + 0) * N + j] = MIN(C[(i + 0) * N + j], ci0k + C[k * N + j]);
         C[(i + 1) * N + j] = MIN(C[(i + 1) * N + j], ci1k + C[k * N + j]);
+        C[(i + 2) * N + j] = MIN(C[(i + 2) * N + j], ci2k + C[k * N + j]);
+        C[(i + 3) * N + j] = MIN(C[(i + 3) * N + j], ci3k + C[k * N + j]);
       }
     }
 
