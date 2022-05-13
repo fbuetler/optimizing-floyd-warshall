@@ -15,17 +15,17 @@ DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} ${DOCKER_ENV_VARS} -t ${IMAGE_TAG}
 
 # Topmost rule must be to build the optimized C code
 
+build-fw-c-unroll-gcc: docker shortest-path/c/*.c shortest-path/c/impl/unroll.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-unroll-gcc
+
+build-fw-c-unroll-clang: docker shortest-path/c/*.c shortest-path/c/impl/unroll.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-unroll-clang
+
 build-fw-c-naive-gcc: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make fw-c-naive-gcc
 
 build-fw-c-naive-clang: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make fw-c-naive-clang
-
-build-fw-c-unroll-gcc: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
-	docker run ${DOCKER_RUN_ARGS} make fw-c-unroll-gcc
-
-build-fw-c-unroll-clang: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
-	docker run ${DOCKER_RUN_ARGS} make fw-c-unroll-clang
 
 build-tc-c-naive-gcc: docker transitive-closure/c/*.c transitive-closure/c/impl/naive.c transitive-closure/c/impl/tc.h
 	docker run ${DOCKER_RUN_ARGS} make tc-c-naive-gcc
