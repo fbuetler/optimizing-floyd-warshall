@@ -15,36 +15,50 @@ DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} ${DOCKER_ENV_VARS} -t ${IMAGE_TAG}
 
 # Topmost rule must be to build the optimized C code
 
+# fw - unroll
 build-fw-c-unroll-gcc: docker shortest-path/c/*.c shortest-path/c/impl/unroll.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make fw-c-unroll-gcc
 
 build-fw-c-unroll-clang: docker shortest-path/c/*.c shortest-path/c/impl/unroll.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make fw-c-unroll-clang
 
+# fw - naive
 build-fw-c-naive-gcc: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make fw-c-naive-gcc
 
 build-fw-c-naive-clang: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make fw-c-naive-clang
 
+# fw - cache blocking
+build-fw-c-cache-blocking-gcc: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-cache-blocking-gcc
+
+build-fw-c-cache-blocking-clang: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-cache-blocking-clang
+
+# tc - naive
 build-tc-c-naive-gcc: docker transitive-closure/c/*.c transitive-closure/c/impl/naive.c transitive-closure/c/impl/tc.h
 	docker run ${DOCKER_RUN_ARGS} make tc-c-naive-gcc
 
 build-tc-c-naive-clang: docker transitive-closure/c/*.c transitive-closure/c/impl/naive.c transitive-closure/c/impl/tc.h
 	docker run ${DOCKER_RUN_ARGS} make tc-c-naive-clang
 
+# max-min: naive
 build-mm-c-naive-gcc: docker max-min/c/*.c max-min/c/impl/naive.c max-min/c/impl/mm.h
 	docker run ${DOCKER_RUN_ARGS} make mm-c-naive-gcc
 
 build-mm-c-naive-clang: docker max-min/c/*.c max-min/c/impl/naive.c max-min/c/impl/mm.h
 	docker run ${DOCKER_RUN_ARGS} make mm-c-naive-clang
 
+# fw - go ref
 build-fw-go-ref: docker shortest-path/go/*
 	docker run ${DOCKER_RUN_ARGS} make fw-go-ref
 
+# fw - boost ref
 build-fw-boost-ref: docker shortest-path/boost/*
 	docker run ${DOCKER_RUN_ARGS} make fw-boost-ref
 
+# tc - boost ref
 build-tc-boost-ref: docker transitive-closure/boost/*
 	docker run ${DOCKER_RUN_ARGS} make tc-boost-ref
 
