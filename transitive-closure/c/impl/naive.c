@@ -6,7 +6,7 @@
  * @param N is the number of vertices
  * - 1 line of the matrix is CEIL(N / 8) bytes (or chars) long to make it more bearable to wor with
  */
-void floydWarshall(char *C, int N) {
+int floydWarshall(char *C, int N) {
   int bpl = ceil(N / 8.0); // bytes per matrix line
   for (int k = 0; k < N; k++) {
     for (int i = 0; i < N; i++) {
@@ -20,4 +20,5 @@ void floydWarshall(char *C, int N) {
       }
     }
   }
+  return 0;
 }
