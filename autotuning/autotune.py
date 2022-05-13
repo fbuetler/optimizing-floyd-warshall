@@ -29,12 +29,13 @@ def render_jinja_template(template_loc, file_name, **context):
     )
 
 
-def autotune_fw_unroll(path, min_ui, max_ui, min_uj, max_uj):
+def generate_fw_unroll(path, min_ui, max_ui, min_uj, max_uj):
 
+    generated_files = list()
     for ui in range(min_ui, max_ui + 1):
         for uj in range(min_uj, max_uj + 1):
             print("generating unrolled code: ui = {}, uj = {}".format(ui, uj))
-            output_fname = f"{path}/fw-c-autotune-unroll-ui{ui}_uj{uj}.c"
+            output_fname = f"{path}/fw-c-autotune-unroll-ui{ui}-uj{uj}.c"
 
             context = dict()
             context["unroll_i"] = ui
@@ -48,11 +49,19 @@ def autotune_fw_unroll(path, min_ui, max_ui, min_uj, max_uj):
                         **context,
                     )
                 )
+            generated_files.append(output_fname)
+
+    return generated_files
+
+
+def build_files(files):
+    pass
+    # bash team7.sh "build" "fw" "c-autotune" "gcc" "-O3 -fno-tree-vectorize"
 
 
 def main(l1_cache_bytes, l2_cache_bytes, min_n, max_n, vectorize, output_fname):
 
-    autotune_fw_unroll("generated", 1, 16, 1, 32)
+    generated_unnoll_files = generate_fw_unroll("generated/shortest-path", 1, 16, 1, 32)
 
 
 if __name__ == "__main__":

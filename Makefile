@@ -50,6 +50,13 @@ build-fw-c-cache-blocking-gcc: docker shortest-path/c/*.c shortest-path/c/impl/n
 build-fw-c-cache-blocking-clang: docker shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make fw-c-cache-blocking-clang
 
+# fw autotune
+build-fw-c-autotune-gcc: docker shortest-path/c/*.c autotuning/generated/shortest-path/*.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-autotune-gcc
+
+build-fw-c-autotune-clang: docker shortest-path/c/*.c autotuning/generated/shortest-path/*.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-autotune-clang
+
 # tc - naive
 build-tc-c-naive-gcc: docker transitive-closure/c/*.c transitive-closure/c/impl/naive.c transitive-closure/c/impl/tc.h
 	docker run ${DOCKER_RUN_ARGS} make tc-c-naive-gcc
