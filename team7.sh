@@ -94,11 +94,12 @@ function validate() {
     COMPILER="$3"
     OPTIMIZATIONS_RAW="$4"
     OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
-    # TODO generate mm.out and tc.out too
+
+    rm -r $TESTCASE_DIR/**/*.out.txt || true
     python3 "${ROOT_DIR}/comparator/runner.py" \
         -b "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}" \
         -d "${TESTCASE_DIR}" \
-        -a "fw" \
+        -a "${ALGORITHM}" \
         -o "out"
 
     python3 "${ROOT_DIR}/comparator/compare.py" \
