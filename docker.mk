@@ -9,6 +9,15 @@ CFLAGS=$(MAKE_CFLAGS)
 
 # Topmost rule must be to build the optimized C code
 
+# fw - vector
+fw-c-vector-gcc: shortest-path/c/*.c shortest-path/c/impl/vector.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/vector.c main.c;
+
+fw-c-vector-clang: shortest-path/c/*.c shortest-path/c/impl/vector.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/vector.c main.c;
+
 # fw - naive
 fw-c-naive-gcc: shortest-path/c/*.c shortest-path/c/impl/naive.c shortest-path/c/impl/sp.h
 	cd shortest-path/c; \

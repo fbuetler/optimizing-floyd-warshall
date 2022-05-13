@@ -7,13 +7,20 @@ ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 BUILD_DIR_LOCAL:=${ROOT_DIR}/build
 BUILD_DIR_DOCKER:=/build
 BUILD_NAME_DOCKER:=CHANGEME
-CFLAGS_DOCKER:="-O3"
+CFLAGS_DOCKER:="-O3 -march=native"
 BUILD_DIR_MOUNT:=--mount type=bind,source=${BUILD_DIR_LOCAL},target=${BUILD_DIR_DOCKER}
 IMAGE_TAG:=asl-build
 DOCKER_ENV_VARS:=-e MAKE_BUILD_DIR=${BUILD_DIR_DOCKER} -e MAKE_BUILD_NAME=${BUILD_NAME_DOCKER} -e MAKE_CFLAGS="${CFLAGS_DOCKER}"
 DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} ${DOCKER_ENV_VARS} -t ${IMAGE_TAG}
 
 # Topmost rule must be to build the optimized C code
+
+# fw - vector
+build-fw-c-vector-gcc: docker shortest-path/c/*.c shortest-path/c/impl/vector.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-vector-gcc
+
+build-fw-c-vector-clang: docker shortest-path/c/*.c shortest-path/c/impl/vector.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-vector-clang
 
 # mm - unroll
 build-mm-c-unroll-gcc: docker max-min/c/*.c max-min/c/impl/unroll.c max-min/c/impl/mm.h
