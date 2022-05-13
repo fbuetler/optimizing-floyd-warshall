@@ -1,0 +1,80 @@
+#include "sp.h"
+
+int floydWarshall(float *C, int N) {
+    for (int k = 0; k < N; k++) {
+        int i = 0;
+        for (; i < N - {{ unroll_i - 1 }}; i += {{ unroll_i }}) {
+            int j = 0;
+
+            {% for u_i in range(unroll_i) -%}
+            {{ "float ci{}k = C[(i + {}) * N + k];".format(u_i, u_i) }}
+            {% endfor -%}
+
+            for (; j < N - {{ unroll_j - 1 }}; j += {{ unroll_j }}) {
+                // load
+                {% for u_i in range(unroll_i) -%}
+                {% for u_j in range(unroll_j) -%}
+                {{ "float ci{}j{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% endfor %}
+
+                {% for u_j in range(unroll_j) -%}
+                {{ "float ckj{} = C[k * N + j + {}];".format(u_j, u_j) }}
+                {% endfor %}
+
+                // compute
+                {% for u_i in range(unroll_i) -%}
+                {% for u_j in range(unroll_j) -%}
+                {{ "float res{}{} = MIN(ci{}j{}, ci{}k + ckj{});".format(u_i, u_j, u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% endfor %}
+
+                // store
+                {% for u_i in range(unroll_i) -%}
+                {% for u_j in range(unroll_j) -%}
+                {{ "C[(i + {}) * N + j + {}] = res{}{};".format(u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% endfor %}
+            }
+
+            // rest of j
+            for (; j < N; j++) {
+                {% for u_i in range(unroll_i) -%}
+                {{ "C[(i + {}) * N + j] = MIN(C[(i + {}) * N + j], ci{}k + C[k * N + j]);".format(u_i, u_i, u_i) }}
+                {% endfor -%}
+            }
+        }
+
+        // rest of i
+        for (; i < N; i++) {
+            int j = 0;
+            float cik = C[i * N + k];
+            for (; j < N - {{ unroll_j - 1 }}; j += {{ unroll_j }}) {
+                // load
+                {% for u_j in range(unroll_j) -%}
+                {{ "float cij{} = C[i * N + j + {}];".format(u_j, u_j) }}
+                {% endfor %}
+
+                {% for u_j in range(unroll_j) -%}
+                {{ "float ckj{} = C[k * N + j + {}];".format(u_j, u_j) }}
+                {% endfor %}
+
+                // compute
+                {% for u_j in range(unroll_j) -%}
+                {{ "float res{} = MIN(cij{}, cik + ckj{});".format(u_j,u_j,u_j) }}
+                {% endfor %}
+
+                // store
+                {% for u_j in range(unroll_j) -%}
+                {{ "C[i * N + j + {}] = res{};".format(u_j, u_j) }}
+                {% endfor %}
+            }
+
+            // rest of j
+            for (; j < N; j++) {
+                C[i * N + j] = MIN(C[i * N + j], cik + C[k * N + j]);
+            }
+        }
+    }
+    return 0;
+}
