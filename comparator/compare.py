@@ -91,7 +91,7 @@ def compare_recursive(path: str, precision: float = 0.000_000_1) -> bool:
                 precision=curprec,
             )
             msg = "\033[92mPASS\033[0m" if res else "\033[93mFAIL\033[0m"
-            print(f'- {stem+px.suffixes[0]+":":45} {msg}')
+            print(f'- {stem+px.suffixes[0]+":":46} {msg}')
             tot += 1
             suc += int(res)
             compared_at_least_one = True
