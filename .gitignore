@@ -359,9 +359,10 @@ TSWLatexianTemp*
 # TeXnicCenter
 *.tps
 
-# auto folder when using emacs and auctex
+# auto folder when using emacs and auctex, emacs undo-history
 ./auto/*
 *.el
+*~undo-tree~
 
 # expex forward references with \gathertags
 *-tags.tex
