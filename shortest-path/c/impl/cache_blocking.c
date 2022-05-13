@@ -1,7 +1,4 @@
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "sp.h"
 
 /*
@@ -17,13 +14,12 @@ function FWI(A, B, C, N)
                     for j’=j:1:j+Uj-1
                         C[i’][j’] = min(C[i’][j’], A[i’][k]+B[k][j’]);
 */
-void floydWarshall(float *C, int N) {
+int floydWarshall(float *C, int N) {
     int bsize_i = 2;
     int bsize_j = 2;
 
     if (N % bsize_i != 0 || N % bsize_j != 0) {
-        printf("N (%d) should be a multiple of the block size (%d, %d)", N, bsize_i, bsize_j);
-        exit(1);
+        return 1;
     }
 
     for (int k = 0; k < N; k++) {
@@ -38,4 +34,5 @@ void floydWarshall(float *C, int N) {
             }
         }
     }
+    return 0;
 }
