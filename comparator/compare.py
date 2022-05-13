@@ -83,7 +83,7 @@ def compare_recursive(path: str, precision: float = 0.000_000_1) -> bool:
                 continue
             if (".out" not in px.suffixes) or (".ref" not in py.suffixes):
                 continue  # not valid out-ref pair
-            curprec = inf if px.suffixes[0] == ".tc" else precision
+            curprec = 0 if px.suffixes[0] == ".tc" else precision
             res = compare(
                 read_matrix(f"{curpath}/{x}"),
                 read_matrix(f"{curpath}/{y}"),
