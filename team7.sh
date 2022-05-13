@@ -98,7 +98,7 @@ function validate() {
     python3 "${ROOT_DIR}/comparator/runner.py" \
         -b "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}" \
         -d "${TESTCASE_DIR}" \
-        -a "fw" \
+        -a $ALGORITHM \
         -o "out"
 
     python3 "${ROOT_DIR}/comparator/compare.py" \
