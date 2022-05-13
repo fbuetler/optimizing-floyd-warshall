@@ -15,6 +15,20 @@ DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} ${DOCKER_ENV_VARS} -t ${IMAGE_TAG}
 
 # Topmost rule must be to build the optimized C code
 
+# mm - unroll
+build-mm-c-unroll-gcc: docker max-min/c/*.c max-min/c/impl/unroll.c max-min/c/impl/mm.h
+	docker run ${DOCKER_RUN_ARGS} make mm-c-unroll-gcc
+
+build-mm-c-unroll-clang: docker max-min/c/*.c max-min/c/impl/unroll.c max-min/c/impl/mm.h
+	docker run ${DOCKER_RUN_ARGS} make mm-c-unroll-clang
+
+# tc - unroll
+build-tc-c-unroll-gcc: docker transitive-closure/c/*.c transitive-closure/c/impl/unroll.c transitive-closure/c/impl/tc.h
+	docker run ${DOCKER_RUN_ARGS} make tc-c-unroll-gcc
+
+build-tc-c-unroll-clang: docker transitive-closure/c/*.c transitive-closure/c/impl/unroll.c transitive-closure/c/impl/tc.h
+	docker run ${DOCKER_RUN_ARGS} make tc-c-unroll-clang
+
 # fw - unroll
 build-fw-c-unroll-gcc: docker shortest-path/c/*.c shortest-path/c/impl/unroll.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make fw-c-unroll-gcc
