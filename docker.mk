@@ -45,6 +45,15 @@ fw-c-cache-blocking-clang: shortest-path/c/*.c shortest-path/c/impl/cache_blocki
 	cd shortest-path/c; \
 	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/cache_blocking.c main.c;
 
+# tc - vector
+tc-c-vector-gcc: transitive-closure/c/*.c transitive-closure/c/impl/vector.c transitive-closure/c/impl/tc.h
+	cd transitive-closure/c; \
+	gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/vector.c main.c;
+
+tc-c-vector-clang: transitive-closure/c/*.c transitive-closure/c/impl/vector.c transitive-closure/c/impl/tc.h
+	cd transitive-closure/c; \
+	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/vector.c main.c
+
 # tc - naive
 tc-c-naive-gcc: transitive-closure/c/*.c transitive-closure/c/impl/naive.c transitive-closure/c/impl/tc.h
 	cd transitive-closure/c; \

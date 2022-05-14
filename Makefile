@@ -29,6 +29,13 @@ build-mm-c-vector-gcc: docker max-min/c/*.c max-min/c/impl/vector.c max-min/c/im
 build-mm-c-vector-clang: docker max-min/c/*.c max-min/c/impl/vector.c max-min/c/impl/mm.h
 	docker run ${DOCKER_RUN_ARGS} make mm-c-vector-clang
 
+# tc - vector
+build-tc-c-vector-gcc: docker transitive-closure/c/*.c transitive-closure/c/impl/vector.c transitive-closure/c/impl/tc.h
+	docker run ${DOCKER_RUN_ARGS} make tc-c-vector-gcc
+
+build-tc-c-vector-clang: docker transitive-closure/c/*.c transitive-closure/c/impl/vector.c transitive-closure/c/impl/tc.h
+	docker run ${DOCKER_RUN_ARGS} make tc-c-vector-clang
+
 # mm - unroll
 build-mm-c-unroll-gcc: docker max-min/c/*.c max-min/c/impl/unroll.c max-min/c/impl/mm.h
 	docker run ${DOCKER_RUN_ARGS} make mm-c-unroll-gcc
