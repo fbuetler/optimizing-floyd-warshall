@@ -4,12 +4,10 @@
 
 const int bytes_per_vec = 256 / 8;
 
-/* unoptimized version of the modified Floyd-Warshall transitive-closure algorithm
- * the provided matrix is in packed-boolean form, meaning value [x, y] is only one bit long
- * @param N is the number of vertices
- * - 1 line of the matrix is CEIL(N / 8) bytes (or chars) long to make it more bearable to work with,
- *   so if n % 8 != 0, there will be some unused bits at the end of each line, but in total, at most
- *   N * (7 / 8) bytes will be wasted.
+/* vectorized version of the Floyd-Warshall Transitive Closure algorithm
+ * since vectors can only load / store to a precision of 32 bits (4 bytes),
+ * the code to perform the remaining operations that don't fit neatly into a
+ * vector is a bit ugly (sorry)
  */
 int floydWarshall(char *C, int N) {
   int bpl = ceil(N / 8.0); // bytes per matrix line
@@ -18,9 +16,9 @@ int floydWarshall(char *C, int N) {
       // extract C[i, k]
       char cikb = C[i * bpl + k / 8];
       int b_index = k % 8;
-      char mask = 1 << b_index;
+      char b_mask = 1 << b_index;
 
-      char cik_byte = cikb & mask ? 0xff : 0x00;
+      char cik_byte = cikb & b_mask ? 0xff : 0x00;
       __m256i cik = _mm256_set1_epi8(cik_byte);
 
       int j = 0;
@@ -37,7 +35,29 @@ int floydWarshall(char *C, int N) {
         _mm256_storeu_si256((__m256i *) &C[i * bpl + j], res);
       }
 
-      // TODO: do this with vectors too
+      // maybe do one set of 32-bit blocks
+      // compute mask
+      __m256i cand_j = _mm256_setr_epi32(j +  3, j +  7, j + 11, j + 15,
+                                         j + 19, j + 23, j + 27, j + 31);
+      __m256i cmp = _mm256_set1_epi32(bpl);
+      __m256i mask = _mm256_cmpgt_epi32(cmp, cand_j);
+
+      // load
+      __m256i cij = _mm256_maskload_epi32((int const *)&C[i * bpl + j], mask);
+      __m256i ckj = _mm256_maskload_epi32((int const *)&C[k * bpl + j], mask);
+
+      // compute
+      __m256i con = _mm256_and_si256(cik, ckj);
+      __m256i res = _mm256_or_si256(con, cij);
+
+      // store
+      _mm256_maskstore_epi32((int *) &C[i * bpl + j], mask, res);
+
+      // increase j for the bytes that were just handled
+      while (j < bpl - 3) j += 4;
+
+      // since we don't have AVX-512, we cannot perform loads / stores to byte-precision,
+      // so the remaining bytes (at most 3) have to be computed boringly
       for (; j < bpl; j++) {
         C[i * bpl + j] = C[i * bpl + j] | (cik_byte & C[k * bpl + j]);
       }
