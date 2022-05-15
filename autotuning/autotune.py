@@ -1,9 +1,11 @@
 import argparse
-import os
-import sys
 import jinja2
+import subprocess
 
 parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-p", "--project-root", help="path of the project root", type=str, required=True
+)
 parser.add_argument(
     "-l1", "--l1-cache", help="size of the L1 cache in bytes", type=int, required=True
 )
@@ -29,13 +31,13 @@ def render_jinja_template(template_loc, file_name, **context):
     )
 
 
-def generate_fw_unroll(path, min_ui, max_ui, min_uj, max_uj):
+def generate_fw_unroll(inpath, outpath, min_ui, max_ui, min_uj, max_uj):
 
     generated_files = list()
     for ui in range(min_ui, max_ui + 1):
         for uj in range(min_uj, max_uj + 1):
             print("generating unrolled code: ui = {}, uj = {}".format(ui, uj))
-            output_fname = f"{path}/fw-c-autotune-unroll-ui{ui}-uj{uj}.c"
+            output_fname = f"{outpath}/fw-c-autotune-unroll-ui{ui}-uj{uj}.c"
 
             context = dict()
             context["unroll_i"] = ui
@@ -44,7 +46,7 @@ def generate_fw_unroll(path, min_ui, max_ui, min_uj, max_uj):
             with open(output_fname, mode="w", encoding="utf-8") as f:
                 f.write(
                     render_jinja_template(
-                        "./",
+                        f"{inpath}",
                         f"fw-unroll.py.j2",
                         **context,
                     )
@@ -59,14 +61,49 @@ def build_files(files):
     # bash team7.sh "build" "fw" "c-autotune" "gcc" "-O3 -fno-tree-vectorize"
 
 
-def main(l1_cache_bytes, l2_cache_bytes, min_n, max_n, vectorize, output_fname):
+def main(
+    project_root, l1_cache_bytes, l2_cache_bytes, min_n, max_n, vectorize, output_fname
+):
 
-    generated_unnoll_files = generate_fw_unroll("generated/shortest-path", 1, 16, 1, 32)
+    # generate
+    generated_unnoll_files = generate_fw_unroll(
+        f"{project_root}/autotuning",
+        f"{project_root}/autotuning/generated/shortest-path",
+        1,
+        16,
+        1,
+        32,
+    )
+
+    # build all generated files
+    algorithm = "fw"
+    implementation = "c-autotune"
+    compiler = "gcc"
+    opt_flags = "-O3 -fno-tree-vectorize"
+
+    build_cmd = [
+        "make",
+        "-C",
+        f"{project_root}",
+        f"build-{algorithm}-{implementation}-{compiler}",
+        "-e",
+        f"CFLAGS_DOCKER={opt_flags}",
+    ]
+
+    print(build_cmd)
+    subprocess.call(build_cmd)
+
+    # validate all built files
+
+    # measure all validates files
+
+    # use measurments as feedback
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
     main(
+        args.project_root,
         args.l1_cache,
         args.l2_cache,
         args.min_n,
