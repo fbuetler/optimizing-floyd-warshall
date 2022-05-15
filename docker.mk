@@ -38,15 +38,15 @@ fw-c-cache-blocking-clang: shortest-path/c/*.c shortest-path/c/impl/cache_blocki
 	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/cache_blocking.c main.c;
 
 # fw - autotuning
-fw-c-autotune-gcc: shortest-path/c/*.c shortest-path/c/impl/fw-c-autotune*.c shortest-path/c/impl/sp.h
+fw-c-autotune-gcc: shortest-path/c/*.c shortest-path/c/impl/fw_c-autotune*.c shortest-path/c/impl/sp.h
 	cd shortest-path/c/impl; \
-	for f in fw-c-autotune*.c; do \
+	for f in fw_c-autotune*.c; do \
 		gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c; \
 	done 
 
-fw-c-autotune-clang: shortest-path/c/*.c shortest-path/c/impl/fw-c-autotune*.c shortest-path/c/impl/sp.h
+fw-c-autotune-clang: shortest-path/c/*.c shortest-path/c/impl/fw_c-autotune*.c shortest-path/c/impl/sp.h
 	cd shortest-path/c/impl; \
-	for f in fw-c-autotune*.c; do \
+	for f in fw_c-autotune*.c; do \
 		clang-13 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c;
 	done 
 

@@ -31,13 +31,15 @@ def render_jinja_template(template_loc, file_name, **context):
     )
 
 
-def generate_fw_unroll(inpath, outpath, min_ui, max_ui, min_uj, max_uj):
+def generate_fw_unroll(
+    inpath, outpath, algorithm, implementation, compiler, min_ui, max_ui, min_uj, max_uj
+):
 
     generated_files = list()
     for ui in range(min_ui, max_ui + 1):
         for uj in range(min_uj, max_uj + 1):
             print("generating unrolled code: ui = {}, uj = {}".format(ui, uj))
-            output_fname = f"{outpath}/fw-c-autotune-unroll-ui{ui}-uj{uj}.c"
+            output_fname = f"{outpath}/{algorithm}_{implementation}-unroll-ui{ui}-uj{uj}_{compiler}.c"
 
             context = dict()
             context["unroll_i"] = ui
@@ -56,31 +58,7 @@ def generate_fw_unroll(inpath, outpath, min_ui, max_ui, min_uj, max_uj):
     return generated_files
 
 
-def build_files(files):
-    pass
-    # bash team7.sh "build" "fw" "c-autotune" "gcc" "-O3 -fno-tree-vectorize"
-
-
-def main(
-    project_root, l1_cache_bytes, l2_cache_bytes, min_n, max_n, vectorize, output_fname
-):
-
-    # generate
-    generated_unnoll_files = generate_fw_unroll(
-        f"{project_root}/autotuning",
-        f"{project_root}/autotuning/generated/shortest-path",
-        1,
-        16,
-        1,
-        32,
-    )
-
-    # build all generated files
-    algorithm = "fw"
-    implementation = "c-autotune"
-    compiler = "gcc"
-    opt_flags = "-O3 -fno-tree-vectorize"
-
+def build_files(project_root, algorithm, implementation, compiler, opt_flags):
     build_cmd = [
         "make",
         "-C",
@@ -93,7 +71,41 @@ def main(
     print(build_cmd)
     subprocess.call(build_cmd)
 
+
+def main(
+    project_root, l1_cache_bytes, l2_cache_bytes, min_n, max_n, vectorize, output_fname
+):
+    algorithm = "fw"
+    implementation = "c-autotune"
+    compiler = "gcc"
+    opt_flags = "-O3 -fno-tree-vectorize"
+
+    # generate
+    # min_ui = 1
+    # max_ui = 16
+    # min_uj = 1
+    # max_uj = 32
+    min_ui = 4
+    max_ui = 6
+    min_uj = 4
+    max_uj = 6
+    generated_unnoll_files = generate_fw_unroll(
+        f"{project_root}/autotuning",
+        f"{project_root}/autotuning/generated/shortest-path",
+        algorithm,
+        implementation,
+        compiler,
+        min_ui,
+        max_ui,
+        min_uj,
+        max_uj,
+    )
+
+    # build all generated files
+    build_files(project_root, algorithm, implementation, compiler, opt_flags)
+
     # validate all built files
+    # validate_files()
 
     # measure all validates files
 
