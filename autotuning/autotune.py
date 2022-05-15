@@ -32,14 +32,24 @@ def render_jinja_template(template_loc, file_name, **context):
 
 
 def generate_fw_unroll(
-    inpath, outpath, algorithm, implementation, compiler, min_ui, max_ui, min_uj, max_uj
+    inpath,
+    outpath,
+    algorithm,
+    implementation,
+    compiler,
+    opt_flags_raw,
+    min_ui,
+    max_ui,
+    min_uj,
+    max_uj,
 ):
+    opt_flag = opt_flags_raw.replace(" ", "_")
 
     generated_files = list()
     for ui in range(min_ui, max_ui + 1):
         for uj in range(min_uj, max_uj + 1):
             print("generating unrolled code: ui = {}, uj = {}".format(ui, uj))
-            output_fname = f"{outpath}/{algorithm}_{implementation}-unroll-ui{ui}-uj{uj}_{compiler}.c"
+            output_fname = f"{outpath}/{algorithm}_{implementation}-unroll-ui{ui}-uj{uj}_{compiler}_{opt_flag}.c"
 
             context = dict()
             context["unroll_i"] = ui
@@ -95,6 +105,7 @@ def main(
         algorithm,
         implementation,
         compiler,
+        opt_flags,
         min_ui,
         max_ui,
         min_uj,
