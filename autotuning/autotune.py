@@ -1,6 +1,9 @@
 import argparse
 import jinja2
 import subprocess
+import logging
+
+logging.basicConfig(encoding="utf-8", level=logging.INFO)
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -43,13 +46,13 @@ def generate_fw_unroll(
     min_uj,
     max_uj,
 ):
-    opt_flag = opt_flags_raw.replace(" ", "_")
+    opt_flags = opt_flags_raw.replace(" ", "_")
 
     generated_files = list()
     for ui in range(min_ui, max_ui + 1):
         for uj in range(min_uj, max_uj + 1):
-            print("generating unrolled code: ui = {}, uj = {}".format(ui, uj))
-            output_fname = f"{outpath}/{algorithm}_{implementation}-unroll-ui{ui}-uj{uj}_{compiler}_{opt_flag}.c"
+            logging.info("generating unrolled code: ui = {}, uj = {}".format(ui, uj))
+            output_fname = f"{outpath}/{algorithm}_{implementation}-unroll-ui{ui}-uj{uj}_{compiler}_{opt_flags}.c"
 
             context = dict()
             context["unroll_i"] = ui
@@ -68,18 +71,50 @@ def generate_fw_unroll(
     return generated_files
 
 
-def build_files(project_root, algorithm, implementation, compiler, opt_flags):
+def build_files(project_root, algorithm, implementation, compiler, opt_flags_raw):
     build_cmd = [
         "make",
         "-C",
         f"{project_root}",
         f"build-{algorithm}-{implementation}-{compiler}",
         "-e",
-        f"CFLAGS_DOCKER={opt_flags}",
+        f"CFLAGS_DOCKER={opt_flags_raw}",
     ]
 
-    print(build_cmd)
-    subprocess.call(build_cmd)
+    logging.debug(" ".join(build_cmd))
+    retcode = subprocess.call(build_cmd)
+    return retcode
+
+
+def validate_fw_unroll(
+    project_root,
+    algorithm,
+    implementation,
+    compiler,
+    opt_flags,
+    min_ui,
+    max_ui,
+    min_uj,
+    max_uj,
+):
+    for ui in range(min_ui, max_ui + 1):
+        for uj in range(min_uj, max_uj + 1):
+            logging.info("validating code: ui = {}, uj = {}".format(ui, uj))
+            validate_cmd = [
+                "bash",
+                f"{project_root}/team7.sh",
+                '"validate"',
+                f'"{algorithm}" f"{implementation}-unroll-ui{ui}-uj{uj}"',
+                f'"{compiler}"',
+                f'"{opt_flags}"',
+            ]
+
+            logging.debug(" ".join(validate_cmd))
+            retcode = subprocess.call(validate_cmd)
+            if retcode != 0:
+                return retcode
+
+    return 0
 
 
 def main(
@@ -91,14 +126,10 @@ def main(
     opt_flags = "-O3 -fno-tree-vectorize"
 
     # generate
-    # min_ui = 1
-    # max_ui = 16
-    # min_uj = 1
-    # max_uj = 32
-    min_ui = 4
-    max_ui = 6
-    min_uj = 4
-    max_uj = 6
+    min_ui = 1
+    max_ui = 16
+    min_uj = 1
+    max_uj = 32
     generated_unnoll_files = generate_fw_unroll(
         f"{project_root}/autotuning",
         f"{project_root}/autotuning/generated/shortest-path",
@@ -111,12 +142,31 @@ def main(
         min_uj,
         max_uj,
     )
+    if len(generated_unnoll_files) == 0:
+        logging.error("Generate files failed")
+        return 1
 
     # build all generated files
-    build_files(project_root, algorithm, implementation, compiler, opt_flags)
+    retcode = build_files(project_root, algorithm, implementation, compiler, opt_flags)
+    if retcode != 0:
+        logging.error("Build files failed")
+        return retcode
 
     # validate all built files
-    # validate_files()
+    retcode = validate_fw_unroll(
+        project_root,
+        algorithm,
+        implementation,
+        compiler,
+        opt_flags,
+        min_ui,
+        max_ui,
+        min_uj,
+        max_uj,
+    )
+    if retcode != 0:
+        logging.error("Validate files failed")
+        return retcode
 
     # measure all validates files
 
