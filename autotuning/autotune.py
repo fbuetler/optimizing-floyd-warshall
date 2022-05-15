@@ -82,8 +82,8 @@ def build_files(project_root, algorithm, implementation, compiler, opt_flags_raw
     ]
 
     logging.debug(" ".join(build_cmd))
-    retcode = subprocess.call(build_cmd)
-    return retcode
+    result = subprocess.run(build_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return result.returncode
 
 
 def validate_fw_unroll(
@@ -104,15 +104,56 @@ def validate_fw_unroll(
                 "bash",
                 f"{project_root}/team7.sh",
                 '"validate"',
-                f'"{algorithm}" f"{implementation}-unroll-ui{ui}-uj{uj}"',
+                f'"{algorithm}"',
+                f'"{implementation}-unroll-ui{ui}-uj{uj}"',
                 f'"{compiler}"',
                 f'"{opt_flags}"',
             ]
 
             logging.debug(" ".join(validate_cmd))
-            retcode = subprocess.call(validate_cmd)
-            if retcode != 0:
-                return retcode
+            result = subprocess.run(
+                validate_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            if result.returncode != 0:
+                return result.returncode
+
+    return 0
+
+
+def measure_fw_unroll(
+    project_root,
+    algorithm,
+    implementation,
+    compiler,
+    opt_flags,
+    test_input,
+    min_ui,
+    max_ui,
+    min_uj,
+    max_uj,
+):
+    for ui in range(min_ui, max_ui + 1):
+        for uj in range(min_uj, max_uj + 1):
+            logging.info("measuring code: ui = {}, uj = {}".format(ui, uj))
+            measure_cmd = [
+                "bash",
+                f"{project_root}/team7.sh",
+                '"measure"',
+                f'"{algorithm}"',
+                f'"{implementation}-unroll-ui{ui}-uj{uj}"',
+                f'"{compiler}"',
+                f'"{opt_flags}"',
+                f'"{test_input}"',
+            ]
+
+            logging.debug(" ".join(measure_cmd))
+            result = subprocess.run(
+                measure_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            logging.debug(result.stdout)
+            logging.debug(result.stderr)
+            if result.returncode != 0:
+                return result.returncode
 
     return 0
 
@@ -125,7 +166,7 @@ def main(
     compiler = "gcc"
     opt_flags = "-O3 -fno-tree-vectorize"
 
-    # generate
+    test_input = "bench-inputs"
     min_ui = 1
     max_ui = 16
     min_uj = 1
@@ -169,8 +210,23 @@ def main(
         return retcode
 
     # measure all validates files
+    retcode = measure_fw_unroll(
+        project_root,
+        algorithm,
+        implementation,
+        compiler,
+        opt_flags,
+        test_input,
+        min_ui,
+        max_ui,
+        min_uj,
+        max_uj,
+    )
+    if retcode != 0:
+        logging.error("Measure files failed")
+        return retcode
 
-    # use measurments as feedback
+    # use measurements as feedback
 
 
 if __name__ == "__main__":
