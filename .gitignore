@@ -572,3 +572,5 @@ output/*
 *.out.*
 
 measurements/**/*test-inputs*
+
+autotuning/generated/

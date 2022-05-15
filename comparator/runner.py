@@ -28,7 +28,7 @@ def run_recursive(path: str, binary: str, ending: str):
             out_path = f"{curpath}/{stem}{ending}"
             cmd = f"{binary} {in_path} {out_path}"
 
-            # print(f'running command: "{cmd}"')
+            print(f'running command: "{cmd}"')
             b_args = (binary, in_path, out_path)
             with subprocess.Popen(
                 b_args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL

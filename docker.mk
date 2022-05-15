@@ -1,3 +1,4 @@
+SHELL=/bin/bash
 # This is the Makefile used in the docker container for building things
 # It should contain all the rules for building all the things.
 # We get the following enironment variables passed from the local dockerfile:
@@ -44,6 +45,19 @@ fw-c-cache-blocking-gcc: shortest-path/c/*.c shortest-path/c/impl/cache_blocking
 fw-c-cache-blocking-clang: shortest-path/c/*.c shortest-path/c/impl/cache_blocking.c shortest-path/c/impl/sp.h
 	cd shortest-path/c; \
 	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/cache_blocking.c main.c;
+
+# fw - autotuning
+fw-c-autotune-gcc: shortest-path/c/*.c shortest-path/c/impl/fw-c-autotune*.c shortest-path/c/impl/sp.h
+	cd shortest-path/c/impl; \
+	for f in fw-c-autotune*.c; do \
+		gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c; \
+	done 
+
+fw-c-autotune-clang: shortest-path/c/*.c shortest-path/c/impl/fw-c-autotune*.c shortest-path/c/impl/sp.h
+	cd shortest-path/c/impl; \
+	for f in fw-c-autotune*.c; do \
+		clang-13 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c;
+	done 
 
 # tc - vector
 tc-c-vector-gcc: transitive-closure/c/*.c transitive-closure/c/impl/vector.c transitive-closure/c/impl/tc.h

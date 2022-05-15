@@ -13,19 +13,22 @@ def read_matrix(path: str) -> np.ndarray:
     """Read a real-valued matrix from a file."""
     with open(path, "r") as f:
         lines = f.readlines()
-        n = int(lines[0])
-        assert (
-            len(lines) == n + 1
-        ), f"{n} lines announced, but {len(lines) - 1} provided"
+        if len(lines) == 0:
+            return np.array([])
+        else:
+            n = int(lines[0])
+            assert (
+                len(lines) == n + 1
+            ), f"{n} lines announced, but {len(lines) - 1} provided"
 
-        def maf(x):
-            try:
-                return float(x)
-            except Exception:
-                return inf
+            def maf(x):
+                try:
+                    return float(x)
+                except Exception:
+                    return inf
 
-        res = [list(map(maf, ln.split(",")))[:n] for ln in lines[1:]]
-        return np.array(res)
+            res = [list(map(maf, ln.split(",")))[:n] for ln in lines[1:]]
+            return np.array(res)
 
 
 def compare(
@@ -36,6 +39,8 @@ def compare(
     If :m1: and :m2: differ from eachother, return False, otherwise True.
     If a target path != '' is specified, a visualization is saved to :tgt:
     """
+    if m1.size != m2.size:
+        return False
     comp = np.isclose(m1, m2, atol=precision)
     if tgt != "":
         G = gv.Digraph()
