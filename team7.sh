@@ -13,6 +13,7 @@ TESTCASE_DIR="${INPUT_CATEGORY_DIR}/test-inputs"
 BENCHMARK_DIR="${INPUT_CATEGORY_DIR}/bench-inputs"
 MEASUREMENTS_DIR="${ROOT_DIR}/measurements/data"
 PLOTS_DIR="${ROOT_DIR}/measurements/plots"
+AUTOTUNING_DIR="${ROOT_DIR}/autotuning"
 
 function printUsage() {
     echo "Usage: $0"
@@ -140,6 +141,7 @@ function clean() {
     rm -f $(find "${INPUT_CATEGORY_DIR}" -name "*.out.*")
     rm -f $(find "${MEASUREMENTS_DIR}" -name "*test-inputs*")
     rm -f $(find "${PLOTS_DIR}" -name "*test-inputs*")
+    rm -f $(find "${AUTOTUNING_DIR}/generated" -name "*.c")
 }
 
 COMMAND=${1:-}
