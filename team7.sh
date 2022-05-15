@@ -115,7 +115,7 @@ function measure() {
     OPTIMIZATIONS_RAW="$4"
     OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
     INPUT_CATEGORY="$5"
-    python3 "${ROOT_DIR}/measurements/measure.py" \
+    python3 "${ROOT_DIR}/measurements/measure.py" -tb \
         --binary "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_$OPTIMIZATIONS" \
         --testsuite "${INPUT_CATEGORY_DIR}/${INPUT_CATEGORY}" \
         --output "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}_${INPUT_CATEGORY}"
@@ -137,9 +137,9 @@ function plot() {
 
 function clean() {
     make clean
-    rm $(find "${INPUT_CATEGORY_DIR}" -name "*.out.*")
-    rm $(find "${MEASUREMENTS_DIR}" -name "*test-inputs*")
-    rm $(find "${PLOTS_DIR}" -name "*test-inputs*")
+    rm -f $(find "${INPUT_CATEGORY_DIR}" -name "*.out.*")
+    rm -f $(find "${MEASUREMENTS_DIR}" -name "*test-inputs*")
+    rm -f $(find "${PLOTS_DIR}" -name "*test-inputs*")
 }
 
 COMMAND=${1:-}
