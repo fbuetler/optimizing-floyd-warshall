@@ -96,7 +96,7 @@ function validate() {
     OPTIMIZATIONS_RAW="$4"
     OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
 
-    rm -r $TESTCASE_DIR/**/*.out.txt || true
+    rm -f $TESTCASE_DIR/**/*.out.txt
     python3 "${ROOT_DIR}/comparator/runner.py" \
         -b "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}" \
         -d "${TESTCASE_DIR}" \

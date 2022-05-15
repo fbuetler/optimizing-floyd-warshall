@@ -15,6 +15,8 @@ DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} ${DOCKER_ENV_VARS} -t ${IMAGE_TAG}
 
 # Topmost rule must be to build the optimized C code
 
+# TODO maybe pass implementations as an argument over env vars, this would remove all the repeating rules
+
 # mm - unroll
 build-mm-c-unroll-gcc: docker max-min/c/*.c max-min/c/impl/unroll.c max-min/c/impl/mm.h
 	docker run ${DOCKER_RUN_ARGS} make mm-c-unroll-gcc
