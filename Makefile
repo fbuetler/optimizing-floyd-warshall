@@ -36,6 +36,8 @@ build-tc-c-vector-gcc: docker transitive-closure/c/*.c transitive-closure/c/impl
 build-tc-c-vector-clang: docker transitive-closure/c/*.c transitive-closure/c/impl/vector.c transitive-closure/c/impl/tc.h
 	docker run ${DOCKER_RUN_ARGS} make tc-c-vector-clang
 
+# TODO maybe pass implementations as an argument over env vars, this would remove all the repeating rules
+
 # mm - unroll
 build-mm-c-unroll-gcc: docker max-min/c/*.c max-min/c/impl/unroll.c max-min/c/impl/mm.h
 	docker run ${DOCKER_RUN_ARGS} make mm-c-unroll-gcc

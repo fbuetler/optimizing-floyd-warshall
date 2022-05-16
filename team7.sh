@@ -13,6 +13,7 @@ TESTCASE_DIR="${INPUT_CATEGORY_DIR}/test-inputs"
 BENCHMARK_DIR="${INPUT_CATEGORY_DIR}/bench-inputs"
 MEASUREMENTS_DIR="${ROOT_DIR}/measurements/data"
 PLOTS_DIR="${ROOT_DIR}/measurements/plots"
+AUTOTUNING_DIR="${ROOT_DIR}/autotuning"
 
 function printUsage() {
     echo "Usage: $0"
@@ -95,7 +96,7 @@ function validate() {
     OPTIMIZATIONS_RAW="$4"
     OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
 
-    rm -r $TESTCASE_DIR/**/*.out.txt || true
+    rm -f $TESTCASE_DIR/**/*.out.txt
     python3 "${ROOT_DIR}/comparator/runner.py" \
         -b "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}" \
         -d "${TESTCASE_DIR}" \
@@ -115,7 +116,7 @@ function measure() {
     OPTIMIZATIONS_RAW="$4"
     OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
     INPUT_CATEGORY="$5"
-    python3 "${ROOT_DIR}/measurements/measure.py" \
+    python3 "${ROOT_DIR}/measurements/measure.py" -tb \
         --binary "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_$OPTIMIZATIONS" \
         --testsuite "${INPUT_CATEGORY_DIR}/${INPUT_CATEGORY}" \
         --output "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}_${INPUT_CATEGORY}"
@@ -137,9 +138,10 @@ function plot() {
 
 function clean() {
     make clean
-    rm $(find "${INPUT_CATEGORY_DIR}" -name "*.out.*")
-    rm $(find "${MEASUREMENTS_DIR}" -name "*test-inputs*")
-    rm $(find "${PLOTS_DIR}" -name "*test-inputs*")
+    rm -f $(find "${INPUT_CATEGORY_DIR}" -name "*.out.*")
+    rm -f $(find "${MEASUREMENTS_DIR}" -name "*test-inputs*")
+    rm -f $(find "${PLOTS_DIR}" -name "*test-inputs*")
+    rm -f $(find "${AUTOTUNING_DIR}/generated" -name "*.c")
 }
 
 COMMAND=${1:-}
