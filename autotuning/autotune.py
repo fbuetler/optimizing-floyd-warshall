@@ -2,6 +2,7 @@ import argparse
 import jinja2
 import subprocess
 import logging
+import csv
 
 logging.basicConfig(encoding="utf-8", level=logging.INFO)
 
@@ -160,6 +161,58 @@ def measure_fw_unroll(
     return 0
 
 
+def get_optimal_unrollment(
+    data_root,
+    algorithm,
+    implementation,
+    compiler,
+    opt_flags_raw,
+    test_input,
+    min_ui,
+    max_ui,
+    min_uj,
+    max_uj,
+):
+    opt_flags = opt_flags_raw.replace(" ", "_")
+
+    ui_opt = 0
+    uj_opt = 0
+    p_opt = 0
+
+    for ui in range(min_ui, max_ui + 1):
+        for uj in range(min_uj, max_uj + 1):
+            logging.info("processing data: ui = {}, uj = {}".format(ui, uj))
+            data_fname = f"{data_root}/{algorithm}_{implementation}-unroll-ui{ui}-uj{uj}_{compiler}_{opt_flags}_{test_input}.csv"
+            with open(data_fname) as f:
+                reader = csv.reader(f, delimiter=",", quoting=csv.QUOTE_NONNUMERIC)
+                n_list = reader.__next__()
+                runs_list = reader.__next__()
+                cycles_list = reader.__next__()
+
+                n_64 = -1
+                for i, n in enumerate(n_list):
+                    if n == 32.0:
+                        # if n == 64: TODO
+                        n_64 = i
+                        break
+
+                if n_64 == -1:
+                    logging.error("required column not found")
+                    raise Exception("failed to get optimal unrollment factor")
+
+                c_64 = cycles_list[n_64]
+                p_64 = round((2 * n * n * n) / c_64, 2)
+
+                logging.debug(f"performance for ({ui}, {uj}) = {p_64}")
+
+                if p_64 > p_opt:
+                    p_opt = p_64
+                    ui_opt = ui
+                    uj_opt = uj
+
+    return (ui_opt, uj_opt)
+
+
 def main(
     project_root, l1_cache_bytes, l2_cache_bytes, min_n, max_n, vectorize, output_fname
 ):
@@ -229,6 +282,19 @@ def main(
         return retcode
 
     # use measurements as feedback
+    opt_ui, opt_uj = get_optimal_unrollment(
+        f"{project_root}/measurements/data",
+        algorithm,
+        implementation,
+        compiler,
+        opt_flags,
+        test_input,
+        min_ui,
+        max_ui,
+        min_uj,
+        max_uj,
+    )
+    logging.info(f"optimal unrollment is: ({opt_ui}, {opt_uj})")
 
 
 if __name__ == "__main__":
