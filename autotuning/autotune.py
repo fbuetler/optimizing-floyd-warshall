@@ -82,7 +82,7 @@ def build_files(project_root, algorithm, implementation, compiler, opt_flags_raw
     ]
 
     logging.debug(" ".join(build_cmd))
-    result = subprocess.run(build_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = subprocess.run(build_cmd)
     return result.returncode
 
 
@@ -103,18 +103,22 @@ def validate_fw_unroll(
             validate_cmd = [
                 "bash",
                 f"{project_root}/team7.sh",
-                '"validate"',
-                f'"{algorithm}"',
-                f'"{implementation}-unroll-ui{ui}-uj{uj}"',
-                f'"{compiler}"',
-                f'"{opt_flags}"',
+                "validate",
+                f"{algorithm}",
+                f"{implementation}-unroll-ui{ui}-uj{uj}",
+                f"{compiler}",
+                f"{opt_flags}",
             ]
 
             logging.debug(" ".join(validate_cmd))
             result = subprocess.run(
-                validate_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                validate_cmd,
+                text=True,
+                capture_output=True,
             )
+            logging.debug(result.stdout)
             if result.returncode != 0:
+                logging.error(result.stderr)
                 return result.returncode
 
     return 0
@@ -138,21 +142,19 @@ def measure_fw_unroll(
             measure_cmd = [
                 "bash",
                 f"{project_root}/team7.sh",
-                '"measure"',
-                f'"{algorithm}"',
-                f'"{implementation}-unroll-ui{ui}-uj{uj}"',
-                f'"{compiler}"',
-                f'"{opt_flags}"',
-                f'"{test_input}"',
+                "measure",
+                f"{algorithm}",
+                f"{implementation}-unroll-ui{ui}-uj{uj}",
+                f"{compiler}",
+                f"{opt_flags}",
+                f"{test_input}",
             ]
 
             logging.debug(" ".join(measure_cmd))
-            result = subprocess.run(
-                measure_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
+            result = subprocess.run(measure_cmd, capture_output=True, text=True)
             logging.debug(result.stdout)
-            logging.debug(result.stderr)
             if result.returncode != 0:
+                logging.error(result.stderr)
                 return result.returncode
 
     return 0
