@@ -54,7 +54,7 @@ int floydWarshall(char *C, int N) {
       _mm256_maskstore_epi32((int *) &C[i * bpl + j], mask, res);
 
       // increase j for the bytes that were just handled
-      j = bpl - (bpl % 4);
+      j = bpl & (-1 ^ 3); // round down bpl to the closest 4-divisible number
 
       // since we don't have AVX-512, we cannot perform loads / stores to byte-precision,
       // so the remaining bytes (at most 3) have to be computed boringly
