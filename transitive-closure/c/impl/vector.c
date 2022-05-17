@@ -5,9 +5,6 @@
 const int bytes_per_vec = 256 / 8;
 
 /* vectorized version of the Floyd-Warshall Transitive Closure algorithm
- * since vectors can only load / store to a precision of 32 bits (4 bytes),
- * the code to perform the remaining operations that don't fit neatly into a
- * vector is a bit ugly (sorry)
  */
 int floydWarshall(char *C, int N) {
   // compute constants / reused values
