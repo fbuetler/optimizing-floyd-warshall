@@ -345,21 +345,22 @@ def unrollment_hill_climbing(project_root, ui, uj):
 def main(
     project_root, l1_cache_bytes, l2_cache_bytes, min_n, max_n, vectorize, output_fname
 ):
-    debug = True
+    # debug = True
+    debug = False
 
     if debug:
         logging.basicConfig(encoding="utf-8", level=logging.DEBUG, force=True)
 
-    # initial_ui, initial_uj = unrollment_initial_guess(project_root, is_debug_run=debug)
+    initial_ui, initial_uj = unrollment_initial_guess(project_root, is_debug_run=debug)
 
-    initial_ui = 9
-    initial_uj = 1
+    # initial_ui = 9
+    # initial_uj = 1
     refined_ui, refined_uj = unrollment_hill_climbing(
         project_root, initial_ui, initial_uj
     )
 
-    refined_ui = 8
-    refined_uj = 1
+    # refined_ui = 8
+    # refined_uj = 1
 
 
 if __name__ == "__main__":
