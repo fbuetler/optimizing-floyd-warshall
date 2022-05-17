@@ -5,6 +5,11 @@
 const int floats_per_vec = 256 / 32;
 
 int floydWarshall(float *C, int N) {
+  // compute mask for the last vector of each loop
+  __m256i mask_indices = _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 0);
+  __m256i mask_limit = _mm256_set1_epi32(N % floats_per_vec);
+  __m256i mask = _mm256_cmpgt_epi32(mask_limit, mask_indices);
+
   for (int k = 0; k < N; k++) {
     for (int i = 0; i < N; i++) {
       __m256 cik = _mm256_broadcast_ss(&C[i * N + k]);
@@ -21,12 +26,6 @@ int floydWarshall(float *C, int N) {
         // store
         _mm256_storeu_ps(&C[i * N + j], res);
       }
-
-      // only use part of a vector for the last remaining operations
-      // compute mask
-      __m256i cand_j = _mm256_set_epi32(j + 7, j + 6, j + 5, j + 4, j + 3, j + 2, j + 1, j);
-      __m256i cmp = _mm256_set1_epi32(N);
-      __m256i mask = _mm256_cmpgt_epi32(cmp, cand_j);
 
       // load
       __m256 cij = _mm256_maskload_ps(&C[i * N + j], mask);
