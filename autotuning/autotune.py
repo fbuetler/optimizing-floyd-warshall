@@ -26,6 +26,25 @@ parser.add_argument(
 )
 parser.add_argument("-o", "--output", help="output file path", type=str, required=True)
 
+ALGORITHM = "fw"
+IMPLEMENTATION = "c-autotune"
+COMPILER = "gcc"
+OPT_FLAGS = "-O3 -fno-tree-vectorize"
+TEST_INPUT = "test-inputs"
+BENCH_INPUT = "bench-inputs"
+
+
+def clean_files(project_root):
+    clean_cmd = [
+        "bash",
+        f"{project_root}/team7.sh",
+        "clean",
+    ]
+
+    logging.debug(" ".join(clean_cmd))
+    result = subprocess.run(clean_cmd)
+    return result.returncode
+
 
 def render_jinja_template(template_loc, file_name, **context):
     return (
@@ -210,29 +229,20 @@ def get_optimal_unrollment(
                     ui_opt = ui
                     uj_opt = uj
 
-    return (ui_opt, uj_opt)
+    return (ui_opt, uj_opt, p_opt)
 
 
-def main(
-    project_root, l1_cache_bytes, l2_cache_bytes, min_n, max_n, vectorize, output_fname
-):
-    algorithm = "fw"
-    implementation = "c-autotune"
-    compiler = "gcc"
-    opt_flags = "-O3 -fno-tree-vectorize"
+def get_best_unrollment(project_root, min_ui, max_ui, min_uj, max_uj):
 
-    test_input = "bench-inputs"
-    min_ui = 1
-    max_ui = 16
-    min_uj = 1
-    max_uj = 32
+    clean_files(project_root)
+
     generated_unnoll_files = generate_fw_unroll(
         f"{project_root}/autotuning",
         f"{project_root}/autotuning/generated/shortest-path",
-        algorithm,
-        implementation,
-        compiler,
-        opt_flags,
+        ALGORITHM,
+        IMPLEMENTATION,
+        COMPILER,
+        OPT_FLAGS,
         min_ui,
         max_ui,
         min_uj,
@@ -243,7 +253,7 @@ def main(
         return 1
 
     # build all generated files
-    retcode = build_files(project_root, algorithm, implementation, compiler, opt_flags)
+    retcode = build_files(project_root, ALGORITHM, IMPLEMENTATION, COMPILER, OPT_FLAGS)
     if retcode != 0:
         logging.error("Build files failed")
         return retcode
@@ -251,10 +261,10 @@ def main(
     # validate all built files
     retcode = validate_fw_unroll(
         project_root,
-        algorithm,
-        implementation,
-        compiler,
-        opt_flags,
+        ALGORITHM,
+        IMPLEMENTATION,
+        COMPILER,
+        OPT_FLAGS,
         min_ui,
         max_ui,
         min_uj,
@@ -267,11 +277,11 @@ def main(
     # measure all validates files
     retcode = measure_fw_unroll(
         project_root,
-        algorithm,
-        implementation,
-        compiler,
-        opt_flags,
-        test_input,
+        ALGORITHM,
+        IMPLEMENTATION,
+        COMPILER,
+        OPT_FLAGS,
+        TEST_INPUT,
         min_ui,
         max_ui,
         min_uj,
@@ -282,19 +292,74 @@ def main(
         return retcode
 
     # use measurements as feedback
-    opt_ui, opt_uj = get_optimal_unrollment(
+    opt_ui, opt_uj, p_opt = get_optimal_unrollment(
         f"{project_root}/measurements/data",
-        algorithm,
-        implementation,
-        compiler,
-        opt_flags,
-        test_input,
+        ALGORITHM,
+        IMPLEMENTATION,
+        COMPILER,
+        OPT_FLAGS,
+        TEST_INPUT,
         min_ui,
         max_ui,
         min_uj,
         max_uj,
     )
-    logging.info(f"optimal unrollment is: ({opt_ui}, {opt_uj})")
+    logging.info(f"optimal unrollment is: ({opt_ui}, {opt_uj}) with {p_opt}")
+
+    return opt_ui, opt_uj
+
+
+def unrollment_initial_guess(project_root, is_debug_run=False):
+    min_ui = 1
+    max_ui = 16
+    min_uj = 1
+    max_uj = 32
+
+    if is_debug_run:
+        min_ui = 4
+        max_ui = 6
+        min_uj = 4
+        max_uj = 6
+
+    ui, uj = get_best_unrollment(project_root, min_ui, max_ui, min_uj, max_uj)
+
+    return ui, uj
+
+
+def unrollment_hill_climbing(project_root, ui, uj):
+    while True:
+        logging.info(f"climing hill around ({ui}, {uj})")
+        # TODO can be optimized by not running (ui, uj)
+        next_ui, next_uj = get_best_unrollment(
+            project_root, max(ui - 1, 1), ui + 1, max(uj - 1, 1), uj + 1
+        )
+        if next_ui == ui and next_uj == uj:
+            break
+        ui = next_ui
+        uj = next_uj
+
+    logging.info(f"reached top ({ui}, {uj})")
+    return ui, uj
+
+
+def main(
+    project_root, l1_cache_bytes, l2_cache_bytes, min_n, max_n, vectorize, output_fname
+):
+    debug = True
+
+    if debug:
+        logging.basicConfig(encoding="utf-8", level=logging.DEBUG, force=True)
+
+    # initial_ui, initial_uj = unrollment_initial_guess(project_root, is_debug_run=debug)
+
+    initial_ui = 9
+    initial_uj = 1
+    refined_ui, refined_uj = unrollment_hill_climbing(
+        project_root, initial_ui, initial_uj
+    )
+
+    refined_ui = 8
+    refined_uj = 1
 
 
 if __name__ == "__main__":
