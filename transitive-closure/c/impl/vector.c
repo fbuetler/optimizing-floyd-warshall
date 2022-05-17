@@ -17,7 +17,7 @@ int floydWarshall(char *C, int N) {
                      16, 17, 18, 19, 20, 21, 22, 23,
                      24, 25, 26, 27, 28, 29, 30, 31);
   __m256i compare_index = _mm256_set1_epi8(bpl % bytes_per_vec);
-  __m256i index_mask = _mm256_cmpgt_epi8(cmp_bytes, cand_bytes);
+  __m256i index_mask = _mm256_cmpgt_epi8(compare_index, byte_indices);
   for (int k = 0; k < N; k++) {
     for (int i = 0; i < N; i++) {
       // compute some indices for reuse
@@ -29,7 +29,7 @@ int floydWarshall(char *C, int N) {
       // otherwise, the vector is all zeros
       char cikb = C[ibpl + k / 8];
       int byte_index = k % 8;
-      char byte_mask = 1 << b_index;
+      char byte_mask = 1 << byte_index;
 
       char cik_byte = cikb & byte_mask ? 0xff : 0x00;
       __m256i cik = _mm256_set1_epi8(cik_byte);
