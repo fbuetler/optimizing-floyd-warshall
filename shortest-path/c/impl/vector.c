@@ -1,5 +1,4 @@
 #include "sp.h"
-#include <math.h>
 #include <immintrin.h>
 
 const int floats_per_vec = 256 / 32;
