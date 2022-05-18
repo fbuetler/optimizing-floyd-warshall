@@ -181,6 +181,7 @@ def get_optimal_perf(
     opt_flags_raw,
     test_input,
     unroll_tile_list,
+    n_reference,
 ):
     opt_flags = opt_flags_raw.replace(" ", "_")
 
@@ -199,26 +200,25 @@ def get_optimal_perf(
                 runs_list = reader.__next__()
                 cycles_list = reader.__next__()
 
-                n_64 = -1
+            n_ref = -1
                 for i, n in enumerate(n_list):
-                    if n == 32.0:
-                        # if n == 64: TODO
-                        n_64 = i
+                if n == n_reference:
+                    n_ref = i
                         break
 
-                if n_64 == -1:
+            if n_ref == -1:
                     logging.error("required column not found")
                     raise Exception("failed to get optimal perf")
 
-                c_64 = cycles_list[n_64]
-                p_64 = round((2 * n * n * n) / c_64, 2)
+            c_ref = cycles_list[n_ref]
+            p_ref = round((2 * n * n * n) / c_ref, 2)
 
                 logging.debug(
-                    f"performance for unroll ({ui}, {uj}), tile ({ti}, {tj})= {p_64}"
+                f"performance for unroll ({ui}, {uj}), tile ({ti}, {tj})= {p_ref}"
                 )
 
-                if p_64 > p_opt:
-                    p_opt = p_64
+            if p_ref > p_opt:
+                p_opt = p_ref
                     ui_opt = ui
                     uj_opt = uj
                     ti_opt = ti
@@ -227,7 +227,7 @@ def get_optimal_perf(
     return (ui_opt, uj_opt, ti_opt, tj_opt, p_opt)
 
 
-def get_best_perf(project_root, input, unroll_tile_list):
+def get_best_perf(project_root, input, unroll_tile_list, n_reference):
 
     clean_files(project_root)
 
@@ -277,6 +277,7 @@ def get_best_perf(project_root, input, unroll_tile_list):
         OPT_FLAGS,
         input,
         unroll_tile_list,
+        n_reference,
     )
     logging.info(
         f"optimal performance with:\nunrollment: ({opt_ui}, {opt_uj})\ntile: ({opt_ti}, {opt_tj})\nperformance: {p_opt}"
@@ -302,7 +303,12 @@ def unrollment_initial_guess(project_root, is_debug_run=False):
         for j in range(min_uj, max_uj + 1):
             unroll_tile_list.append((i, j, "N", "N"))
 
-    ui, uj, ti, tj = get_best_perf(project_root, TEST_INPUT, unroll_tile_list)
+    ui, uj, ti, tj = get_best_perf(
+        project_root,
+        BENCH_INPUT if not is_debug_run else TEST_INPUT,
+        unroll_tile_list,
+        64 if not is_debug_run else 32,
+    )
 
     return ui, uj
 
@@ -326,6 +332,7 @@ def unrollment_hill_climbing(project_root, ui, uj, is_debug_run=False):
             project_root,
             BENCH_INPUT if not is_debug_run else TEST_INPUT,
             unroll_tile_list,
+            64 if not is_debug_run else 32,
         )
         if next_ui == ui and next_uj == uj:
             break
@@ -374,6 +381,7 @@ def tile_l2_hill_climbing(project_root, l2_cache_bytes, ui, uj, is_debug_run=Fal
             project_root,
             BENCH_INPUT if not is_debug_run else TEST_INPUT,
             unroll_tile_list,
+            256,  # TODO
         )
         if next_ui == ui and next_uj == uj and next_ti == t2:
             break
