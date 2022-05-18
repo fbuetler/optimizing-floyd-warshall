@@ -62,14 +62,12 @@ def generate_fw(
     implementation,
     compiler,
     opt_flags_raw,
-    unroll_list,
-    tile_list,
+    unroll_tile_list,
 ):
     opt_flags = opt_flags_raw.replace(" ", "_")
 
     generated_files = list()
-    for ui, uj in unroll_list:
-        for ti, tj in tile_list:
+    for ui, uj, ti, tj in unroll_tile_list:
             logging.info(f"generating code: unroll ({ui}, {uj}), tile ({ti}, {tj})")
             output_fname = f"{outpath}/{algorithm}_{implementation}-ui{ui}-uj{uj}-ti{ti}-tj{tj}_{compiler}_{opt_flags}.c"
 
@@ -108,16 +106,9 @@ def build_files(project_root, algorithm, implementation, compiler, opt_flags_raw
 
 
 def validate_fw(
-    project_root,
-    algorithm,
-    implementation,
-    compiler,
-    opt_flags,
-    unroll_list,
-    tile_list,
+    project_root, algorithm, implementation, compiler, opt_flags, unroll_tile_list
 ):
-    for ui, uj in unroll_list:
-        for ti, tj in tile_list:
+    for ui, uj, ti, tj in unroll_tile_list:
             logging.info(f"validating code: unroll ({ui}, {uj}), tile ({ti}, {tj})")
             validate_cmd = [
                 "bash",
@@ -150,11 +141,9 @@ def measure_fw(
     compiler,
     opt_flags,
     test_input,
-    unroll_list,
-    tile_list,
+    unroll_tile_list,
 ):
-    for ui, uj in unroll_list:
-        for ti, tj in tile_list:
+    for ui, uj, ti, tj in unroll_tile_list:
             logging.info(f"measuring code: unroll ({ui}, {uj}), tile ({ti}, {tj})")
             measure_cmd = [
                 "bash",
@@ -184,8 +173,7 @@ def get_optimal_perf(
     compiler,
     opt_flags_raw,
     test_input,
-    unroll_list,
-    tile_list,
+    unroll_tile_list,
 ):
     opt_flags = opt_flags_raw.replace(" ", "_")
 
@@ -195,8 +183,7 @@ def get_optimal_perf(
     tj_opt = 0
     p_opt = 0
 
-    for ui, uj in unroll_list:
-        for ti, tj in tile_list:
+    for ui, uj, ti, tj in unroll_tile_list:
             logging.info(f"processing data: unroll ({ui}, {uj}), tile ({ti}, {tj})")
             data_fname = f"{data_root}/{algorithm}_{implementation}-ui{ui}-uj{uj}-ti{ti}-tj{tj}_{compiler}_{opt_flags}_{test_input}.csv"
             with open(data_fname) as f:
@@ -233,7 +220,7 @@ def get_optimal_perf(
     return (ui_opt, uj_opt, ti_opt, tj_opt, p_opt)
 
 
-def get_best_perf(project_root, input, unroll_list, tile_list):
+def get_best_perf(project_root, input, unroll_tile_list):
 
     clean_files(project_root)
 
@@ -244,32 +231,22 @@ def get_best_perf(project_root, input, unroll_list, tile_list):
         IMPLEMENTATION,
         COMPILER,
         OPT_FLAGS,
-        unroll_list,
-        tile_list,
+        unroll_tile_list,
     )
     if len(generated_files) == 0:
-        logging.error("Generate files failed")
-        return 1
+        raise Exception("Generate files failed")
 
     # build all generated files
     retcode = build_files(project_root, ALGORITHM, IMPLEMENTATION, COMPILER, OPT_FLAGS)
     if retcode != 0:
-        logging.error("Build files failed")
-        return retcode
+        raise Exception("Build files failed")
 
     # validate all built files
     retcode = validate_fw(
-        project_root,
-        ALGORITHM,
-        IMPLEMENTATION,
-        COMPILER,
-        OPT_FLAGS,
-        unroll_list,
-        tile_list,
+        project_root, ALGORITHM, IMPLEMENTATION, COMPILER, OPT_FLAGS, unroll_tile_list
     )
     if retcode != 0:
-        logging.error("Validate files failed")
-        return retcode
+        raise Exception("Validate files failed")
 
     # measure all validates files
     retcode = measure_fw(
@@ -279,12 +256,10 @@ def get_best_perf(project_root, input, unroll_list, tile_list):
         COMPILER,
         OPT_FLAGS,
         input,
-        unroll_list,
-        tile_list,
+        unroll_tile_list,
     )
     if retcode != 0:
-        logging.error("Measure files failed")
-        return retcode
+        raise Exception("Measure files failed")
 
     # use measurements as feedback
     opt_ui, opt_uj, opt_ti, opt_tj, p_opt = get_optimal_perf(
@@ -294,14 +269,13 @@ def get_best_perf(project_root, input, unroll_list, tile_list):
         COMPILER,
         OPT_FLAGS,
         input,
-        unroll_list,
-        tile_list,
+        unroll_tile_list,
     )
     logging.info(
         f"optimal performance with:\nunrollment: ({opt_ui}, {opt_uj})\ntile: ({opt_ti}, {opt_tj})\nperformance: {p_opt}"
     )
 
-    return opt_ui, opt_uj, opt_ti, opt_tj
+    return (opt_ui, opt_uj, opt_ti, opt_tj)
 
 
 def unrollment_initial_guess(project_root, is_debug_run=False):
@@ -316,23 +290,21 @@ def unrollment_initial_guess(project_root, is_debug_run=False):
         min_uj = 4
         max_uj = 6
 
-    tile_list = [("N", "N")]
-    unroll_list = list()
+    unroll_tile_list = list()
     for i in range(min_ui, max_ui + 1):
         for j in range(min_uj, max_uj + 1):
-            unroll_list.append((i, j))
+            unroll_tile_list.append((i, j, "N", "N"))
 
-    ui, uj, ti, tj = get_best_perf(project_root, TEST_INPUT, unroll_list, tile_list)
+    ui, uj, ti, tj = get_best_perf(project_root, TEST_INPUT, unroll_tile_list)
 
     return ui, uj
 
 
 def unrollment_hill_climbing(project_root, ui, uj, is_debug_run=False):
     while True:
-        logging.info(f"climing hill around ({ui}, {uj})")
+        logging.info(f"climing hill around unrollment ({ui}, {uj})")
 
-        tile_list = [("N", "N")]
-        unroll_list = list()
+        unroll_tile_list = list()
         for i in range(ui - 1, ui + 2):
             for j in range(uj - 1, uj + 2):
                 if i == ui or j == uj:
@@ -341,13 +313,12 @@ def unrollment_hill_climbing(project_root, ui, uj, is_debug_run=False):
                 if i < 1 or j < 1:
                     # skip unrollment factors that make no sense
                     continue
-                unroll_list.append((i, j))
+                unroll_tile_list.append((i, j, "N", "N"))
 
         next_ui, next_uj, next_ti, next_tj = get_best_perf(
             project_root,
             BENCH_INPUT if not is_debug_run else TEST_INPUT,
-            unroll_list,
-            tile_list,
+            unroll_tile_list,
         )
         if next_ui == ui and next_uj == uj:
             break
