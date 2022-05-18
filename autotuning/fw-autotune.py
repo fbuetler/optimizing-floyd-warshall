@@ -330,8 +330,54 @@ def unrollment_hill_climbing(project_root, ui, uj, is_debug_run=False):
 
 
 def tile_l2_hill_climbing(project_root, l2_cache_bytes, ui, uj, is_debug_run=False):
-    l2 = math.floor(math.sqrt(l2_cache_bytes / 3))
-    # TODO
+    t2 = math.floor(math.sqrt(l2_cache_bytes / 3))
+
+    if is_debug_run:
+        t2 = 4
+
+    if t2 == 0:
+        raise Exception("heuristic makes no sense")
+
+    while True:
+        logging.info(f"climing hill around unrollement ({ui}, {uj}), tile ({t2})")
+        unroll_tile_list = list()
+        for i in range(ui - 1, ui + 2):
+            for j in range(uj - 1, uj + 2):
+                if i == ui or j == uj:
+                    # skip the rock we are standing on
+                    continue
+                if i < 1 or j < 1:
+                    # skip unrollment factors that make no sense
+                    continue
+
+                for t in [t2 / 2, t2 * 2]:
+                    t = int(t)
+                    if t < 1:
+                        # skip unrollment factors that make no sense
+                        continue
+
+                    print(f"{i} {j} {t} {t}")
+                    if i > t or j > t:
+                        # tile size should ALWAYS be larger than the unrolling factor
+                        continue
+
+                    # we use only squared tiles here
+                    unroll_tile_list.append((i, j, t, t))
+
+        print(unroll_tile_list)
+        next_ui, next_uj, next_ti, next_tj = get_best_perf(
+            project_root,
+            BENCH_INPUT if not is_debug_run else TEST_INPUT,
+            unroll_tile_list,
+        )
+        if next_ui == ui and next_uj == uj and next_ti == t2:
+            break
+        ui = next_ui
+        uj = next_uj
+        t2 = next_ti
+
+    logging.info(f"reached top with  unrollment ({ui}, {uj}), tile ({t2}, {t2})")
+    return ui, uj
 
 
 def main(
