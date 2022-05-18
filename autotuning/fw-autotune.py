@@ -110,6 +110,12 @@ def validate_fw(
 ):
     for ui, uj, ti, tj in unroll_tile_list:
             logging.info(f"validating code: unroll ({ui}, {uj}), tile ({ti}, {tj})")
+
+        testcases = list()
+        for n in [4, 8, 16, 30, 32]:
+            if n % ti == 0 and n % tj == 0:
+                testcases.append(f"n{n}")
+
             validate_cmd = [
                 "bash",
                 f"{project_root}/team7.sh",
@@ -118,6 +124,7 @@ def validate_fw(
                 f"{implementation}-ui{ui}-uj{uj}-ti{ti}-tj{tj}",
                 f"{compiler}",
                 f"{opt_flags}",
+            f"{','.join(testcases)}",
             ]
 
             logging.debug(" ".join(validate_cmd))
@@ -356,7 +363,6 @@ def tile_l2_hill_climbing(project_root, l2_cache_bytes, ui, uj, is_debug_run=Fal
                         # skip unrollment factors that make no sense
                         continue
 
-                    print(f"{i} {j} {t} {t}")
                     if i > t or j > t:
                         # tile size should ALWAYS be larger than the unrolling factor
                         continue
@@ -364,7 +370,6 @@ def tile_l2_hill_climbing(project_root, l2_cache_bytes, ui, uj, is_debug_run=Fal
                     # we use only squared tiles here
                     unroll_tile_list.append((i, j, t, t))
 
-        print(unroll_tile_list)
         next_ui, next_uj, next_ti, next_tj = get_best_perf(
             project_root,
             BENCH_INPUT if not is_debug_run else TEST_INPUT,
