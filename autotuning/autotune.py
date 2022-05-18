@@ -1,4 +1,5 @@
 import argparse
+import math
 import jinja2
 import subprocess
 import logging
@@ -232,7 +233,7 @@ def get_optimal_unrollment(
     return (ui_opt, uj_opt, p_opt)
 
 
-def get_best_unrollment(project_root, min_ui, max_ui, min_uj, max_uj):
+def get_best_unrollment(project_root, input, min_ui, max_ui, min_uj, max_uj):
 
     clean_files(project_root)
 
@@ -281,7 +282,7 @@ def get_best_unrollment(project_root, min_ui, max_ui, min_uj, max_uj):
         IMPLEMENTATION,
         COMPILER,
         OPT_FLAGS,
-        TEST_INPUT,
+        input,
         min_ui,
         max_ui,
         min_uj,
@@ -298,7 +299,7 @@ def get_best_unrollment(project_root, min_ui, max_ui, min_uj, max_uj):
         IMPLEMENTATION,
         COMPILER,
         OPT_FLAGS,
-        TEST_INPUT,
+        input,
         min_ui,
         max_ui,
         min_uj,
@@ -321,7 +322,9 @@ def unrollment_initial_guess(project_root, is_debug_run=False):
         min_uj = 4
         max_uj = 6
 
-    ui, uj = get_best_unrollment(project_root, min_ui, max_ui, min_uj, max_uj)
+    ui, uj = get_best_unrollment(
+        project_root, TEST_INPUT, min_ui, max_ui, min_uj, max_uj
+    )
 
     return ui, uj
 
@@ -331,7 +334,7 @@ def unrollment_hill_climbing(project_root, ui, uj):
         logging.info(f"climing hill around ({ui}, {uj})")
         # TODO can be optimized by not running (ui, uj)
         next_ui, next_uj = get_best_unrollment(
-            project_root, max(ui - 1, 1), ui + 1, max(uj - 1, 1), uj + 1
+            project_root, BENCH_INPUT, max(ui - 1, 1), ui + 1, max(uj - 1, 1), uj + 1
         )
         if next_ui == ui and next_uj == uj:
             break
@@ -340,6 +343,11 @@ def unrollment_hill_climbing(project_root, ui, uj):
 
     logging.info(f"reached top ({ui}, {uj})")
     return ui, uj
+
+
+def tile_l2_hill_climbing(project_root, l2_cache_bytes):
+    l2 = math.floor(math.sqrt(l2_cache_bytes / 3))
+    # TODO
 
 
 def main(
@@ -351,8 +359,10 @@ def main(
     if debug:
         logging.basicConfig(encoding="utf-8", level=logging.DEBUG, force=True)
 
+    # exhaustive search with test input
     initial_ui, initial_uj = unrollment_initial_guess(project_root, is_debug_run=debug)
 
+    # hill climbing search with bench input
     # initial_ui = 9
     # initial_uj = 1
     refined_ui, refined_uj = unrollment_hill_climbing(
@@ -361,6 +371,7 @@ def main(
 
     # refined_ui = 8
     # refined_uj = 1
+    tile_l2_hill_climbing(project_root, l2_cache_bytes)
 
 
 if __name__ == "__main__":
