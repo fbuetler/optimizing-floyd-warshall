@@ -1,8 +1,8 @@
 #include "sp.h"
 
 int floydWarshall(float *C, int N) {
-    int bsize_i = {{ blocksize_i }});
-    int bsize_j = {{ blocksize_j }});
+    int bsize_i = {{ tilesizei }});
+    int bsize_j = {{ tilesizej }});
 
     if (N % bsize_i != 0 || N % bsize_j != 0) {
         return 1;

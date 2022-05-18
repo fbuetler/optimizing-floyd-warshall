@@ -1,22 +1,22 @@
 #include "sp.h"
 
 int floydWarshall(float *C, int N) {
-    if (N % {{ blocksize_i }} != 0 || N % {{ blocksize_j }} != 0) {
+    if (N % {{ tilesizei }} != 0 || N % {{ tilesizej }} != 0) {
         return 1;
     }
 
     for (int k = 0; k < N; k++) {
-        for (int ii = 0; ii < N; ii += {{ blocksize_i }}) {
-            for (int jj = 0; jj < N; jj += {{ blocksize_j }}) {
+        for (int ii = 0; ii < N; ii += {{ tilesizei }}) {
+            for (int jj = 0; jj < N; jj += {{ tilesizej }}) {
                 // tile
                 int i = ii;
-                for (; i - ii < {{ blocksize_i }} - {{ unroll_i - 1 }}; i += {{ unroll_i }}) {
+                for (; i - ii < {{ tilesizei }} - {{ unroll_i - 1 }}; i += {{ unroll_i }}) {
                     {% for u_i in range(unroll_i) -%}
                     {{ "float ci{}k = C[(i + {}) * N + k];".format(u_i, u_i) }}
                     {% endfor -%}
 
                     int j = jj;
-                    for (; j - jj < {{ blocksize_j }} - {{ unroll_j - 1 }}; j += {{ unroll_j }}) {
+                    for (; j - jj < {{ tilesizej }} - {{ unroll_j - 1 }}; j += {{ unroll_j }}) {
                         // load
                         {% for u_i in range(unroll_i) -%}
                         {% for u_j in range(unroll_j) -%}
@@ -44,7 +44,7 @@ int floydWarshall(float *C, int N) {
                     }
 
                     // rest of j
-                    for (; j < {{ blocksize_j }}; j++) {
+                    for (; j < {{ tilesizej }}; j++) {
                         {% for u_i in range(unroll_i) -%}
                         {{ "C[(i + {}) * N + j] = MIN(C[(i + {}) * N + j], ci{}k + C[k * N + j]);".format(u_i, u_i, u_i) }}
                         {% endfor -%}
@@ -52,11 +52,11 @@ int floydWarshall(float *C, int N) {
                 }
 
                 // rest of i
-                for (; i < {{ blocksize_i }}; i++) {
+                for (; i < {{ tilesizei }}; i++) {
                     float cik = C[i * N + k];
             
                     int j = jj;
-                    for (; j < {{ blocksize_j }} - {{ unroll_j - 1 }}; j += {{ unroll_j }}) {
+                    for (; j < {{ tilesizej }} - {{ unroll_j - 1 }}; j += {{ unroll_j }}) {
                         // load
                         {% for u_j in range(unroll_j) -%}
                         {{ "float cij{} = C[i * N + j + {}];".format(u_j, u_j) }}
@@ -78,7 +78,7 @@ int floydWarshall(float *C, int N) {
                     }
 
                     // rest of j
-                    for (; j < {{ blocksize_j }}; j++) {
+                    for (; j < {{ tilesizej }}; j++) {
                         C[i * N + j] = MIN(C[i * N + j], cik + C[k * N + j]);
                     }
                 }
