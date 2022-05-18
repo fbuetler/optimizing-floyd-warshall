@@ -21,7 +21,7 @@ function printUsage() {
     echo "  build <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST>"
     echo "  generate-test-in <MIN_N> <MAX_N> <STEP_N>"
     echo "  generate-test-out <ALGORITHM> <REF_IMPL> <INPUT_CATEGORY>"
-    echo "  validate <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST>"
+    echo "  validate <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST> (<TESTCASES>)"
     echo "  measure <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST> (<INPUT_CATEGORY>)"
     echo "  plot <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST> (<INPUT_CATEGORY>) <PLOT_TITLE>"
     echo "  clean"
@@ -40,6 +40,9 @@ function printUsage() {
     echo "  -O0"
     echo "  -O3 -fno-tree-vectorize"
     echo "  -O3 -ffast-math -march=native -mfma"
+    echo "Testcases:"
+    echo "  1,2,3,4,5"
+    echo "  n64,n128,n256,n512,n1024,n2048,n4096,n8192"
     echo "Input categories:"
     echo "  $(ls -m $INPUT_CATEGORY_DIR | sed 's/,/\n /g')"
     echo "NOTE:"
@@ -95,18 +98,19 @@ function validate() {
     COMPILER="$3"
     OPTIMIZATIONS_RAW="$4"
     OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
+    TESTCASES="$5"
 
-    rm -f $TESTCASE_DIR/**/*.out.txt
+    rm -f $TESTCASES/**/*.out.txt
     python3 "${ROOT_DIR}/comparator/runner.py" \
         -b "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}" \
-        -d "${TESTCASE_DIR}" \
+        -d "${TESTCASES}" \
         -a "${ALGORITHM}" \
         -o "out"
 
     python3 "${ROOT_DIR}/comparator/compare.py" \
         --recursive \
         --silent \
-        "${TESTCASE_DIR}"
+        "${TESTCASES}"
 }
 
 function measure() {
@@ -204,6 +208,7 @@ validate)
     IMPLEMENTATION_LIST="${3:-}"
     COMPILER_LIST="${4:-}"
     OPTIMIZATIONS_LIST="${5:-}"
+    TESTCASE_LIST="${6:-/}"
     if [[ -z "$ALGORITHM_LIST" || -z "$IMPLEMENTATION_LIST" || -z "$COMPILER_LIST" || -z "$OPTIMIZATIONS_LIST" ]]; then
         printUsage "$0"
     fi
@@ -213,14 +218,17 @@ validate)
     read -ra IMPLEMENTATIONS <<<"$IMPLEMENTATION_LIST"
     read -ra COMPILERS <<<"$COMPILER_LIST"
     read -ra OPTS <<<"$OPTIMIZATIONS_LIST"
+    read -ra TESTCASES <<<"$TESTCASE_LIST"
 
     for ALGORITHM in "${ALGORITHMS[@]}"; do
         for IMPLEMENTATION in "${IMPLEMENTATIONS[@]}"; do
             for COMPILER in "${COMPILERS[@]}"; do
                 for OPTIMIZATIONS in "${OPTS[@]}"; do
-                    echo "Validating $ALGORITHM/$IMPLEMENTATION"
-                    validate $ALGORITHM "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS"
-                    echo
+                    for TESTCASE in "${TESTCASES[@]}"; do
+                        echo "Validating $ALGORITHM/$IMPLEMENTATION"
+                        validate $ALGORITHM "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$TESTCASE_DIR/$TESTCASE"
+                        echo
+                    done
                 done
             done
         done
