@@ -1,5 +1,6 @@
 import argparse
 import math
+import numpy as np
 import jinja2
 import subprocess
 import logging
@@ -352,6 +353,7 @@ def tile_l2_hill_climbing(project_root, l2_cache_bytes, ui, uj, is_debug_run=Fal
     if t2 == 0:
         raise Exception("heuristic makes no sense")
 
+    visited = set()
     while True:
         logging.info(f"climing hill around unrollement ({ui}, {uj}), tile ({t2})")
         unroll_tile_list = list()
@@ -374,8 +376,19 @@ def tile_l2_hill_climbing(project_root, l2_cache_bytes, ui, uj, is_debug_run=Fal
                         # tile size should ALWAYS be larger than the unrolling factor
                         continue
 
+                    # dont climb the same rock twice
+                    rock = f"ui{i}_uj{j}_ti{t}_tj{t}"
+                    if rock in visited:
+                        continue
+
+                    visited.add(rock)
+
                     # we use only squared tiles here
                     unroll_tile_list.append((i, j, t, t))
+
+        if len(unroll_tile_list) == 0:
+            logging.info(f"all visited:\n{visited}")
+            raise Exception("no place to go")
 
         next_ui, next_uj, next_ti, next_tj = get_best_perf(
             project_root,
