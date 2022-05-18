@@ -55,35 +55,35 @@ def render_jinja_template(template_loc, file_name, **context):
     )
 
 
-def generate_fw_unroll(
+def generate_fw(
     inpath,
     outpath,
     algorithm,
     implementation,
     compiler,
     opt_flags_raw,
-    min_ui,
-    max_ui,
-    min_uj,
-    max_uj,
+    unroll_list,
+    tile_list,
 ):
     opt_flags = opt_flags_raw.replace(" ", "_")
 
     generated_files = list()
-    for ui in range(min_ui, max_ui + 1):
-        for uj in range(min_uj, max_uj + 1):
-            logging.info("generating unrolled code: ui = {}, uj = {}".format(ui, uj))
-            output_fname = f"{outpath}/{algorithm}_{implementation}-unroll-ui{ui}-uj{uj}_{compiler}_{opt_flags}.c"
+    for ui, uj in unroll_list:
+        for ti, tj in tile_list:
+            logging.info(f"generating code: unroll ({ui}, {uj}), tile ({ti}, {tj})")
+            output_fname = f"{outpath}/{algorithm}_{implementation}-ui{ui}-uj{uj}-ti{ti}-tj{tj}_{compiler}_{opt_flags}.c"
 
             context = dict()
             context["unroll_i"] = ui
             context["unroll_j"] = uj
+            context["tilesizei"] = ti
+            context["tilesizej"] = tj
 
             with open(output_fname, mode="w", encoding="utf-8") as f:
                 f.write(
                     render_jinja_template(
                         f"{inpath}",
-                        f"fw-unroll.py.j2",
+                        f"fw-unroll-tile.py.j2",
                         **context,
                     )
                 )
@@ -107,26 +107,24 @@ def build_files(project_root, algorithm, implementation, compiler, opt_flags_raw
     return result.returncode
 
 
-def validate_fw_unroll(
+def validate_fw(
     project_root,
     algorithm,
     implementation,
     compiler,
     opt_flags,
-    min_ui,
-    max_ui,
-    min_uj,
-    max_uj,
+    unroll_list,
+    tile_list,
 ):
-    for ui in range(min_ui, max_ui + 1):
-        for uj in range(min_uj, max_uj + 1):
-            logging.info("validating code: ui = {}, uj = {}".format(ui, uj))
+    for ui, uj in unroll_list:
+        for ti, tj in tile_list:
+            logging.info(f"validating code: unroll ({ui}, {uj}), tile ({ti}, {tj})")
             validate_cmd = [
                 "bash",
                 f"{project_root}/team7.sh",
                 "validate",
                 f"{algorithm}",
-                f"{implementation}-unroll-ui{ui}-uj{uj}",
+                f"{implementation}-ui{ui}-uj{uj}-ti{ti}-tj{tj}",
                 f"{compiler}",
                 f"{opt_flags}",
             ]
@@ -145,27 +143,25 @@ def validate_fw_unroll(
     return 0
 
 
-def measure_fw_unroll(
+def measure_fw(
     project_root,
     algorithm,
     implementation,
     compiler,
     opt_flags,
     test_input,
-    min_ui,
-    max_ui,
-    min_uj,
-    max_uj,
+    unroll_list,
+    tile_list,
 ):
-    for ui in range(min_ui, max_ui + 1):
-        for uj in range(min_uj, max_uj + 1):
-            logging.info("measuring code: ui = {}, uj = {}".format(ui, uj))
+    for ui, uj in unroll_list:
+        for ti, tj in tile_list:
+            logging.info(f"measuring code: unroll ({ui}, {uj}), tile ({ti}, {tj})")
             measure_cmd = [
                 "bash",
                 f"{project_root}/team7.sh",
                 "measure",
                 f"{algorithm}",
-                f"{implementation}-unroll-ui{ui}-uj{uj}",
+                f"{implementation}-ui{ui}-uj{uj}-ti{ti}-tj{tj}",
                 f"{compiler}",
                 f"{opt_flags}",
                 f"{test_input}",
@@ -181,28 +177,28 @@ def measure_fw_unroll(
     return 0
 
 
-def get_optimal_unrollment(
+def get_optimal_perf(
     data_root,
     algorithm,
     implementation,
     compiler,
     opt_flags_raw,
     test_input,
-    min_ui,
-    max_ui,
-    min_uj,
-    max_uj,
+    unroll_list,
+    tile_list,
 ):
     opt_flags = opt_flags_raw.replace(" ", "_")
 
     ui_opt = 0
     uj_opt = 0
+    ti_opt = 0
+    tj_opt = 0
     p_opt = 0
 
-    for ui in range(min_ui, max_ui + 1):
-        for uj in range(min_uj, max_uj + 1):
-            logging.info("processing data: ui = {}, uj = {}".format(ui, uj))
-            data_fname = f"{data_root}/{algorithm}_{implementation}-unroll-ui{ui}-uj{uj}_{compiler}_{opt_flags}_{test_input}.csv"
+    for ui, uj in unroll_list:
+        for ti, tj in tile_list:
+            logging.info(f"processing data: unroll ({ui}, {uj}), tile ({ti}, {tj})")
+            data_fname = f"{data_root}/{algorithm}_{implementation}-ui{ui}-uj{uj}-ti{ti}-tj{tj}_{compiler}_{opt_flags}_{test_input}.csv"
             with open(data_fname) as f:
                 reader = csv.reader(f, delimiter=",", quoting=csv.QUOTE_NONNUMERIC)
                 n_list = reader.__next__()
@@ -218,38 +214,40 @@ def get_optimal_unrollment(
 
                 if n_64 == -1:
                     logging.error("required column not found")
-                    raise Exception("failed to get optimal unrollment factor")
+                    raise Exception("failed to get optimal perf")
 
                 c_64 = cycles_list[n_64]
                 p_64 = round((2 * n * n * n) / c_64, 2)
 
-                logging.debug(f"performance for ({ui}, {uj}) = {p_64}")
+                logging.debug(
+                    f"performance for unroll ({ui}, {uj}), tile ({ti}, {tj})= {p_64}"
+                )
 
                 if p_64 > p_opt:
                     p_opt = p_64
                     ui_opt = ui
                     uj_opt = uj
+                    ti_opt = ti
+                    tj_opt = tj
 
-    return (ui_opt, uj_opt, p_opt)
+    return (ui_opt, uj_opt, ti_opt, tj_opt, p_opt)
 
 
-def get_best_unrollment(project_root, input, min_ui, max_ui, min_uj, max_uj):
+def get_best_perf(project_root, input, unroll_list, tile_list):
 
     clean_files(project_root)
 
-    generated_unnoll_files = generate_fw_unroll(
+    generated_files = generate_fw(
         f"{project_root}/autotuning",
         f"{project_root}/autotuning/generated/shortest-path",
         ALGORITHM,
         IMPLEMENTATION,
         COMPILER,
         OPT_FLAGS,
-        min_ui,
-        max_ui,
-        min_uj,
-        max_uj,
+        unroll_list,
+        tile_list,
     )
-    if len(generated_unnoll_files) == 0:
+    if len(generated_files) == 0:
         logging.error("Generate files failed")
         return 1
 
@@ -260,54 +258,50 @@ def get_best_unrollment(project_root, input, min_ui, max_ui, min_uj, max_uj):
         return retcode
 
     # validate all built files
-    retcode = validate_fw_unroll(
+    retcode = validate_fw(
         project_root,
         ALGORITHM,
         IMPLEMENTATION,
         COMPILER,
         OPT_FLAGS,
-        min_ui,
-        max_ui,
-        min_uj,
-        max_uj,
+        unroll_list,
+        tile_list,
     )
     if retcode != 0:
         logging.error("Validate files failed")
         return retcode
 
     # measure all validates files
-    retcode = measure_fw_unroll(
+    retcode = measure_fw(
         project_root,
         ALGORITHM,
         IMPLEMENTATION,
         COMPILER,
         OPT_FLAGS,
         input,
-        min_ui,
-        max_ui,
-        min_uj,
-        max_uj,
+        unroll_list,
+        tile_list,
     )
     if retcode != 0:
         logging.error("Measure files failed")
         return retcode
 
     # use measurements as feedback
-    opt_ui, opt_uj, p_opt = get_optimal_unrollment(
+    opt_ui, opt_uj, opt_ti, opt_tj, p_opt = get_optimal_perf(
         f"{project_root}/measurements/data",
         ALGORITHM,
         IMPLEMENTATION,
         COMPILER,
         OPT_FLAGS,
         input,
-        min_ui,
-        max_ui,
-        min_uj,
-        max_uj,
+        unroll_list,
+        tile_list,
     )
-    logging.info(f"optimal unrollment is: ({opt_ui}, {opt_uj}) with {p_opt}")
+    logging.info(
+        f"optimal performance with:\nunrollment: ({opt_ui}, {opt_uj})\ntile: ({opt_ti}, {opt_tj})\nperformance: {p_opt}"
+    )
 
-    return opt_ui, opt_uj
+    return opt_ui, opt_uj, opt_ti, opt_tj
 
 
 def unrollment_initial_guess(project_root, is_debug_run=False):
@@ -322,19 +316,38 @@ def unrollment_initial_guess(project_root, is_debug_run=False):
         min_uj = 4
         max_uj = 6
 
-    ui, uj = get_best_unrollment(
-        project_root, TEST_INPUT, min_ui, max_ui, min_uj, max_uj
-    )
+    tile_list = [("N", "N")]
+    unroll_list = list()
+    for i in range(min_ui, max_ui + 1):
+        for j in range(min_uj, max_uj + 1):
+            unroll_list.append((i, j))
+
+    ui, uj, ti, tj = get_best_perf(project_root, TEST_INPUT, unroll_list, tile_list)
 
     return ui, uj
 
 
-def unrollment_hill_climbing(project_root, ui, uj):
+def unrollment_hill_climbing(project_root, ui, uj, is_debug_run=False):
     while True:
         logging.info(f"climing hill around ({ui}, {uj})")
-        # TODO can be optimized by not running (ui, uj)
-        next_ui, next_uj = get_best_unrollment(
-            project_root, BENCH_INPUT, max(ui - 1, 1), ui + 1, max(uj - 1, 1), uj + 1
+
+        tile_list = [("N", "N")]
+        unroll_list = list()
+        for i in range(ui - 1, ui + 2):
+            for j in range(uj - 1, uj + 2):
+                if i == ui or j == uj:
+                    # skip the rock we are standing on
+                    continue
+                if i < 1 or j < 1:
+                    # skip unrollment factors that make no sense
+                    continue
+                unroll_list.append((i, j))
+
+        next_ui, next_uj, next_ti, next_tj = get_best_perf(
+            project_root,
+            BENCH_INPUT if not is_debug_run else TEST_INPUT,
+            unroll_list,
+            tile_list,
         )
         if next_ui == ui and next_uj == uj:
             break
@@ -345,7 +358,7 @@ def unrollment_hill_climbing(project_root, ui, uj):
     return ui, uj
 
 
-def tile_l2_hill_climbing(project_root, l2_cache_bytes):
+def tile_l2_hill_climbing(project_root, l2_cache_bytes, ui, uj, is_debug_run=False):
     l2 = math.floor(math.sqrt(l2_cache_bytes / 3))
     # TODO
 
@@ -366,12 +379,12 @@ def main(
     # initial_ui = 9
     # initial_uj = 1
     refined_ui, refined_uj = unrollment_hill_climbing(
-        project_root, initial_ui, initial_uj
+        project_root, initial_ui, initial_uj, is_debug_run=debug
     )
 
     # refined_ui = 8
     # refined_uj = 1
-    tile_l2_hill_climbing(project_root, l2_cache_bytes)
+    tile_l2_hill_climbing(project_root, l2_cache_bytes, refined_ui, refined_uj, is_debug_run=debug)
 
 
 if __name__ == "__main__":
