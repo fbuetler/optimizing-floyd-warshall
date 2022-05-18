@@ -117,6 +117,11 @@ def validate_fw(
             if n % ti == 0 and n % tj == 0:
                 testcases.append(f"n{n}")
 
+        if len(testcases) == 0:
+            # TODO
+            logging.warn("Skipping validation as there are no fiting testcases")
+            continue
+
             validate_cmd = [
                 "bash",
                 f"{project_root}/team7.sh",
