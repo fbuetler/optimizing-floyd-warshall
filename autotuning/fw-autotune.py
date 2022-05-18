@@ -344,7 +344,7 @@ def unrollment_hill_climbing(project_root, ui, uj, is_debug_run=False):
 
 
 def tile_l2_hill_climbing(project_root, l2_cache_bytes, ui, uj, is_debug_run=False):
-    t2 = math.floor(math.sqrt(l2_cache_bytes / 3))
+    t2 = 2 ** math.floor(np.log2(math.sqrt(l2_cache_bytes / 3)))  # TODO
 
     if is_debug_run:
         t2 = 4
