@@ -41,7 +41,7 @@ function printUsage() {
     echo "  -O3 -fno-tree-vectorize"
     echo "  -O3 -ffast-math -march=native -mfma"
     echo "Testcases:"
-    echo "  1,2,3,4,5"
+    echo "  n4,n8,n16,n30,n32"
     echo "  n64,n128,n256,n512,n1024,n2048,n4096,n8192"
     echo "Input categories:"
     echo "  $(ls -m $INPUT_CATEGORY_DIR | sed 's/,/\n /g')"
