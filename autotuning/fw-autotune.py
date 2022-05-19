@@ -119,7 +119,7 @@ def validate_fw(
 
         if len(testcases) == 0:
             # TODO
-            logging.warn("Skipping validation as there are no fiting testcases")
+            logging.warning("Skipping validation as there are no fiting testcases")
             continue
 
             validate_cmd = [
@@ -167,6 +167,7 @@ def measure_fw(
                 f"{compiler}",
                 f"{opt_flags}",
                 f"{test_input}",
+            "n256",  # TODO
             ]
 
             logging.debug(" ".join(measure_cmd))
@@ -379,6 +380,10 @@ def tile_l2_hill_climbing(project_root, l2_cache_bytes, ui, uj, is_debug_run=Fal
 
                     if i > t or j > t:
                         # tile size should ALWAYS be larger than the unrolling factor
+                        continue
+
+                    if t > 256:  # TODO
+                        # tile size cannot be large than the testcase size
                         continue
 
                     # dont climb the same rock twice
