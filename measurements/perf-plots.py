@@ -19,13 +19,28 @@ COLOR_LIST = [
 parser = argparse.ArgumentParser(
     description="Generate performance plot using data from one or more csv files. One line is added for each csv file."
 )
-parser.add_argument("-d", "--data", help="list of csv data files", type=str, nargs='+', required=True)
-parser.add_argument("-l", "--labels", help="list of labels to use for plot data", type=str, nargs='+', required=True)
+parser.add_argument(
+    "-d", "--data", help="list of csv data files", type=str, nargs="+", required=True
+)
+parser.add_argument(
+    "-l",
+    "--labels",
+    help="list of labels to use for plot data",
+    type=str,
+    nargs="+",
+    required=True,
+)
 parser.add_argument(
     "-p", "--plot", help="directory to save the generated plot", type=str, required=True
 )
 parser.add_argument("-t", "--title", help="title for the plot", type=str, required=True)
-parser.add_argument("-pi", "--peak", help="maximum achievable performance in flops/cycle", type=float, default=0.0)
+parser.add_argument(
+    "-pi",
+    "--peak",
+    help="maximum achievable performance in flops/cycle",
+    type=float,
+    default=0.0,
+)
 
 args = parser.parse_args()
 
@@ -36,13 +51,22 @@ title = args.title
 peak = args.peak
 
 if len(data_file_list) != len(label_list):
-    raise Exception('List of labels must have the same length as the list of data file names: data had len {}, labels {}'.format(len(data_file_list), len(label_list)))
+    raise Exception(
+        "List of labels must have the same length as the list of data file names: data had len {}, labels {}".format(
+            len(data_file_list), len(label_list)
+        )
+    )
 
 data_label_list = zip(data_file_list, label_list)
 
 if peak != 0.0:
     _, ax = plt.subplots()
-    plt.axhline(y=peak, label='P ≤ π', linewidth=1, color=next(ax._get_lines.prop_cycler)['color'])
+    plt.axhline(
+        y=peak,
+        label="P ≤ π",
+        linewidth=1,
+        color=next(ax._get_lines.prop_cycler)["color"],
+    )
 
 mpl.rcParams["axes.prop_cycle"] = mpl.cycler(
     color=COLOR_LIST
