@@ -23,7 +23,7 @@ function printUsage() {
     echo "  generate-test-out <ALGORITHM> <REF_IMPL> <INPUT_CATEGORY>"
     echo "  validate <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST> (<TESTCASES>)"
     echo "  measure <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST> (<INPUT_CATEGORY>)"
-    echo "  plot <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST> (<INPUT_CATEGORY>) <PLOT_TITLE>"
+    echo "  plot <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST> (<INPUT_CATEGORY>) <PLOT_TITLE> (<PLOT_LABELS_LIST>)"
     echo "  clean"
     echo "Algorithms:"
     echo "  fw (floyd-wahrshal)"
@@ -45,6 +45,12 @@ function printUsage() {
     echo "  n64,n128,n256,n512,n1024,n2048,n4096,n8192"
     echo "Input categories:"
     echo "  $(ls -m $INPUT_CATEGORY_DIR | sed 's/,/\n /g')"
+    echo "Plot labels"
+    echo "  algo"
+    echo "  impl"
+    echo "  comp"
+    echo "  opts"
+    echo "  testsuite"
     echo "NOTE:"
     echo "  input lists have to be comma separated"
     exit 1
@@ -136,10 +142,13 @@ function plot() {
     OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
     INPUT_CATEGORY="$5"
     PLOT_TITLE="$6"
+    PLOT_LABELS="$7"
     python3 "${ROOT_DIR}/measurements/perf-plots.py" \
         --data "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}_${INPUT_CATEGORY}.csv" \
         --plot "${PLOTS_DIR}" \
-        --title "$PLOT_TITLE"
+        --title "$PLOT_TITLE" \
+        --labels "${PLOT_LABELS[@]}" \
+        --output "${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}_${INPUT_CATEGORY}"
 }
 
 function clean() {
@@ -272,6 +281,7 @@ plot)
     OPTIMIZATIONS_LIST="${5:-}"
     INPUT_CATEGORY="${6:-bench-inputs}"
     PLOT_TITLE="${7:-}"
+    PLOT_LABELS_LIST="${8:-algo,impl,comp,opts,testsuite}"
     if [[ -z "$ALGORITHM_LIST" || -z "$IMPLEMENTATION_LIST" || -z "$COMPILER_LIST" || -z "$OPTIMIZATIONS_LIST" || -z "$PLOT_TITLE" ]]; then
         printUsage "$0"
     fi
@@ -281,13 +291,14 @@ plot)
     read -ra IMPLEMENTATIONS <<<"$IMPLEMENTATION_LIST"
     read -ra COMPILERS <<<"$COMPILER_LIST"
     read -ra OPTS <<<"$OPTIMIZATIONS_LIST"
+    read -ra PLOT_LABELS <<<"$PLOT_LABELS_LIST"
 
     for ALGORITHM in "${ALGORITHMS[@]}"; do
         for IMPLEMENTATION in "${IMPLEMENTATIONS[@]}"; do
             for COMPILER in "${COMPILERS[@]}"; do
                 for OPTIMIZATIONS in "${OPTS[@]}"; do
                     echo "Plotting $ALGORITHM/$IMPLEMENTATION compiled with $COMPILER and $OPTIMIZATIONS as $PLOT_TITLE"
-                    plot "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$INPUT_CATEGORY" "$PLOT_TITLE"
+                    plot "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$INPUT_CATEGORY" "$PLOT_TITLE" "$PLOT_LABELS"
                     echo
                 done
             done
