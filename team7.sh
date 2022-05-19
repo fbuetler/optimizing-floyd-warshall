@@ -120,9 +120,11 @@ function measure() {
     OPTIMIZATIONS_RAW="$4"
     OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
     INPUT_CATEGORY="$5"
+    TESTCASES="$6"
     python3 "${ROOT_DIR}/measurements/measure.py" \
         --binary "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_$OPTIMIZATIONS" \
         --testsuite "${INPUT_CATEGORY_DIR}/${INPUT_CATEGORY}" \
+        --testcases "${TESTCASES}" \
         --output "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}_${INPUT_CATEGORY}"
 }
 
@@ -240,6 +242,7 @@ measure)
     COMPILER_LIST="${4:-}"
     OPTIMIZATIONS_LIST="${5:-}"
     INPUT_CATEGORY="${6:-bench-inputs}"
+    TESTCASES="${7:-}"
     if [[ -z "$ALGORITHM_LIST" || -z "$IMPLEMENTATION_LIST" || -z "$COMPILER_LIST" || -z "$OPTIMIZATIONS_LIST" || -z "$INPUT_CATEGORY" ]]; then
         printUsage "$0"
     fi
@@ -255,7 +258,7 @@ measure)
             for COMPILER in "${COMPILERS[@]}"; do
                 for OPTIMIZATIONS in "${OPTS[@]}"; do
                     echo "Measuring $ALGORITHM/$IMPLEMENTATION compiled with '$COMPILER' and '$OPTIMIZATIONS' on '$INPUT_CATEGORY'"
-                    measure "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$INPUT_CATEGORY"
+                    measure "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$INPUT_CATEGORY" "$TESTCASES"
                     echo
                 done
             done

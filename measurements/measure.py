@@ -10,6 +10,9 @@ parser.add_argument(
     "-t", "--testsuite", help="directory with testcases", type=str, required=True
 )
 parser.add_argument(
+    "-c", "--testcases", help="testcases to process", type=str, default=""
+)
+parser.add_argument(
     "-o",
     "--output",
     help="path of the genereated csv file",
@@ -27,6 +30,7 @@ parser.add_argument(
 def main(
     binary,
     testsuite_dir,
+    testcases_raw,
     out_filepath,
     turbo_boost_allowed,
 ):
@@ -35,15 +39,22 @@ def main(
             if f.readline().strip() == "0":
                 raise Exception("disable the turbo boost")
 
+    if len(testcases_raw) == 0:
+        testcases = []
+    else:
+        testcases = testcases_raw.split(",")
+
     nodes_list = list()
     runs_list = list()
     cycles_list = list()
-    testcases = os.listdir(testsuite_dir)
-    for testcase in testcases:
-        print("Processing testcase: {}".format(testcase))
+    tcs = os.listdir(testsuite_dir)
+    for tc in tcs:
+        if len(testcases) != 0 and tc not in testcases:
+            continue
+        print("Processing testcase: {}".format(tc))
 
         # get input file
-        testcase_dir = os.path.join(testsuite_dir, testcase)
+        testcase_dir = os.path.join(testsuite_dir, tc)
         input_files = [
             f for f in os.listdir(testcase_dir) if re.match(r".*\.in\.txt$", f)
         ]
@@ -89,7 +100,7 @@ def main(
             raise Exception("Unexpected number of lines found. Expected exactly 3.")
 
         # parse measurements
-        print("Processed testcase: {}".format(testcase))
+        print("Processed testcase: {}".format(tc))
         nodes = int(re.search(r"^graph_n(\d*)_e\d*.*", input_file).group(1))
         runs = int(lines[0].strip())
         cycles = float(lines[1].strip())
@@ -119,6 +130,7 @@ if __name__ == "__main__":
     main(
         args.binary,
         args.testsuite,
+        args.testcases,
         args.output,
         args.allow_turbo_boost,
     )
