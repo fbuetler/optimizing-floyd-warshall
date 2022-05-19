@@ -322,7 +322,7 @@ def unrollment_initial_guess(project_root, is_debug_run=False):
     return ui, uj
 
 
-def unrollment_hill_climbing(project_root, ui, uj, is_debug_run=False):
+def unrollment_hill_climbing(project_root, input_size, ui, uj, is_debug_run=False):
     while True:
         logging.info(f"climing hill around unrollment ({ui}, {uj})")
 
@@ -339,7 +339,7 @@ def unrollment_hill_climbing(project_root, ui, uj, is_debug_run=False):
 
         next_ui, next_uj, next_ti, next_tj = get_best_perf(
             project_root,
-            64 if not is_debug_run else 32,
+            input_size if not is_debug_run else 32,
             BENCH_INPUT if not is_debug_run else TEST_INPUT,
             unroll_tile_list,
         )
@@ -443,7 +443,7 @@ def main(project_root, input_size, l1_cache_bytes, l2_cache_bytes, vectorize):
     # initial_ui = 9
     # initial_uj = 1
     refined_ui, refined_uj = unrollment_hill_climbing(
-        project_root, initial_ui, initial_uj, is_debug_run=debug
+        project_root, input_size, initial_ui, initial_uj, is_debug_run=debug
     )
 
     # refined_ui = 8
