@@ -20,3 +20,11 @@ python measurements/perf-plots.py \
     --title "n256" \
     --output fw_c-autotune
 ```
+
+## Analyze
+
+```bash
+python measurements/analyze.py \
+    -p $PWD \
+    -n 256
+```
