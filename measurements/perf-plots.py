@@ -1,6 +1,6 @@
 import argparse
 import csv
-import os
+import pathlib
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -16,6 +16,19 @@ COLOR_LIST = [
     "#666666",
 ]
 
+LABEL_ALGORITHM = "algo"
+LABEL_IMPLEMENTATION = "impl"
+LABEL_COMPILER = "comp"
+LABEL_OPTS = "opts"
+LABEL_TESTSUITE = "testsuite"
+LABEL_CHOICES = [
+    LABEL_ALGORITHM,
+    LABEL_IMPLEMENTATION,
+    LABEL_COMPILER,
+    LABEL_OPTS,
+    LABEL_TESTSUITE,
+]
+
 parser = argparse.ArgumentParser(
     description="Generate performance plot using data from one or more csv files. One line is added for each csv file."
 )
@@ -26,7 +39,7 @@ parser.add_argument(
     "-l",
     "--labels",
     help="list of labels to use for plot data",
-    type=str,
+    choices=LABEL_CHOICES,
     nargs="+",
     required=True,
 )
@@ -41,24 +54,17 @@ parser.add_argument(
     type=float,
     default=0.0,
 )
+parser.add_argument("-o", "--output", help="output file name", type=str, required=True)
 
 
 def main(
     data_file_list,
-    label_list,
+    label_choices,
     plots_dir,
     title,
     peak,
+    output_file,
 ):
-
-    if len(data_file_list) != len(label_list):
-        raise Exception(
-            "List of labels must have the same length as the list of data file names: data had len {}, labels {}".format(
-                len(data_file_list), len(label_list)
-            )
-        )
-
-    data_label_list = zip(data_file_list, label_list)
 
     if peak != 0.0:
         _, ax = plt.subplots()
@@ -75,15 +81,40 @@ def main(
 
     perf_max = 0.0
 
-    for data_file, label in data_label_list:
+    for data_file_path in data_file_list:
+
+        # generate label
+        data_file = pathlib.Path(data_file_path).stem
+        parts = data_file.split("_")
+
+        algorithm = parts[0]
+        implementation = parts[1]
+        compiler = parts[2]
+        opts = " ".join(parts[3:-1])
+        testsuite = parts[-1]
+
+        label_list = list()
+        if LABEL_ALGORITHM in label_choices:
+            label_list.append(algorithm)
+        if LABEL_IMPLEMENTATION in label_choices:
+            label_list.append(implementation)
+        if LABEL_COMPILER in label_choices:
+            label_list.append(compiler)
+        if LABEL_OPTS in label_choices:
+            label_list.append(opts)
+        if LABEL_TESTSUITE in label_choices:
+            label_list.append(testsuite)
+        label = " ".join(label_list)
+
+        # read cycles
         performance_data = list()
-        with open(data_file) as f:
+        with open(data_file_path) as f:
             reader = csv.reader(f, delimiter=",", quoting=csv.QUOTE_NONNUMERIC)
             n_list = reader.__next__()
             runs_list = reader.__next__()
             cycles_list = reader.__next__()
 
-        # compute performance (flops = n^3)
+        # compute performance (flops = 2 * n^3)
         perf_list = list()
         for (n, c, r) in zip(n_list, cycles_list, runs_list):
             perf_list.append((2 * n * n * n) / c)
@@ -103,8 +134,7 @@ def main(
     plt.semilogx(base=2)
     plt.ylabel("[flops/cycle]")
 
-    data_file_name = os.path.basename(data_file).replace(".csv", "")
-    outfile = "{}/{}_perf.png".format(plots_dir, data_file_name)
+    outfile = "{}/{}_perf.png".format(plots_dir, output_file)
     plt.savefig(outfile)
     plt.clf()
 
@@ -119,4 +149,5 @@ if __name__ == "__main__":
         args.plot,
         args.title,
         args.peak,
+        args.output,
     )
