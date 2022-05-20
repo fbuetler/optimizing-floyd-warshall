@@ -573,4 +573,4 @@ output/*
 
 measurements/**/*test-inputs*
 
-autotuning/generated/
+autotuning/generated/**/*.c
