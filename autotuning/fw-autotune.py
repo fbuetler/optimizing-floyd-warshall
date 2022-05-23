@@ -114,7 +114,7 @@ def validate_fw(
 
         testcases = list()
         for n in [4, 8, 16, 30, 32]:
-            if n % ti == 0 and n % tj == 0:
+            if (ti == "N" and tj == "N") or (n % ti == 0 and n % tj == 0):
                 testcases.append(f"n{n}")
 
         if len(testcases) == 0:
@@ -314,7 +314,7 @@ def unrollment_initial_guess(project_root, is_debug_run=False):
 
     ui, uj, ti, tj = get_best_perf(
         project_root,
-        64 if not is_debug_run else 32,
+        96 if not is_debug_run else 48,
         BENCH_INPUT if not is_debug_run else TEST_INPUT,
         unroll_tile_list,
     )
@@ -329,7 +329,7 @@ def unrollment_hill_climbing(project_root, input_size, ui, uj, is_debug_run=Fals
         unroll_tile_list = list()
         for i in range(ui - 1, ui + 2):
             for j in range(uj - 1, uj + 2):
-                if i == ui or j == uj:
+                if i == ui and j == uj:
                     # skip the rock we are standing on
                     continue
                 if i < 1 or j < 1:
