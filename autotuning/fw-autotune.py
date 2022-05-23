@@ -114,7 +114,7 @@ def validate_fw(
 
         testcases = list()
         for n in [4, 8, 16, 30, 32]:
-            if (ti == "N" and tj == "N") or (n % ti == 0 and n % tj == 0):
+            if (ti == "N" or n % ti == 0) and (tj == "N" or n % tj == 0):
                 testcases.append(f"n{n}")
 
         if len(testcases) == 0:
