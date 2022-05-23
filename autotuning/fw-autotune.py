@@ -323,6 +323,7 @@ def unrollment_initial_guess(project_root, is_debug_run=False):
 
 
 def unrollment_hill_climbing(project_root, input_size, ui, uj, is_debug_run=False):
+    visited = set()
     while True:
         logging.info(f"climing hill around unrollment ({ui}, {uj})")
 
@@ -336,6 +337,17 @@ def unrollment_hill_climbing(project_root, input_size, ui, uj, is_debug_run=Fals
                     # skip unrollment factors that make no sense
                     continue
                 unroll_tile_list.append((i, j, "N", "N"))
+
+                # dont climb the same rock twice
+                rock = f"ui{i}_uj{j}_tiN_tjN"
+                if rock in visited:
+                    continue
+
+                visited.add(rock)
+
+        if len(unroll_tile_list) == 0:
+            logging.info(f"all visited:\n{visited}")
+            break
 
         next_ui, next_uj, next_ti, next_tj = get_best_perf(
             project_root,
@@ -411,7 +423,7 @@ def tile_l2_hill_climbing(
 
         if len(unroll_tile_list) == 0:
             logging.info(f"all visited:\n{visited}")
-            raise Exception("no place to go")
+            break
 
         next_ui, next_uj, next_ti, next_tj = get_best_perf(
             project_root,
