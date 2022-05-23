@@ -336,6 +336,9 @@ def unrollment_hill_climbing(project_root, input_size, ui, uj, is_debug_run=Fals
                 if i < 1 or j < 1:
                     # skip unrollment factors that make no sense
                     continue
+                if (i > 1 and i % 2 != 0) or (j > 1 and j % 2 != 0):
+                    # skip odd unrolling factors greater than 1
+                    continue
                 unroll_tile_list.append((i, j, "N", "N"))
 
                 # dont climb the same rock twice
@@ -386,6 +389,9 @@ def tile_l2_hill_climbing(
                     continue
                 if i < 1 or j < 1:
                     # skip unrollment factors that make no sense
+                    continue
+                if (i > 1 and i % 2 != 0) or (j > 1 and j % 2 != 0):
+                    # skip odd unrolling factors greater than 1
                     continue
 
                 for t in [t2 / 2, t2 * 2]:
