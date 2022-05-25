@@ -424,7 +424,7 @@ def tile_l2_hill_climbing(
     input_size = input_size if not is_debug_run else 48
 
     factors = factors_of(input_size)
-    print(factors)
+    logging.info(f"factors: {factors}")
 
     t2 = min(factors, key=lambda x: abs(x - int(math.sqrt(l2_cache_bytes))))
 
