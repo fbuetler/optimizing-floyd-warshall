@@ -321,7 +321,7 @@ def unrollment_initial_guess(project_root, algorithm, is_debug_run=False):
     ui, uj, ti, tj, _ = get_best_perf(
         project_root,
         algorithm,
-        96 if not is_debug_run else 48,
+        96 if not is_debug_run else 32,
         BENCH_INPUT if not is_debug_run else TEST_INPUT,
         unroll_tile_list,
     )
