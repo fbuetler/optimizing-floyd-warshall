@@ -22,6 +22,6 @@ int floydWarshall(char *C, int N) {
                 C[i * bpl + j] = C[i * bpl + j] | (cik & C[k * bpl + j]);
             }
         }
-        return 0;
     }
+    return 0;
 }
