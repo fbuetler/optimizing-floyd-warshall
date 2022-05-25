@@ -172,7 +172,7 @@ def measure_fw(
         ]
 
         logging.debug(" ".join(measure_cmd))
-        result = subprocess.run(measure_cmd, capture_output=True, text=True)
+        result = subprocess.run(measure_cmd, capture_output=False, text=True)
         logging.debug(result.stdout)
         if result.returncode != 0:
             logging.error(result.stderr)
@@ -292,7 +292,7 @@ def get_best_perf(project_root, input_size, input, unroll_tile_list):
         f"optimal performance with:\nunrollment: ({opt_ui}, {opt_uj})\ntile: ({opt_ti}, {opt_tj})\nperformance: {p_opt}"
     )
 
-    return (opt_ui, opt_uj, opt_ti, opt_tj)
+    return (opt_ui, opt_uj, opt_ti, opt_tj, p_opt)
 
 
 def unrollment_initial_guess(project_root, is_debug_run=False):
@@ -312,7 +312,7 @@ def unrollment_initial_guess(project_root, is_debug_run=False):
         for j in range(min_uj, max_uj + 1):
             unroll_tile_list.append((i, j, "N", "N"))
 
-    ui, uj, ti, tj = get_best_perf(
+    ui, uj, ti, tj, _ = get_best_perf(
         project_root,
         96 if not is_debug_run else 48,
         BENCH_INPUT if not is_debug_run else TEST_INPUT,
@@ -324,12 +324,14 @@ def unrollment_initial_guess(project_root, is_debug_run=False):
 
 def unrollment_hill_climbing(project_root, input_size, ui, uj, is_debug_run=False):
     visited = set()
+    best_perf = 0
     while True:
         logging.info(f"climing hill around unrollment ({ui}, {uj})")
 
+        curr_perf = 0
         unroll_tile_list = list()
-        for i in range(ui - 1, ui + 2):
-            for j in range(uj - 1, uj + 2):
+        for i in range(ui - 2, ui + 3):
+            for j in range(uj - 2, uj + 3):
                 if i == ui and j == uj:
                     # skip the rock we are standing on
                     continue
@@ -352,16 +354,18 @@ def unrollment_hill_climbing(project_root, input_size, ui, uj, is_debug_run=Fals
             logging.info(f"all visited:\n{visited}")
             break
 
-        next_ui, next_uj, next_ti, next_tj = get_best_perf(
+        next_ui, next_uj, next_ti, next_tj, curr_perf = get_best_perf(
             project_root,
             input_size if not is_debug_run else 32,
             BENCH_INPUT if not is_debug_run else TEST_INPUT,
             unroll_tile_list,
         )
-        if next_ui == ui and next_uj == uj:
+        if best_perf > curr_perf or (next_ui == ui and next_uj == uj):
+            logging.info(f"reached local maximum with ({ui}, {uj}) ({best_perf}flops)")
             break
         ui = next_ui
         uj = next_uj
+        best_perf = curr_perf
 
     logging.info(f"reached top ({ui}, {uj})")
     return ui, uj
@@ -379,12 +383,13 @@ def tile_l2_hill_climbing(
         raise Exception("heuristic makes no sense")
 
     visited = set()
+    best_perf = 0
     while True:
         logging.info(f"climing hill around unrollement ({ui}, {uj}), tile ({t2})")
         unroll_tile_list = list()
-        for i in range(ui - 1, ui + 2):
-            for j in range(uj - 1, uj + 2):
-                if i == ui or j == uj:
+        for i in range(ui - 2, ui + 3):
+            for j in range(uj - 1, uj + 3):
+                if i == ui and j == uj:
                     # skip the rock we are standing on
                     continue
                 if i < 1 or j < 1:
@@ -431,17 +436,18 @@ def tile_l2_hill_climbing(
             logging.info(f"all visited:\n{visited}")
             break
 
-        next_ui, next_uj, next_ti, next_tj = get_best_perf(
+        next_ui, next_uj, next_ti, next_tj, curr_perf = get_best_perf(
             project_root,
             input_size,
             BENCH_INPUT if not is_debug_run else TEST_INPUT,
             unroll_tile_list,
         )
-        if next_ui == ui and next_uj == uj and next_ti == t2:
+        if best_perf > curr_perf or (next_ui == ui and next_uj == uj and next_ti == t2):
             break
         ui = next_ui
         uj = next_uj
         t2 = next_ti
+        best_perf = curr_perf
 
     logging.info(f"reached top with  unrollment ({ui}, {uj}), tile ({t2}, {t2})")
     return ui, uj
@@ -455,17 +461,17 @@ def main(project_root, input_size, l1_cache_bytes, l2_cache_bytes, vectorize):
         logging.basicConfig(encoding="utf-8", level=logging.DEBUG, force=True)
 
     # exhaustive search with test input
-    initial_ui, initial_uj = unrollment_initial_guess(project_root, is_debug_run=debug)
+    #initial_ui, initial_uj = unrollment_initial_guess(project_root, is_debug_run=debug)
 
-    # hill climbing search with bench input
-    # initial_ui = 9
-    # initial_uj = 1
-    refined_ui, refined_uj = unrollment_hill_climbing(
-        project_root, input_size, initial_ui, initial_uj, is_debug_run=debug
-    )
+    ## hill climbing search with bench input
+    ## initial_ui = 9
+    ## initial_uj = 1
+    #refined_ui, refined_uj = unrollment_hill_climbing(
+    #    project_root, input_size, initial_ui, initial_uj, is_debug_run=debug
+    #)
 
-    # refined_ui = 8
-    # refined_uj = 1
+    refined_ui = 1
+    refined_uj = 10
     tile_l2_hill_climbing(
         project_root,
         input_size,
