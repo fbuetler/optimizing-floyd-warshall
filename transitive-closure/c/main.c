@@ -15,10 +15,13 @@
 #define FREQUENCY 2.3e9
 #define CALIBRATE
 
-void printMatrix(char *C, int N) {
-    int bpl = ceil(N / 8.0);  // bytes per matrix line
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
+void printMatrix(char *C, int N)
+{
+    int bpl = ceil(N / 8.0); // bytes per matrix line
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
             int bind = j % 8;
             char cur = C[i * bpl + j / 8];
             if (cur & (1 << bind))
@@ -36,9 +39,11 @@ void printMatrix(char *C, int N) {
  * Runs the FW implementation once for testing purposes
  * Note that the matrix C is modified in-place
  */
-void ref_output(char *C, int N) {
+void ref_output(char *C, int N)
+{
     int err = floydWarshall(C, N);
-    if (err != 0) {
+    if (err != 0)
+    {
         printf("implementation reported an error\n");
         exit(1);
     }
@@ -54,16 +59,19 @@ void ref_output(char *C, int N) {
  *
  * The function returns the average number of cycles per run.
  */
-unsigned long long rdtsc(char *C, int N) {
+unsigned long long rdtsc(char *C, int N)
+{
     int i, num_runs;
     myInt64 cycles;
     myInt64 start;
     num_runs = NUM_RUNS;
 
 #ifdef CALIBRATE
-    while (num_runs < (1 << 14)) {
+    while (num_runs < (1 << 14))
+    {
         start = start_tsc();
-        for (i = 0; i < num_runs; ++i) {
+        for (i = 0; i < num_runs; ++i)
+        {
             floydWarshall(C, N);
         }
         cycles = stop_tsc(start);
@@ -86,7 +94,8 @@ unsigned long long rdtsc(char *C, int N) {
      */
 
     start = start_tsc();
-    for (i = 0; i < num_runs; ++i) {
+    for (i = 0; i < num_runs; ++i)
+    {
         floydWarshall(C, N);
     }
     cycles = stop_tsc(start) / num_runs;
@@ -95,30 +104,38 @@ unsigned long long rdtsc(char *C, int N) {
 }
 #endif
 
-void output_matrix(char *filename, char *C, int N) {
-    int bpl = ceil(N / 8.0);  // bytes per matrix line
+void output_matrix(char *filename, char *C, int N)
+{
+    int bpl = ceil(N / 8.0); // bytes per matrix line
     fprintf(stderr, "outputting transitive closure matrix to %s...\n", filename);
     FILE *output_f = fopen(filename, "w+");
     fprintf(output_f, "%d\n", N);
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
             int bind = j % 8;
             char cur = C[i * bpl + j / 8];
             if (cur & (1 << bind))
                 fprintf(output_f, "1");
             else
                 fprintf(output_f, "0");
-            if (j < N - 1) {
+            if (j < N - 1)
+            {
                 fputc(',', output_f);
-            } else {
+            }
+            else
+            {
                 fputc('\n', output_f);
             }
         }
     }
 }
 
-int main(int argc, char **argv) {
-    if (argc != 3) {
+int main(int argc, char **argv)
+{
+    if (argc != 3)
+    {
         fprintf(stderr, "incorrect number of arguments\n");
         fprintf(stderr, "call as: ./main input_filename output_filename\n");
         return -1;
@@ -126,8 +143,9 @@ int main(int argc, char **argv) {
 
     FILE *input_f = fopen(argv[1], "r");
 
-    int N;  // num nodes
-    if (fscanf(input_f, "%d ", &N) < 1) {
+    int N; // num nodes
+    if (fscanf(input_f, "%d ", &N) < 1)
+    {
         fprintf(stderr, "malformed input: couldn't match number N of vertices\n");
         return -1;
     }
@@ -136,19 +154,22 @@ int main(int argc, char **argv) {
     int bpl = ceil(N / 8.0);
     char *C = (char *)malloc(N * bpl * sizeof(char));
     fprintf(stderr, "parsing input matrix...\n");
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++)
+    {
         char inputValue[100];
         char curbyte = 0;
-        for (int j = 0; j < N; j++) {
+        for (int j = 0; j < N; j++)
+        {
             int bj = j % 8;
             if (bj == 0)
-                curbyte = 0;  // new byte - set all 0
+                curbyte = 0; // new byte - set all 0
 
             int numValues = fscanf(input_f, "%[^,\n]s", inputValue);
-            if (numValues == 1) {
+            if (numValues == 1)
+            {
                 curbyte |= 1 << bj;
             }
-            fgetc(input_f);  // skip ',' or '\n'
+            fgetc(input_f); // skip ',' or '\n'
             C[i * bpl + j / 8] = curbyte;
         }
     }

@@ -5,20 +5,24 @@
 /*
 unoptimized version of the modified Floyd-Warshall transitive-closure algorithm
 */
-int floydWarshall(char *C, int N) {
-    int bpl = ceil(N / 8.0);  // bytes per matrix line
+int floydWarshall(char *C, int N)
+{
+    int bpl = ceil(N / 8.0); // bytes per matrix line
 
-    for (int k = 0; k < N; k++) {
+    for (int k = 0; k < N; k++)
+    {
         int i = 0;
-        for (; i < N - 3; i += 4) {
+        for (; i < N - 3; i += 4)
+        {
             // extract C[i, k]
             int j = 0;
-            char ci0k = C[(i + 0) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00;  // if this is 0, we can skip the innermost loop
-            char ci1k = C[(i + 1) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00;  // if this is 0, we can skip the innermost loop
-            char ci2k = C[(i + 2) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00;  // if this is 0, we can skip the innermost loop
-            char ci3k = C[(i + 3) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00;  // if this is 0, we can skip the innermost loop
+            char ci0k = C[(i + 0) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00; // if this is 0, we can skip the innermost loop
+            char ci1k = C[(i + 1) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00; // if this is 0, we can skip the innermost loop
+            char ci2k = C[(i + 2) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00; // if this is 0, we can skip the innermost loop
+            char ci3k = C[(i + 3) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00; // if this is 0, we can skip the innermost loop
 
-            for (; j < bpl - 3; j += 4) {
+            for (; j < bpl - 3; j += 4)
+            {
                 // load
                 char ci0j0 = C[(i + 0) * bpl + j + 0];
                 char ci0j1 = C[(i + 0) * bpl + j + 1];
@@ -78,7 +82,8 @@ int floydWarshall(char *C, int N) {
                 C[(i + 3) * bpl + j + 2] = res3_2;
                 C[(i + 3) * bpl + j + 3] = res3_3;
             }
-            for (; j < bpl; j++) {
+            for (; j < bpl; j++)
+            {
                 C[(i + 0) * bpl + j] = C[(i + 0) * bpl + j] | (ci0k & C[k * bpl + j]);
                 C[(i + 1) * bpl + j] = C[(i + 1) * bpl + j] | (ci1k & C[k * bpl + j]);
                 C[(i + 2) * bpl + j] = C[(i + 2) * bpl + j] | (ci2k & C[k * bpl + j]);
@@ -87,10 +92,12 @@ int floydWarshall(char *C, int N) {
         }
 
         // rest of i
-        for (; i < N; i++) {
+        for (; i < N; i++)
+        {
             int j = 0;
-            char cik = C[i * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00;  // if this is 0, we can skip the innermost loop
-            for (; j < bpl - 3; j += 4) {
+            char cik = C[i * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00; // if this is 0, we can skip the innermost loop
+            for (; j < bpl - 3; j += 4)
+            {
                 // load
                 char cij0 = C[i * bpl + j + 0];
                 char cij1 = C[i * bpl + j + 1];
@@ -114,7 +121,8 @@ int floydWarshall(char *C, int N) {
                 C[i * bpl + j + 2] = res2;
                 C[i * bpl + j + 3] = res3;
             }
-            for (; j < bpl; j++) {
+            for (; j < bpl; j++)
+            {
                 C[i * bpl + j] = C[i * bpl + j] | (cik & C[k * bpl + j]);
             }
         }

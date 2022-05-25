@@ -4,16 +4,20 @@
  * - the two innermost loops are unrolled by a factor of 4
  * - the constant value C[i0..3 * N + k] is only loaded once before the innermost loop
  */
-int floydWarshall(float *C, int N) {
-    for (int k = 0; k < N; k++) {
+int floydWarshall(float *C, int N)
+{
+    for (int k = 0; k < N; k++)
+    {
         int i = 0;
-        for (; i < N - 3; i += 4) {
+        for (; i < N - 3; i += 4)
+        {
             int j = 0;
             float ci0k = C[(i + 0) * N + k];
             float ci1k = C[(i + 1) * N + k];
             float ci2k = C[(i + 2) * N + k];
             float ci3k = C[(i + 3) * N + k];
-            for (; j < N - 3; j += 4) {
+            for (; j < N - 3; j += 4)
+            {
                 // load
                 float ci0j0 = C[(i + 0) * N + j + 0];
                 float ci0j1 = C[(i + 0) * N + j + 1];
@@ -73,7 +77,8 @@ int floydWarshall(float *C, int N) {
                 C[(i + 3) * N + j + 2] = res3_2;
                 C[(i + 3) * N + j + 3] = res3_3;
             }
-            for (; j < N; j++) {
+            for (; j < N; j++)
+            {
                 C[(i + 0) * N + j] = MIN(C[(i + 0) * N + j], ci0k + C[k * N + j]);
                 C[(i + 1) * N + j] = MIN(C[(i + 1) * N + j], ci1k + C[k * N + j]);
                 C[(i + 2) * N + j] = MIN(C[(i + 2) * N + j], ci2k + C[k * N + j]);
@@ -82,10 +87,12 @@ int floydWarshall(float *C, int N) {
         }
 
         // rest of i
-        for (; i < N; i++) {
+        for (; i < N; i++)
+        {
             int j = 0;
             float cik = C[i * N + k];
-            for (; j < N - 3; j += 4) {
+            for (; j < N - 3; j += 4)
+            {
                 // load
                 float cij0 = C[i * N + j + 0];
                 float cij1 = C[i * N + j + 1];
@@ -109,7 +116,8 @@ int floydWarshall(float *C, int N) {
                 C[i * N + j + 2] = res2;
                 C[i * N + j + 3] = res3;
             }
-            for (; j < N; j++) {
+            for (; j < N; j++)
+            {
                 C[i * N + j] = MIN(C[i * N + j], cik + C[k * N + j]);
             }
         }
