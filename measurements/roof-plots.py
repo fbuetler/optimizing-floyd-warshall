@@ -53,7 +53,7 @@ parser.add_argument(
     "--beta",
     help="memory bandwidth in bytes/cycle",
     type=float,
-    default=3.0,
+    default=2.0,
 )
 parser.add_argument("-vpi","--simd-peak", help="maximum achievable performance in flops/cycle using SIMD instructions", type=float, default=16.0)
 parser.add_argument("-o", "--output", help="output file name", type=str, required=True)
@@ -137,8 +137,8 @@ def roofline_plot(
             if max_n[2] is None or n > max_n[2]:
                 max_n = (I, P, n)
 
-        plt.annotate(min_n[2], xy=(min_n[0], min_n[1]), xytext=(min_n[0], min_n[1]+0.1))
-        plt.annotate(max_n[2], xy=(max_n[0], max_n[1]), xytext=(max_n[0], max_n[1]+0.2))
+        plt.annotate(int(min_n[2]), xy=(min_n[0], min_n[1]), xytext=(min_n[0], min_n[1]+0.1))
+        plt.annotate(int(max_n[2]), xy=(max_n[0], max_n[1]), xytext=(max_n[0], max_n[1]+0.2))
 
         plt.plot(i_list, p_list, marker='o', label=label)
 
