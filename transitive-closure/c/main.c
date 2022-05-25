@@ -132,6 +132,11 @@ void output_matrix(char *filename, char *C, int N)
     }
 }
 
+/*
+ * Compile with -DRANDOM_INPUT to only read N from the input files,
+ * and not write anything to the output file.
+ * - the input data for floyd_warshall will essentially be random bits
+ */
 int main(int argc, char **argv)
 {
     if (argc != 3)
@@ -154,6 +159,7 @@ int main(int argc, char **argv)
     int bpl = ceil(N / 8.0);
     char *C = (char *)malloc(N * bpl * sizeof(char));
     fprintf(stderr, "parsing input matrix...\n");
+#ifndef RANDOM_INPUT
     for (int i = 0; i < N; i++)
     {
         char inputValue[100];
@@ -173,6 +179,7 @@ int main(int argc, char **argv)
             C[i * bpl + j / 8] = curbyte;
         }
     }
+#endif
     fclose(input_f);
 
     char *D = (char *)malloc(N * bpl * sizeof(char));
@@ -181,7 +188,11 @@ int main(int argc, char **argv)
     ref_output(D, N);
     char ref_output[256];
     sprintf(ref_output, "%s", argv[2]);
+
+#ifndef RANDOM_INPUT
     output_matrix(ref_output, D, N);
+#endif
+
     free(D);
 
 #ifdef __x86_64__
