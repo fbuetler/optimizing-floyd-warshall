@@ -86,28 +86,35 @@ def main(
             os.path.join(testcase_dir, input_file),
             os.path.join(testcase_dir, output_file),
         )
+        #print(args)
         popen = subprocess.Popen(
             args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
         )
         popen.wait()
         lines = popen.stdout.read().decode("utf-8").split("\n")
-        if len(lines) != 3:
+        if len(lines) != 5:
             # numbe of runs/number of cycles/newline
             print("=== OUTPUT ===")
             for line in lines:
                 print(line)
             print("==============")
-            raise Exception("Unexpected number of lines found. Expected exactly 3.")
+            raise Exception("Unexpected number of lines found. Expected exactly 5.")
 
         # parse measurements
         print("Processed testcase: {}".format(tc))
         nodes = int(re.search(r"^graph_n(\d*)_e\d*.*", input_file).group(1))
         runs = int(lines[0].strip())
-        cycles = float(lines[1].strip())
+        cycles = int(lines[1].strip())
+        l3_misses = int(lines[2].strip())
+        l2_misses = int(lines[3].strip())
+        l1_misses = int(lines[4].strip())
 
         print("\tNumber of nodes: {}".format(nodes))
         print("\tNumber of runs: {}".format(runs))
         print("\tNumber of cycles: {}".format(cycles))
+        print("\tNumber of l3 cache misses: {}".format(l3_misses))
+        print("\tNumber of l2 cache misses: {}".format(l2_misses))
+        print("\tNumber of l1-d cache misses: {}".format(l1_misses))
 
         nodes_list.append(nodes)
         runs_list.append(runs)

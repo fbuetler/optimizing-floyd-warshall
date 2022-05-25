@@ -2,6 +2,8 @@ FROM debian:bookworm-slim
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends --assume-yes \
     bash \
+    ca-certificates \
+    git \
     gcc-11 \
     clang-13 \
     libc6-dev \
@@ -10,6 +12,11 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-instal
     golang \
     g++ \
     libboost-dev
+
+WORKDIR /home/work
+RUN git clone https://bitbucket.org/icl/papi.git
+WORKDIR /home/work/papi/src
+RUN ./configure && make && make test && make install
 
 RUN mkdir -p /home/work
 WORKDIR /home/work
