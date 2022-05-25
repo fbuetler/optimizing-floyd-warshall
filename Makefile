@@ -113,12 +113,12 @@ build-fw-go-ref: docker shortest-path/go/*
 	docker run ${DOCKER_RUN_ARGS} make fw-go-ref
 
 # fw - boost ref
-build-fw-boost-ref: docker shortest-path/boost/*
-	docker run ${DOCKER_RUN_ARGS} make fw-boost-ref
+build-fw-boost-g++: docker shortest-path/boost/*
+	docker run ${DOCKER_RUN_ARGS} make fw-boost-g++
 
 # tc - boost ref
-build-tc-boost-ref: docker transitive-closure/boost/*
-	docker run ${DOCKER_RUN_ARGS} make tc-boost-ref
+build-tc-boost-g++: docker transitive-closure/boost/*
+	docker run ${DOCKER_RUN_ARGS} make tc-boost-g++
 
 .PHONY: docker
 docker: Dockerfile .dockerignore
