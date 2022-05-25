@@ -5,6 +5,6 @@
 #define MAX(X, Y) (((X) < (Y)) ? (Y) : (X))
 
 /* Computes the shortest paths between any pair of vertices and stores their lengths in C. N is the number of nodes.*/
-int floydWarshall(float *C, int N);
+int floydWarshall(double *C, int N);
 
 #endif

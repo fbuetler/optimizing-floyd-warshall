@@ -3,7 +3,7 @@
 /*
 unoptimized version of the Floyd-Warshall shortest paths algorithm
 */
-int floydWarshall(float *C, int N)
+int floydWarshall(double *C, int N)
 {
     for (int k = 0; k < N; k++)
     {

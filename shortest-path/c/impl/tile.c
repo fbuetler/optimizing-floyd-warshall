@@ -14,7 +14,7 @@ function FWI(A, B, C, N)
                     for j’=j:1:j+Uj-1
                         C[i’][j’] = min(C[i’][j’], A[i’][k]+B[k][j’]);
 */
-int floydWarshall(float *C, int N)
+int floydWarshall(double *C, int N)
 {
     int bsize_i = 2;
     int bsize_j = 2;

@@ -15,7 +15,7 @@
 #define FREQUENCY 2.3e9
 #define CALIBRATE
 
-void printMatrix(float *C, int N)
+void printMatrix(double *C, int N)
 {
     for (int i = 0; i < N; i++)
     {
@@ -31,7 +31,7 @@ void printMatrix(float *C, int N)
 Copies data from one matrix to another.
 Assumes matrices 'from' and 'to' point to separate memory locations.
 */
-void copyMatrix(float *from, float *to, int N)
+void copyMatrix(double *from, double *to, int N)
 {
 #pragma ivdep
     for (int i = 0; i < N; i++)
@@ -47,7 +47,7 @@ void copyMatrix(float *from, float *to, int N)
  * Runs the FW implementation once for testing purposes
  * Note that the matrix C is modified in-place
  */
-void ref_output(float *C, int N)
+void ref_output(double *C, int N)
 {
     int err = floydWarshall(C, N);
     if (err != 0)
@@ -67,7 +67,7 @@ void ref_output(float *C, int N)
  *
  * The function returns the average number of cycles per run.
  */
-unsigned long long rdtsc(float *C, int N)
+unsigned long long rdtsc(double *C, int N)
 {
     int i, num_runs;
     myInt64 cycles;
@@ -118,7 +118,7 @@ unsigned long long rdtsc(float *C, int N)
 }
 #endif
 
-void output_matrix(char *filename, float *C, int N)
+void output_matrix(char *filename, double *C, int N)
 {
     fprintf(stderr, "outputting shortest-path matrix to %s...\n", filename);
     FILE *output_f = fopen(filename, "w+");
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
     }
 
     fprintf(stderr, "allocating memory...\n");
-    float *C = (float *)malloc(N * N * sizeof(float));
+    double *C = (double *)malloc(N * N * sizeof(double));
     fprintf(stderr, "parsing input matrix...\n");
     for (int i = 0; i < N; i++)
     {
@@ -183,8 +183,8 @@ int main(int argc, char **argv)
     fclose(input_f);
 
     remove(output_fname);
-    float *D = (float *)malloc(N * N * sizeof(float));
-    memcpy(D, C, N * N * sizeof(float));
+    double *D = (double *)malloc(N * N * sizeof(double));
+    memcpy(D, C, N * N * sizeof(double));
     fprintf(stderr, "generating test output...\n");
     ref_output(D, N);
     char ref_output[256];
