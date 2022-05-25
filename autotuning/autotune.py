@@ -22,7 +22,7 @@ parser.add_argument(
     "-algo",
     "--algorithm",
     help="algorithm to autotune",
-    choices=["sp", "mm", "tc"],
+    choices=["fw", "mm", "tc"],
     required=True,
 )
 parser.add_argument("-n", "--input-size", help="input size", type=int, required=True)
@@ -467,8 +467,8 @@ def tile_l2_hill_climbing(
 def main(
     project_root, input_size, l1_cache_bytes, l2_cache_bytes, algorithm, vectorize
 ):
-    # debug = True
-    debug = False
+    debug = True
+    # debug = False
 
     if debug:
         logging.basicConfig(encoding="utf-8", level=logging.DEBUG, force=True)
