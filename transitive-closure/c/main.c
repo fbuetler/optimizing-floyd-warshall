@@ -3,17 +3,33 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <papi.h>
 
 #include "impl/tc.h"
 
-#ifdef __x86_64__
-#include "tsc_x86.h"
-#endif
-
-#define NUM_RUNS 1
+#define NUM_RUNS 16
 #define CYCLES_REQUIRED 1e8
 #define FREQUENCY 2.3e9
 #define CALIBRATE
+
+#define ERROR_RETURN(retval)                                                         \
+    {                                                                                \
+        fprintf(stderr, "PAPI error %d %s:line %d: \n", retval, __FILE__, __LINE__); \
+        exit(retval);                                                                \
+    }
+
+// The number of PAPI events we measure
+#define NUM_EVENT 4
+
+// The PAPI events we subscribe to for the measurement
+// Only add events supported on your machine. Check with the papi_avail tool in the PAPI utils
+// IMPORTANT: DO NOT CHANGE ORDER! Otherwise the data readout in the measurement script breaks
+static int event_codes[NUM_EVENT] = {
+    PAPI_TOT_CYC, // Total cycles executed
+    PAPI_L3_TCM,  // L3 cache misses
+    PAPI_L2_TCM,  // L2 data cache misses
+    PAPI_L1_DCM,  // L1 data cache misses
+};
 
 void printMatrix(char *C, int N)
 {
@@ -49,7 +65,6 @@ void ref_output(char *C, int N)
     }
 }
 
-#ifdef __x86_64__
 /*
  * Timing function based on the TimeStep Counter of the CPU.
  *
@@ -59,50 +74,66 @@ void ref_output(char *C, int N)
  *
  * The function returns the average number of cycles per run.
  */
-unsigned long long rdtsc(char *C, int N)
+int measure(char *C, int N, int WarmupEventSet, int MeasurementEventSet, long long *measured_values)
 {
-    int i, num_runs;
-    myInt64 cycles;
-    myInt64 start;
-    num_runs = NUM_RUNS;
+    int i, retval;
+    int num_runs = NUM_RUNS;
 
-#ifdef CALIBRATE
-    while (num_runs < (1 << 14))
+    // Compute how many runs we need to do and warm up cache
+    long long warmup_cycles[1];
+    /* Start counting */
+    if ((retval = PAPI_start(WarmupEventSet)) != PAPI_OK)
     {
-        start = start_tsc();
-        for (i = 0; i < num_runs; ++i)
-        {
-            floydWarshall(C, N);
-        }
-        cycles = stop_tsc(start);
-
-        if (cycles >= CYCLES_REQUIRED)
-            break;
-
-        num_runs *= 2;
+        ERROR_RETURN(retval);
     }
-#endif
 
-    fprintf(stderr, "#runs: ");
-    printf("%d\n", num_runs);
+    for (i = 0; i < num_runs; ++i)
+    {
+        floydWarshall(C, N);
+    }
 
+    /* Stop counting, this reads from the counter as well as stop it. */
+    if ((retval = PAPI_stop(WarmupEventSet, warmup_cycles)) != PAPI_OK)
+    {
+        ERROR_RETURN(retval);
+    }
+
+    if (warmup_cycles[0] < CYCLES_REQUIRED)
+    {
+        num_runs *= CYCLES_REQUIRED / warmup_cycles[0] + 1;
+    }
+
+    for (i = 0; i < num_runs; ++i)
+    {
+        floydWarshall(C, N);
+    }
+
+    fprintf(stderr, "#runs: %d\n", num_runs);
     /*
      * Alternatives to the current approach:
      * - Measure #cycles for each run separately
      *  --> Suffers from timing bias and requires cache warmup
      *  --> Allows for more fine-grained statistics, e.g. median, variance, etc.
      */
+    /* Start counting */
+    if ((retval = PAPI_start(MeasurementEventSet)) != PAPI_OK)
+    {
+        ERROR_RETURN(retval);
+    }
 
-    start = start_tsc();
     for (i = 0; i < num_runs; ++i)
     {
         floydWarshall(C, N);
     }
-    cycles = stop_tsc(start) / num_runs;
 
-    return cycles;
+    /* Stop counting, this reads from the counter as well as stop it. */
+    if ((retval = PAPI_stop(MeasurementEventSet, measured_values)) != PAPI_OK)
+    {
+        ERROR_RETURN(retval);
+    }
+
+    return num_runs;
 }
-#endif
 
 void output_matrix(char *filename, char *C, int N)
 {
@@ -146,6 +177,41 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    // setup PAPI
+    int retval;
+    int WarmupEventSet = PAPI_NULL;
+    int MeasurementEventSet = PAPI_NULL;
+    char errstring[PAPI_MAX_STR_LEN];
+    long long measured_values[NUM_EVENT];
+
+    if ((retval = PAPI_library_init(PAPI_VER_CURRENT)) != PAPI_VER_CURRENT)
+    {
+        fprintf(stderr, "Error: %s\n", errstring);
+        return 1;
+    }
+
+    /* Creating event set   */
+    if ((retval = PAPI_create_eventset(&MeasurementEventSet)) != PAPI_OK)
+    {
+        ERROR_RETURN(retval);
+    }
+    if ((retval = PAPI_create_eventset(&WarmupEventSet)) != PAPI_OK)
+    {
+        ERROR_RETURN(retval);
+    }
+
+    // add events to event sets
+    if ((retval = PAPI_add_event(WarmupEventSet, PAPI_TOT_CYC)) != PAPI_OK)
+    {
+        ERROR_RETURN(retval);
+    }
+
+    if ((retval = PAPI_add_events(MeasurementEventSet, event_codes, NUM_EVENT)) != PAPI_OK)
+    {
+        ERROR_RETURN(retval);
+    }
+
+    // read input
     FILE *input_f = fopen(argv[1], "r");
 
     int N; // num nodes
@@ -197,12 +263,41 @@ int main(int argc, char **argv)
 
     free(D);
 
-#ifdef __x86_64__
-    fprintf(stderr, "running optimized version...\n");
-    unsigned long long r = rdtsc(C, N);
-    fprintf(stderr, "#cycles on avg: ");
-    printf("%llu\n", r);
-#endif
+    // run measurements
+    fprintf(stderr, "measuring shortest paths for n=%d\n", N);
+    int num_runs = measure(C, N, WarmupEventSet, MeasurementEventSet, measured_values);
 
+    // output measurements
+    printf("%d", num_runs);
+    for (int i = 0; i < NUM_EVENT; i++)
+    {
+        printf("\n%lld", measured_values[i]);
+    }
+
+    // clean up
     free(C);
+
+    /* Free all memory and data structures, EventSet must be empty. */
+    if ((retval = PAPI_cleanup_eventset(WarmupEventSet)) != PAPI_OK)
+    {
+        ERROR_RETURN(retval);
+    }
+    if ((retval = PAPI_cleanup_eventset(MeasurementEventSet)) != PAPI_OK)
+    {
+        ERROR_RETURN(retval);
+    }
+
+    if ((retval = PAPI_destroy_eventset(&WarmupEventSet)) != PAPI_OK)
+    {
+        ERROR_RETURN(retval);
+    }
+    if ((retval = PAPI_destroy_eventset(&MeasurementEventSet)) != PAPI_OK)
+    {
+        ERROR_RETURN(retval);
+    }
+
+    /* free the resources used by PAPI */
+    PAPI_shutdown();
+
+    return EXIT_SUCCESS;
 }
