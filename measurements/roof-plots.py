@@ -119,8 +119,7 @@ def roofline_plot(
             n_list = reader.__next__()
             runs_list = reader.__next__()
             cycles_list = reader.__next__()
-            # bytes_list = reader.__next__()
-            bytes_list = [4 * n**2 for n in n_list]
+            bytes_list = reader.__next__()
 
         # compute performance (flops = 2 * n^3)
         i_list = list()
