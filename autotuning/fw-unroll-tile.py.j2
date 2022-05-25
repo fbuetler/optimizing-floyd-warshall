@@ -31,14 +31,14 @@ int floydWarshall(double *C, int N) {
                         // compute
                         {% for u_i in range(unroll_i) -%}
                         {% for u_j in range(unroll_j) -%}
-                        {{ "double res{}_{} = MIN(ci{}j{}, ci{}k + ckj{});".format(u_i, u_j, u_i, u_j, u_i, u_j) }}
+                        {{ "double res{}_{} = MIN(ci{}j{}, ADD(ci{}k, ckj{}));".format(u_i, u_j, u_i, u_j, u_i, u_j) }}
                         {% endfor -%}
                         {% endfor %}
 
                         // store
                         {% for u_i in range(unroll_i) -%}
                         {% for u_j in range(unroll_j) -%}
-                        {{ "C[(i + {}) * N + j + {}] = res{}_{};".format(u_i, u_j, u_i, u_j) }}
+                        {{ "C[(i + {}) * N + (j + {})] = res{}_{};".format(u_i, u_j, u_i, u_j) }}
                         {% endfor -%}
                         {% endfor %}
                     }
@@ -46,8 +46,8 @@ int floydWarshall(double *C, int N) {
                     // rest of j
                     for (; j - jj < {{ tilesizej }}; j++) {
                         {% for u_i in range(unroll_i) -%}
-                        {{ "C[(i + {}) * N + j] = MIN(C[(i + {}) * N + j], ci{}k + C[k * N + j]);".format(u_i, u_i, u_i) }}
-                        {% endfor -%}
+                        {{ "C[(i + {}) * N + j] = MIN(C[(i + {}) * N + j], ADD(ci{}k, C[k * N + j]));".format(u_i, u_i, u_i) }}
+                        {%- endfor %}
                     }
                 }
 
@@ -68,7 +68,7 @@ int floydWarshall(double *C, int N) {
 
                         // compute
                         {% for u_j in range(unroll_j) -%}
-                        {{ "double res{} = MIN(cij{}, cik + ckj{});".format(u_j,u_j,u_j) }}
+                        {{ "double res{} = MIN(cij{}, ADD(cik, ckj{}));".format(u_j,u_j,u_j) }}
                         {% endfor %}
 
                         // store
@@ -79,7 +79,7 @@ int floydWarshall(double *C, int N) {
 
                     // rest of j
                     for (; j - jj < {{ tilesizej }}; j++) {
-                        C[i * N + j] = MIN(C[i * N + j], cik + C[k * N + j]);
+                        C[i * N + j] = MIN(C[i * N + j], ADD(cik, C[k * N + j]));
                     }
                 }
             }
