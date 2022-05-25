@@ -1,6 +1,5 @@
 import argparse
 import math
-import numpy as np
 import jinja2
 import subprocess
 import logging
@@ -395,8 +394,8 @@ def unrollment_hill_climbing(
         next_ui, next_uj, next_ti, next_tj, curr_perf = get_best_perf(
             project_root,
             algorithm,
-            input_size if not is_debug_run else 32,
-            BENCH_INPUT if not is_debug_run else TEST_INPUT,
+            input_size if not is_debug_run else 48,
+            BENCH_INPUT,
             unroll_tile_list,
         )
         if best_perf > curr_perf or (next_ui == ui and next_uj == uj):
@@ -410,13 +409,27 @@ def unrollment_hill_climbing(
     return ui, uj
 
 
+def factors_of(n):
+    factors = [1]
+    for i in range(2, int(math.sqrt(n)) + 1):
+        if n % i == 0:
+            factors.extend([i, n // i])
+    factors.append(n)
+    return sorted(list(set(factors)))
+
+
 def tile_l2_hill_climbing(
     project_root, algorithm, input_size, l2_cache_bytes, ui, uj, is_debug_run=False
 ):
-    t2 = 2 ** math.floor(np.log2(math.sqrt(l2_cache_bytes / 3)))  # TODO
+    input_size = input_size if not is_debug_run else 48
+
+    factors = factors_of(input_size)
+    print(factors)
+
+    t2 = min(factors, key=lambda x: abs(x - int(math.sqrt(l2_cache_bytes))))
 
     if is_debug_run:
-        t2 = 4
+        t2 = 12
 
     if t2 == 0:
         raise Exception("heuristic makes no sense")
@@ -438,8 +451,10 @@ def tile_l2_hill_climbing(
                     # skip odd unrolling factors greater than 1
                     continue
 
-                for t in [t2 / 2, t2 * 2]:
-                    t = int(t)
+                fi = factors.index(t2)
+                for t in [
+                    factors[i] for i in [max(0, fi - 1), min(fi + 1, len(factors) - 1)]
+                ]:
                     if t < 1:
                         # skip unrollment factors that make no sense
                         logging.debug(
@@ -479,7 +494,7 @@ def tile_l2_hill_climbing(
             project_root,
             algorithm,
             input_size,
-            BENCH_INPUT if not is_debug_run else TEST_INPUT,
+            BENCH_INPUT,
             unroll_tile_list,
         )
         if best_perf > curr_perf or (next_ui == ui and next_uj == uj and next_ti == t2):
