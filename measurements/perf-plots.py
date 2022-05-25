@@ -54,6 +54,7 @@ parser.add_argument(
     type=float,
     default=0.0,
 )
+parser.add_argument("-vpi","--simd-peak", help="maximum achievable performance in flops/cycle using SIMD instructions", type=float, default=0.0)
 parser.add_argument("-o", "--output", help="output file name", type=str, required=True)
 
 
@@ -63,6 +64,7 @@ def main(
     plots_dir,
     title,
     peak,
+    peak_simd,
     output_file,
 ):
 
@@ -71,6 +73,15 @@ def main(
         plt.axhline(
             y=peak,
             label="P ≤ π",
+            linewidth=1,
+            color=next(ax._get_lines.prop_cycler)["color"],
+        )
+
+    if peak_simd != 0.0:
+        _, ax = plt.subplots()
+        plt.axhline(
+            y=peak_simd,
+            label="P ≤ π-SIMD",
             linewidth=1,
             color=next(ax._get_lines.prop_cycler)["color"],
         )
@@ -148,5 +159,6 @@ if __name__ == "__main__":
         args.plot,
         args.title,
         args.peak,
+        args.simd_peak,
         args.output,
     )
