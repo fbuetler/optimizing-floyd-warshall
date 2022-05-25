@@ -1,6 +1,6 @@
 #include "sp.h"
 
-int floydWarshall(float *C, int N) {
+int floydWarshall(double *C, int N) {
     if (N % {{ tilesizei }} != 0 || N % {{ tilesizej }} != 0) {
         return 1;
     }
@@ -12,7 +12,7 @@ int floydWarshall(float *C, int N) {
                 int i = ii;
                 for (; i - ii < {{ tilesizei }} - {{ unroll_i - 1 }}; i += {{ unroll_i }}) {
                     {% for u_i in range(unroll_i) -%}
-                    {{ "float ci{}k = C[(i + {}) * N + k];".format(u_i, u_i) }}
+                    {{ "double ci{}k = C[(i + {}) * N + k];".format(u_i, u_i) }}
                     {% endfor -%}
 
                     int j = jj;
@@ -20,18 +20,18 @@ int floydWarshall(float *C, int N) {
                         // load
                         {% for u_i in range(unroll_i) -%}
                         {% for u_j in range(unroll_j) -%}
-                        {{ "float ci{}j{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
+                        {{ "double ci{}j{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
                         {% endfor -%}
                         {% endfor %}
 
                         {% for u_j in range(unroll_j) -%}
-                        {{ "float ckj{} = C[k * N + j + {}];".format(u_j, u_j) }}
+                        {{ "double ckj{} = C[k * N + j + {}];".format(u_j, u_j) }}
                         {% endfor %}
 
                         // compute
                         {% for u_i in range(unroll_i) -%}
                         {% for u_j in range(unroll_j) -%}
-                        {{ "float res{}_{} = MIN(ci{}j{}, ci{}k + ckj{});".format(u_i, u_j, u_i, u_j, u_i, u_j) }}
+                        {{ "double res{}_{} = MIN(ci{}j{}, ci{}k + ckj{});".format(u_i, u_j, u_i, u_j, u_i, u_j) }}
                         {% endfor -%}
                         {% endfor %}
 
@@ -53,22 +53,22 @@ int floydWarshall(float *C, int N) {
 
                 // rest of i
                 for (; i - ii < {{ tilesizei }}; i++) {
-                    float cik = C[i * N + k];
+                    double cik = C[i * N + k];
             
                     int j = jj;
                     for (; j - jj < {{ tilesizej }} - {{ unroll_j - 1 }}; j += {{ unroll_j }}) {
                         // load
                         {% for u_j in range(unroll_j) -%}
-                        {{ "float cij{} = C[i * N + j + {}];".format(u_j, u_j) }}
+                        {{ "double cij{} = C[i * N + j + {}];".format(u_j, u_j) }}
                         {% endfor %}
 
                         {% for u_j in range(unroll_j) -%}
-                        {{ "float ckj{} = C[k * N + j + {}];".format(u_j, u_j) }}
+                        {{ "double ckj{} = C[k * N + j + {}];".format(u_j, u_j) }}
                         {% endfor %}
 
                         // compute
                         {% for u_j in range(unroll_j) -%}
-                        {{ "float res{} = MIN(cij{}, cik + ckj{});".format(u_j,u_j,u_j) }}
+                        {{ "double res{} = MIN(cij{}, cik + ckj{});".format(u_j,u_j,u_j) }}
                         {% endfor %}
 
                         // store
