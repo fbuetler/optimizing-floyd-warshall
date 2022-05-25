@@ -8,6 +8,16 @@ import csv
 
 logging.basicConfig(encoding="utf-8", level=logging.INFO)
 
+ALGORITHM_FW = "fw"
+ALGORITHM_MM = "mm"
+ALGORITHM_TC = "tc"
+
+ALGORITHM_CHOICES = {
+    ALGORITHM_FW,
+    ALGORITHM_MM,
+    ALGORITHM_TC,
+}
+
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "-p", "--project-root", help="path of the project root", type=str, required=True
@@ -22,7 +32,7 @@ parser.add_argument(
     "-algo",
     "--algorithm",
     help="algorithm to autotune",
-    choices=["fw", "mm", "tc"],
+    choices=ALGORITHM_CHOICES,
     required=True,
 )
 parser.add_argument("-n", "--input-size", help="input size", type=int, required=True)
@@ -84,11 +94,30 @@ def generate_fw(
         context["tilesizei"] = ti
         context["tilesizej"] = tj
 
+        if algorithm == ALGORITHM_FW:
+            context["algorithm"] = "sp"
+            context["datatype"] = "double"
+            context["outer_op"] = "MIN"
+            context["inner_op"] = "ADD"
+        elif algorithm == ALGORITHM_MM:
+            context["algorithm"] = "mm"
+            context["datatype"] = "double"
+            context["datatype"] = "double"
+            context["outer_op"] = "MAX"
+            context["inner_op"] = "MIN"
+        elif algorithm == ALGORITHM_TC:
+            context["algorithm"] = "tc"
+            context["datatype"] = "char"
+            context["outer_op"] = "OR"
+            context["inner_op"] = "AND"
+        else:
+            raise Exception("Unkown algorihtm")
+
         with open(output_fname, mode="w", encoding="utf-8") as f:
             f.write(
                 render_jinja_template(
                     f"{inpath}",
-                    f"{algorithm}-unroll-tile.py.j2",
+                    f"mighty-unroll-tile.py.j2",
                     **context,
                 )
             )
@@ -465,8 +494,8 @@ def tile_l2_hill_climbing(
 
 
 def main(project_root, input_size, l2_cache_bytes, algorithm):
-    debug = True
-    # debug = False
+    # debug = True
+    debug = False
 
     if debug:
         logging.basicConfig(encoding="utf-8", level=logging.DEBUG, force=True)
