@@ -1,0 +1,94 @@
+#include <math.h>
+
+#include "tc.h"
+
+int floydWarshall(char *C, int N) {
+    if (N % {{tilesizei}} != 0 || N % {{tilesizej}} != 0) {
+        return 1;
+    }
+
+    int bytes_per_row = ceil({{tilesizej}} / 8.0);
+
+    for (int k = 0; k < N; k++) {
+        char index_mask = 1 << (k % 8);
+        for (int ii = 0; ii < N; ii += {{tilesizei}}) {
+            for (int jj = 0; jj < N; jj += {{tilesizej}}) {
+                // tile
+                int i = ii;
+                for (; i - ii < {{tilesizei}} - {{unroll_i - 1}}; i += {{unroll_i}}) {
+                    {% for u_i in range(unroll_i) -%}
+                    {{"char ci{}_k = C[(i + {}) * bytes_per_row + k / 8] & index_mask ? 0xff : 0x00;".format(u_i, u_i)}} 
+                    {% endfor -%}
+
+                    int j = jj;
+                    for (; j - jj < bytes_per_row - {{unroll_j - 1}}; j += {{unroll_j}}) {
+                        // load
+                        {% for u_i in range(unroll_i) -%}
+                        {% for u_j in range(unroll_j) -%}
+                        {{"char ci{}j{} = C[(i + {}) * bytes_per_row + j + {}];".format(u_i, u_j, u_i, u_j)}} 
+                        {% endfor -%} 
+                        {% endfor %}
+
+                        {% for u_j in range(unroll_j) -%}
+                        {{"char ckj{} = C[k * bytes_per_row + j + {}];".format(u_j, u_j)}} 
+                        {% endfor %}
+
+                        // compute
+                        {% for u_i in range(unroll_i) -%}
+                        {% for u_j in range(unroll_j) -%}
+                        {{"char res{}_{} = ci{}j{} | (ci{}_k & ckj{});".format(u_i, u_j, u_i, u_j, u_i, u_j)}} 
+                        {% endfor -%} 
+                        {% endfor %}
+
+                        // store
+                        {% for u_i in range(unroll_i) -%}
+                        {% for u_j in range(unroll_j) -%}
+                        {{"C[(i + {}) * bytes_per_row + (j + {})] = res{}_{};".format(u_i, u_j, u_i, u_j)}} 
+                        {% endfor -%} 
+                        {% endfor %}
+                    }
+
+                    // rest of j
+                    for (; j - jj < bytes_per_row; j++) {
+                        {% for u_i in range(unroll_i) -%}
+                        {{"C[(i + {}) * bytes_per_row + j] = C[(i + {}) * bytes_per_row + j] | (ci{}_k & C[k * bytes_per_row + j]);".format(u_i, u_i, u_i)}} 
+                        {% endfor %}
+                    }
+                }
+
+                // rest of i
+                for (; i - ii < {{tilesizei}}; i++) {
+                    char cik = C[i * bytes_per_row + k / 8] & index_mask ? 0xff : 0x00;
+
+                    int j = jj;
+                    for (; j - jj < bytes_per_row - {{unroll_j - 1}}; j += {{unroll_j}}) {
+                        // load
+                        {% for u_j in range(unroll_j) -%}
+                        {{"char cij{} = C[i * bytes_per_row + j + {}];".format(u_j, u_j)}} 
+                        {% endfor %}
+
+                        {% for u_j in range(unroll_j) -%}
+                        {{"char ckj{} = C[k * bytes_per_row + j + {}];".format(u_j, u_j)}} 
+                        {% endfor %}
+
+                        // compute
+                        {% for u_j in range(unroll_j) -%}
+                        {{"char res{} = cij{} | (cik & ckj{});".format(u_j, u_j, u_j)}} 
+                        {% endfor %}
+
+                        // store
+                        {% for u_j in range(unroll_j) -%}
+                        {{"C[i * bytes_per_row + j + {}] = res{};".format(u_j, u_j)}} 
+                        {% endfor %}
+                    }
+
+                    // rest of j
+                    for (; j - jj < bytes_per_row; j++) {
+                        C[i * bytes_per_row + j] = C[i * bytes_per_row + j] | (cik & C[k * bytes_per_row + j]);
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
