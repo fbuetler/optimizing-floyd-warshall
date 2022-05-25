@@ -1,5 +1,3 @@
-#include <math.h>
-
 #include "tc.h"
 
 /* unoptimized version of the modified Floyd-Warshall transitive-closure algorithm
