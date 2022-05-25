@@ -42,7 +42,11 @@ void copyMatrix(float *from, float *to, int N) {
  * Note that the matrix C is modified in-place
  */
 void ref_output(float *C, int N) {
-    floydWarshall(C, N);
+    int err = floydWarshall(C, N);
+    if (err != 0) {
+        printf("implementation reported an error\n");
+        exit(1);
+    }
 }
 
 #ifdef __x86_64__
@@ -55,7 +59,7 @@ void ref_output(float *C, int N) {
  *
  * The function returns the average number of cycles per run.
  */
-double rdtsc(float *C, int N) {
+unsigned long long rdtsc(float *C, int N) {
     int i, num_runs;
     myInt64 cycles;
     myInt64 start;
@@ -98,7 +102,7 @@ double rdtsc(float *C, int N) {
     }
     cycles = stop_tsc(start) / num_runs;
 
-    return (double)cycles;
+    return cycles;
 }
 #endif
 
@@ -164,9 +168,9 @@ int main(int argc, char **argv) {
 
 #ifdef __x86_64__
     fprintf(stderr, "finding shortest paths...\n");
-    double r = rdtsc(C, N);
+    unsigned long long r = rdtsc(C, N);
     fprintf(stderr, "#cycles on avg: ");
-    printf("%lf\n", r);
+    printf("%llu\n", r);
 #endif
 
     free(C);

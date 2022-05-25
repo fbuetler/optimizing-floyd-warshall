@@ -50,13 +50,15 @@ fw-c-cache-blocking-clang: shortest-path/c/*.c shortest-path/c/impl/cache_blocki
 fw-c-autotune-gcc: shortest-path/c/*.c shortest-path/c/impl/fw_c-autotune*.c shortest-path/c/impl/sp.h
 	cd shortest-path/c/impl; \
 	for f in fw_c-autotune*.c; do \
+		echo $$f; \
 		gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c; \
 	done 
 
 fw-c-autotune-clang: shortest-path/c/*.c shortest-path/c/impl/fw_c-autotune*.c shortest-path/c/impl/sp.h
 	cd shortest-path/c/impl; \
 	for f in fw_c-autotune*.c; do \
-		clang-13 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c;
+		echo $$f; \
+		clang-13 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c; \
 	done 
 
 # tc - vector

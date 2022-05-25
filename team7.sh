@@ -21,9 +21,9 @@ function printUsage() {
     echo "  build <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST>"
     echo "  generate-test-in <MIN_N> <MAX_N> <STEP_N>"
     echo "  generate-test-out <ALGORITHM> <REF_IMPL> <INPUT_CATEGORY>"
-    echo "  validate <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST>"
+    echo "  validate <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST> (<TESTCASES>)"
     echo "  measure <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST> (<INPUT_CATEGORY>)"
-    echo "  plot <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST> (<INPUT_CATEGORY>) <PLOT_TITLE>"
+    echo "  plot <ALGORITHM_LIST> <IMPLEMENTATION_LIST> <COMPILER_LIST> <OPTIMIZATIONS_LIST> (<INPUT_CATEGORY>) <PLOT_TITLE> (<PLOT_LABELS_LIST>)"
     echo "  clean"
     echo "Algorithms:"
     echo "  fw (floyd-wahrshal)"
@@ -40,8 +40,17 @@ function printUsage() {
     echo "  -O0"
     echo "  -O3 -fno-tree-vectorize"
     echo "  -O3 -ffast-math -march=native -mfma"
+    echo "Testcases:"
+    echo "  n4,n8,n16,n30,n32"
+    echo "  n64,n128,n256,n512,n1024,n2048,n4096,n8192"
     echo "Input categories:"
     echo "  $(ls -m $INPUT_CATEGORY_DIR | sed 's/,/\n /g')"
+    echo "Plot labels"
+    echo "  algo"
+    echo "  impl"
+    echo "  comp"
+    echo "  opts"
+    echo "  testsuite"
     echo "NOTE:"
     echo "  input lists have to be comma separated"
     exit 1
@@ -95,18 +104,19 @@ function validate() {
     COMPILER="$3"
     OPTIMIZATIONS_RAW="$4"
     OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
+    TESTCASES="$5"
 
-    rm -f $TESTCASE_DIR/**/*.out.txt
+    rm -f $TESTCASES/**/*.out.txt
     python3 "${ROOT_DIR}/comparator/runner.py" \
         -b "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}" \
-        -d "${TESTCASE_DIR}" \
+        -d "${TESTCASES}" \
         -a "${ALGORITHM}" \
         -o "out"
 
     python3 "${ROOT_DIR}/comparator/compare.py" \
         --recursive \
         --silent \
-        "${TESTCASE_DIR}"
+        "${TESTCASES}"
 }
 
 function measure() {
@@ -116,9 +126,11 @@ function measure() {
     OPTIMIZATIONS_RAW="$4"
     OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
     INPUT_CATEGORY="$5"
-    python3 "${ROOT_DIR}/measurements/measure.py" -tb \
+    TESTCASES="$6"
+    python3 "${ROOT_DIR}/measurements/measure.py" \
         --binary "${BUILD_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_$OPTIMIZATIONS" \
         --testsuite "${INPUT_CATEGORY_DIR}/${INPUT_CATEGORY}" \
+        --testcases "${TESTCASES}" \
         --output "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}_${INPUT_CATEGORY}"
 }
 
@@ -130,10 +142,13 @@ function plot() {
     OPTIMIZATIONS=$(optimizations_format "$OPTIMIZATIONS_RAW")
     INPUT_CATEGORY="$5"
     PLOT_TITLE="$6"
+    PLOT_LABELS="$7"
     python3 "${ROOT_DIR}/measurements/perf-plots.py" \
         --data "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}_${INPUT_CATEGORY}.csv" \
         --plot "${PLOTS_DIR}" \
-        --title "$PLOT_TITLE"
+        --title "$PLOT_TITLE" \
+        --labels "${PLOT_LABELS[@]}" \
+        --output "${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}_${INPUT_CATEGORY}"
 }
 
 function clean() {
@@ -204,6 +219,7 @@ validate)
     IMPLEMENTATION_LIST="${3:-}"
     COMPILER_LIST="${4:-}"
     OPTIMIZATIONS_LIST="${5:-}"
+    TESTCASE_LIST="${6:-/}"
     if [[ -z "$ALGORITHM_LIST" || -z "$IMPLEMENTATION_LIST" || -z "$COMPILER_LIST" || -z "$OPTIMIZATIONS_LIST" ]]; then
         printUsage "$0"
     fi
@@ -213,14 +229,17 @@ validate)
     read -ra IMPLEMENTATIONS <<<"$IMPLEMENTATION_LIST"
     read -ra COMPILERS <<<"$COMPILER_LIST"
     read -ra OPTS <<<"$OPTIMIZATIONS_LIST"
+    read -ra TESTCASES <<<"$TESTCASE_LIST"
 
     for ALGORITHM in "${ALGORITHMS[@]}"; do
         for IMPLEMENTATION in "${IMPLEMENTATIONS[@]}"; do
             for COMPILER in "${COMPILERS[@]}"; do
                 for OPTIMIZATIONS in "${OPTS[@]}"; do
-                    echo "Validating $ALGORITHM/$IMPLEMENTATION"
-                    validate $ALGORITHM "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS"
-                    echo
+                    for TESTCASE in "${TESTCASES[@]}"; do
+                        echo "Validating $ALGORITHM/$IMPLEMENTATION"
+                        validate $ALGORITHM "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$TESTCASE_DIR/$TESTCASE"
+                        echo
+                    done
                 done
             done
         done
@@ -232,6 +251,7 @@ measure)
     COMPILER_LIST="${4:-}"
     OPTIMIZATIONS_LIST="${5:-}"
     INPUT_CATEGORY="${6:-bench-inputs}"
+    TESTCASES="${7:-}"
     if [[ -z "$ALGORITHM_LIST" || -z "$IMPLEMENTATION_LIST" || -z "$COMPILER_LIST" || -z "$OPTIMIZATIONS_LIST" || -z "$INPUT_CATEGORY" ]]; then
         printUsage "$0"
     fi
@@ -247,7 +267,7 @@ measure)
             for COMPILER in "${COMPILERS[@]}"; do
                 for OPTIMIZATIONS in "${OPTS[@]}"; do
                     echo "Measuring $ALGORITHM/$IMPLEMENTATION compiled with '$COMPILER' and '$OPTIMIZATIONS' on '$INPUT_CATEGORY'"
-                    measure "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$INPUT_CATEGORY"
+                    measure "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$INPUT_CATEGORY" "$TESTCASES"
                     echo
                 done
             done
@@ -261,6 +281,7 @@ plot)
     OPTIMIZATIONS_LIST="${5:-}"
     INPUT_CATEGORY="${6:-bench-inputs}"
     PLOT_TITLE="${7:-}"
+    PLOT_LABELS_LIST="${8:-algo,impl,comp,opts,testsuite}"
     if [[ -z "$ALGORITHM_LIST" || -z "$IMPLEMENTATION_LIST" || -z "$COMPILER_LIST" || -z "$OPTIMIZATIONS_LIST" || -z "$PLOT_TITLE" ]]; then
         printUsage "$0"
     fi
@@ -270,13 +291,14 @@ plot)
     read -ra IMPLEMENTATIONS <<<"$IMPLEMENTATION_LIST"
     read -ra COMPILERS <<<"$COMPILER_LIST"
     read -ra OPTS <<<"$OPTIMIZATIONS_LIST"
+    read -ra PLOT_LABELS <<<"$PLOT_LABELS_LIST"
 
     for ALGORITHM in "${ALGORITHMS[@]}"; do
         for IMPLEMENTATION in "${IMPLEMENTATIONS[@]}"; do
             for COMPILER in "${COMPILERS[@]}"; do
                 for OPTIMIZATIONS in "${OPTS[@]}"; do
                     echo "Plotting $ALGORITHM/$IMPLEMENTATION compiled with $COMPILER and $OPTIMIZATIONS as $PLOT_TITLE"
-                    plot "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$INPUT_CATEGORY" "$PLOT_TITLE"
+                    plot "$ALGORITHM" "$IMPLEMENTATION" "$COMPILER" "$OPTIMIZATIONS" "$INPUT_CATEGORY" "$PLOT_TITLE" "$PLOT_LABELS"
                     echo
                 done
             done

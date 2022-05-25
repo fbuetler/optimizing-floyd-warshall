@@ -1,0 +1,24 @@
+#include "sp.h"
+
+int floydWarshall(float *C, int N) {
+    int bsize_i = {{ tilesizei }});
+    int bsize_j = {{ tilesizej }});
+
+    if (N % bsize_i != 0 || N % bsize_j != 0) {
+        return 1;
+    }
+
+    for (int k = 0; k < N; k++) {
+        for (int i = 0; i < N; i += bsize_i) {
+            for (int j = 0; j < N; j += bsize_j) {
+                // tile
+                for (int ii = i; ii - i < bsize_i; ii++) {
+                    for (int jj = j; jj - j < bsize_j; jj++) {
+                        C[ii * N + jj] = MIN(C[ii * N + jj], C[ii * N + k] + C[k * N + jj]);
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}

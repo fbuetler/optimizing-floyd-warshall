@@ -59,7 +59,7 @@ void copyMatrix(float *from, float *to, int N) {
  *
  * The function returns the average number of cycles per run.
  */
-double rdtsc(float *C, int N) {
+unsigned long long rdtsc(float *C, int N) {
     int i, num_runs;
     myInt64 cycles;
     myInt64 start;
@@ -102,7 +102,7 @@ double rdtsc(float *C, int N) {
     }
     cycles = stop_tsc(start) / num_runs;
 
-    return (double)cycles;
+    return cycles;
 }
 #endif
 
@@ -165,9 +165,9 @@ int main(int argc, char **argv) {
 
 #ifdef __x86_64__
     fprintf(stderr, "finding max-min...\n");
-    double r = rdtsc(C, N);
+    unsigned long long r = rdtsc(C, N);
     fprintf(stderr, "#cycles on avg: ");
-    printf("%lf\n", r);
+    printf("%llu\n", r);
 #endif
 
     free(C);

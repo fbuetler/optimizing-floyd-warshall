@@ -38,40 +38,40 @@ int floydWarshall(float *C, int N) {
                 float ckj3 = C[k * N + j + 3];
 
                 // compute
-                float res00 = MIN(ci0j0, ci0k + ckj0);
-                float res01 = MIN(ci0j1, ci0k + ckj1);
-                float res02 = MIN(ci0j2, ci0k + ckj2);
-                float res03 = MIN(ci0j3, ci0k + ckj3);
-                float res10 = MIN(ci1j0, ci1k + ckj0);
-                float res11 = MIN(ci1j1, ci1k + ckj1);
-                float res12 = MIN(ci1j2, ci1k + ckj2);
-                float res13 = MIN(ci1j3, ci1k + ckj3);
-                float res20 = MIN(ci2j0, ci2k + ckj0);
-                float res21 = MIN(ci2j1, ci2k + ckj1);
-                float res22 = MIN(ci2j2, ci2k + ckj2);
-                float res23 = MIN(ci2j3, ci2k + ckj3);
-                float res30 = MIN(ci3j0, ci3k + ckj0);
-                float res31 = MIN(ci3j1, ci3k + ckj1);
-                float res32 = MIN(ci3j2, ci3k + ckj2);
-                float res33 = MIN(ci3j3, ci3k + ckj3);
+                float res0_0 = MIN(ci0j0, ci0k + ckj0);
+                float res0_1 = MIN(ci0j1, ci0k + ckj1);
+                float res0_2 = MIN(ci0j2, ci0k + ckj2);
+                float res0_3 = MIN(ci0j3, ci0k + ckj3);
+                float res1_0 = MIN(ci1j0, ci1k + ckj0);
+                float res1_1 = MIN(ci1j1, ci1k + ckj1);
+                float res1_2 = MIN(ci1j2, ci1k + ckj2);
+                float res1_3 = MIN(ci1j3, ci1k + ckj3);
+                float res2_0 = MIN(ci2j0, ci2k + ckj0);
+                float res2_1 = MIN(ci2j1, ci2k + ckj1);
+                float res2_2 = MIN(ci2j2, ci2k + ckj2);
+                float res2_3 = MIN(ci2j3, ci2k + ckj3);
+                float res3_0 = MIN(ci3j0, ci3k + ckj0);
+                float res3_1 = MIN(ci3j1, ci3k + ckj1);
+                float res3_2 = MIN(ci3j2, ci3k + ckj2);
+                float res3_3 = MIN(ci3j3, ci3k + ckj3);
 
                 // store
-                C[(i + 0) * N + j + 0] = res00;
-                C[(i + 0) * N + j + 1] = res01;
-                C[(i + 0) * N + j + 2] = res02;
-                C[(i + 0) * N + j + 3] = res03;
-                C[(i + 1) * N + j + 0] = res10;
-                C[(i + 1) * N + j + 1] = res11;
-                C[(i + 1) * N + j + 2] = res12;
-                C[(i + 1) * N + j + 3] = res13;
-                C[(i + 2) * N + j + 0] = res20;
-                C[(i + 2) * N + j + 1] = res21;
-                C[(i + 2) * N + j + 2] = res22;
-                C[(i + 2) * N + j + 3] = res23;
-                C[(i + 3) * N + j + 0] = res30;
-                C[(i + 3) * N + j + 1] = res31;
-                C[(i + 3) * N + j + 2] = res32;
-                C[(i + 3) * N + j + 3] = res33;
+                C[(i + 0) * N + j + 0] = res0_0;
+                C[(i + 0) * N + j + 1] = res0_1;
+                C[(i + 0) * N + j + 2] = res0_2;
+                C[(i + 0) * N + j + 3] = res0_3;
+                C[(i + 1) * N + j + 0] = res1_0;
+                C[(i + 1) * N + j + 1] = res1_1;
+                C[(i + 1) * N + j + 2] = res1_2;
+                C[(i + 1) * N + j + 3] = res1_3;
+                C[(i + 2) * N + j + 0] = res2_0;
+                C[(i + 2) * N + j + 1] = res2_1;
+                C[(i + 2) * N + j + 2] = res2_2;
+                C[(i + 2) * N + j + 3] = res2_3;
+                C[(i + 3) * N + j + 0] = res3_0;
+                C[(i + 3) * N + j + 1] = res3_1;
+                C[(i + 3) * N + j + 2] = res3_2;
+                C[(i + 3) * N + j + 3] = res3_3;
             }
             for (; j < N; j++) {
                 C[(i + 0) * N + j] = MIN(C[(i + 0) * N + j], ci0k + C[k * N + j]);

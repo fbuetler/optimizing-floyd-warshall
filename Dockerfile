@@ -1,6 +1,6 @@
 FROM debian:bookworm-slim
 
-RUN apt-get -y update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends --assume-yes \
     bash \
     gcc-11 \
     clang-13 \
