@@ -124,14 +124,23 @@ def roofline_plot(
         # compute performance (flops = 2 * n^3)
         i_list = list()
         p_list = list()
+        min_n = (0,0,None)
+        max_n = (0,0,None)
         for (n, c, _, Q) in zip(n_list, cycles_list, runs_list, bytes_list):
             W = (2 * n * n * n)
             I = W/Q
             P = W / c
             i_list.append(I)
             p_list.append(P)
+            if min_n[2] is None or n < min_n[2]:
+                min_n = (I, P, n)
+            if max_n[2] is None or n > max_n[2]:
+                max_n = (I, P, n)
 
-        plt.plot(I, P, 'o', label=label)
+        plt.annotate(min_n[2], xy=(min_n[0], min_n[1]), xytext=(min_n[0], min_n[1]+0.1))
+        plt.annotate(max_n[2], xy=(max_n[0], max_n[1]), xytext=(max_n[0], max_n[1]+0.2))
+
+        plt.plot(i_list, p_list, marker='o', label=label)
 
         perf_max = max(p_list + [perf_max])
 
