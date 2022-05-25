@@ -1,0 +1,89 @@
+#include "mm.h"
+
+int floydWarshall(double *C, int N) {
+    if (N % {{ tilesizei }} != 0 || N % {{ tilesizej }} != 0) {
+        return 1;
+    }
+
+    for (int k = 0; k < N; k++) {
+        for (int ii = 0; ii < N; ii += {{ tilesizei }}) {
+            for (int jj = 0; jj < N; jj += {{ tilesizej }}) {
+                // tile
+                int i = ii;
+                for (; i - ii < {{ tilesizei }} - {{ unroll_i - 1 }}; i += {{ unroll_i }}) {
+                    {% for u_i in range(unroll_i) -%}
+                    {{ "double ci{}k = C[(i + {}) * N + k];".format(u_i, u_i) }}
+                    {% endfor -%}
+
+                    int j = jj;
+                    for (; j - jj < {{ tilesizej }} - {{ unroll_j - 1 }}; j += {{ unroll_j }}) {
+                        // load
+                        {% for u_i in range(unroll_i) -%}
+                        {% for u_j in range(unroll_j) -%}
+                        {{ "double ci{}j{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
+                        {% endfor -%}
+                        {% endfor %}
+
+                        {% for u_j in range(unroll_j) -%}
+                        {{ "double ckj{} = C[k * N + j + {}];".format(u_j, u_j) }}
+                        {% endfor %}
+
+                        // compute
+                        {% for u_i in range(unroll_i) -%}
+                        {% for u_j in range(unroll_j) -%}
+                        {{ "double res{}_{} = MAX(ci{}j{}, MIN(ci{}k, ckj{}));".format(u_i, u_j, u_i, u_j, u_i, u_j) }}
+                        {% endfor -%}
+                        {% endfor %}
+
+                        // store
+                        {% for u_i in range(unroll_i) -%}
+                        {% for u_j in range(unroll_j) -%}
+                        {{ "C[(i + {}) * N + j + {}] = res{}_{};".format(u_i, u_j, u_i, u_j) }}
+                        {% endfor -%}
+                        {% endfor %}
+                    }
+
+                    // rest of j
+                    for (; j - jj < {{ tilesizej }}; j++) {
+                        {% for u_i in range(unroll_i) -%}
+                        {{ "C[(i + {}) * N + j] = MAX(C[(i + {}) * N + j], MIN(ci{}k, C[k * N + j]));".format(u_i, u_i, u_i) }}
+                        {%- endfor %}
+                    }
+                }
+
+                // rest of i
+                for (; i - ii < {{ tilesizei }}; i++) {
+                    double cik = C[i * N + k];
+            
+                    int j = jj;
+                    for (; j - jj < {{ tilesizej }} - {{ unroll_j - 1 }}; j += {{ unroll_j }}) {
+                        // load
+                        {% for u_j in range(unroll_j) -%}
+                        {{ "double cij{} = C[i * N + j + {}];".format(u_j, u_j) }}
+                        {% endfor %}
+
+                        {% for u_j in range(unroll_j) -%}
+                        {{ "double ckj{} = C[k * N + j + {}];".format(u_j, u_j) }}
+                        {% endfor %}
+
+                        // compute
+                        {% for u_j in range(unroll_j) -%}
+                        {{ "double res{} = MAX(cij{}, MIN(cik, ckj{}));".format(u_j,u_j,u_j) }}
+                        {% endfor %}
+
+                        // store
+                        {% for u_j in range(unroll_j) -%}
+                        {{ "C[i * N + j + {}] = res{};".format(u_j, u_j) }}
+                        {% endfor %}
+                    }
+
+                    // rest of j
+                    for (; j - jj < {{ tilesizej }}; j++) {
+                        C[i * N + j] = MAX(C[i * N + j], MIN(cik, C[k * N + j]));
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
