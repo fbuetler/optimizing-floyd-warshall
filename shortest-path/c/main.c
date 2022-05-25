@@ -63,7 +63,7 @@ void copyMatrix(float *from, float *to, int N)
  * Runs the FW implementation once for testing purposes
  * Note that the matrix C is modified in-place
  */
-void ref_output(float *C, int N)
+void ref_output(double *C, int N)
 {
     int err = floydWarshall(C, N);
     if (err != EXIT_SUCCESS)
@@ -82,7 +82,7 @@ void ref_output(float *C, int N)
  *
  * The function returns the average number of cycles per run.
  */
-int measure(float *C, int N, int WarmupEventSet, int MeasurementEventSet, long long *measured_values)
+int measure(double *C, int N, int WarmupEventSet, int MeasurementEventSet, long long *measured_values)
 {
     int i, retval;
     int num_runs = NUM_RUNS;
@@ -143,7 +143,12 @@ int measure(float *C, int N, int WarmupEventSet, int MeasurementEventSet, long l
     return num_runs;
 }
 
-void output_matrix(char *filename, float *C, int N)
+void output_matrix(char *filename, double *C, int N)
+{
+    fprintf(stderr, "outputting shortest-path matrix to %s...\n", filename);
+    FILE *output_f = fopen(filename, "w+");
+    fprintf(output_f, "%d\n", N);
+
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N; j++)
