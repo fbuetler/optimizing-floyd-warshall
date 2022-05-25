@@ -74,10 +74,10 @@ build-fw-c-cache-blocking-clang: docker shortest-path/c/*.c shortest-path/c/impl
 	docker run ${DOCKER_RUN_ARGS} make fw-c-cache-blocking-clang
 
 # fw autotune
-build-fw-c-autotune-gcc: docker shortest-path/c/*.c autotuning/generated/shortest-path/*.c shortest-path/c/impl/sp.h
+build-fw-c-autotune-gcc: docker shortest-path/c/*.c autotuning/generated/fw/*.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make fw-c-autotune-gcc
 
-build-fw-c-autotune-clang: docker shortest-path/c/*.c autotuning/generated/shortest-path/*.c shortest-path/c/impl/sp.h
+build-fw-c-autotune-clang: docker shortest-path/c/*.c autotuning/generated/fw/*.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make fw-c-autotune-clang
 
 # tc - naive
@@ -88,10 +88,10 @@ build-tc-c-naive-clang: docker transitive-closure/c/*.c transitive-closure/c/imp
 	docker run ${DOCKER_RUN_ARGS} make tc-c-naive-clang
 
 # tc autotune
-build-tc-c-autotune-gcc: docker shortest-path/c/*.c autotuning/generated/shortest-path/*.c shortest-path/c/impl/sp.h
+build-tc-c-autotune-gcc: docker transitive-closure/c/*.c autotuning/generated/tc/*.c transitive-closure/c/impl/tc.h
 	docker run ${DOCKER_RUN_ARGS} make tc-c-autotune-gcc
 
-build-tc-c-autotune-clang: docker shortest-path/c/*.c autotuning/generated/shortest-path/*.c shortest-path/c/impl/sp.h
+build-tc-c-autotune-clang: docker transitive-closure/c/*.c autotuning/generated/tc/*.c transitive-closure/c/impl/tc.h
 	docker run ${DOCKER_RUN_ARGS} make tc-c-autotune-clang
 
 # max-min: naive
@@ -102,10 +102,10 @@ build-mm-c-naive-clang: docker max-min/c/*.c max-min/c/impl/naive.c max-min/c/im
 	docker run ${DOCKER_RUN_ARGS} make mm-c-naive-clang
 
 # max-min autotune
-build-mm-c-autotune-gcc: docker shortest-path/c/*.c autotuning/generated/shortest-path/*.c shortest-path/c/impl/sp.h
+build-mm-c-autotune-gcc: docker max-min/c/*.c autotuning/generated/mm/*.c max-min/c/impl/mm.h
 	docker run ${DOCKER_RUN_ARGS} make mm-c-autotune-gcc
 
-build-mm-c-autotune-clang: docker shortest-path/c/*.c autotuning/generated/shortest-path/*.c shortest-path/c/impl/sp.h
+build-mm-c-autotune-clang: docker max-min/c/*.c autotuning/generated/mm/*.c max-min/c/impl/mm.h
 	docker run ${DOCKER_RUN_ARGS} make mm-c-autotune-clang
 
 # fw - go ref

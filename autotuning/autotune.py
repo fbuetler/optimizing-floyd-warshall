@@ -247,7 +247,7 @@ def get_best_perf(project_root, algorithm, input_size, input, unroll_tile_list):
 
     generated_files = generate_fw(
         f"{project_root}/autotuning",
-        f"{project_root}/autotuning/generated/shortest-path",
+        f"{project_root}/autotuning/generated/{algorithm}",
         algorithm,
         IMPLEMENTATION,
         COMPILER,

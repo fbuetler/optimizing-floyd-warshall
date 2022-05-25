@@ -21,4 +21,10 @@ COPY transitive-closure ./transitive-closure
 COPY max-min ./max-min
 
 RUN mkdir -p ./shortest-path/c/impl/generated
-COPY autotuning/generated/shortest-path ./shortest-path/c/impl
+COPY autotuning/generated/fw ./shortest-path/c/impl
+
+RUN mkdir -p ./transitive-closure/c/impl/generated
+COPY autotuning/generated/tc ./transitive-closure/c/impl
+
+RUN mkdir -p ./max-min/c/impl/generated
+COPY autotuning/generated/mm ./max-min/c/impl

@@ -107,7 +107,6 @@ def main(
         label = " ".join(label_list)
 
         # read cycles
-        performance_data = list()
         with open(data_file_path) as f:
             reader = csv.reader(f, delimiter=",", quoting=csv.QUOTE_NONNUMERIC)
             n_list = reader.__next__()
