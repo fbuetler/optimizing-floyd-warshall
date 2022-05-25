@@ -18,6 +18,13 @@ parser.add_argument(
 parser.add_argument(
     "-l2", "--l2-cache", help="size of the L2 cache in bytes", type=int, required=True
 )
+parser.add_argument(
+    "-algo",
+    "--algorithm",
+    help="algorithm to autotune",
+    choices=["sp", "mm", "tc"],
+    required=True,
+)
 parser.add_argument("-n", "--input-size", help="input size", type=int, required=True)
 # parser.add_argument("-n", "--min-n", help="minimum input size", type=int, required=True)
 # parser.add_argument("-N", "--max-n", help="maximum input size", type=int, required=True)
@@ -28,7 +35,6 @@ parser.add_argument(
     action="store_true",
 )
 
-ALGORITHM = "fw"
 IMPLEMENTATION = "c-autotune"
 COMPILER = "gcc"
 OPT_FLAGS = "-O3 -fno-tree-vectorize"
@@ -82,7 +88,7 @@ def generate_fw(
             f.write(
                 render_jinja_template(
                     f"{inpath}",
-                    f"fw-unroll-tile.py.j2",
+                    f"{algorithm}-unroll-tile.py.j2",
                     **context,
                 )
             )
@@ -235,14 +241,14 @@ def get_optimal_perf(
     return (ui_opt, uj_opt, ti_opt, tj_opt, p_opt)
 
 
-def get_best_perf(project_root, input_size, input, unroll_tile_list):
+def get_best_perf(project_root, algorithm, input_size, input, unroll_tile_list):
 
     clean_files(project_root)
 
     generated_files = generate_fw(
         f"{project_root}/autotuning",
         f"{project_root}/autotuning/generated/shortest-path",
-        ALGORITHM,
+        algorithm,
         IMPLEMENTATION,
         COMPILER,
         OPT_FLAGS,
@@ -252,13 +258,13 @@ def get_best_perf(project_root, input_size, input, unroll_tile_list):
         raise Exception("Generate files failed")
 
     # build all generated files
-    retcode = build_files(project_root, ALGORITHM, IMPLEMENTATION, COMPILER, OPT_FLAGS)
+    retcode = build_files(project_root, algorithm, IMPLEMENTATION, COMPILER, OPT_FLAGS)
     if retcode != 0:
         raise Exception("Build files failed")
 
     # validate all built files
     retcode = validate_fw(
-        project_root, ALGORITHM, IMPLEMENTATION, COMPILER, OPT_FLAGS, unroll_tile_list
+        project_root, algorithm, IMPLEMENTATION, COMPILER, OPT_FLAGS, unroll_tile_list
     )
     if retcode != 0:
         raise Exception("Validate files failed")
@@ -266,7 +272,7 @@ def get_best_perf(project_root, input_size, input, unroll_tile_list):
     # measure all validates files
     retcode = measure_fw(
         project_root,
-        ALGORITHM,
+        algorithm,
         IMPLEMENTATION,
         COMPILER,
         OPT_FLAGS,
@@ -280,7 +286,7 @@ def get_best_perf(project_root, input_size, input, unroll_tile_list):
     # use measurements as feedback
     opt_ui, opt_uj, opt_ti, opt_tj, p_opt = get_optimal_perf(
         f"{project_root}/measurements/data",
-        ALGORITHM,
+        algorithm,
         IMPLEMENTATION,
         COMPILER,
         OPT_FLAGS,
@@ -295,7 +301,7 @@ def get_best_perf(project_root, input_size, input, unroll_tile_list):
     return (opt_ui, opt_uj, opt_ti, opt_tj, p_opt)
 
 
-def unrollment_initial_guess(project_root, is_debug_run=False):
+def unrollment_initial_guess(project_root, algorithm, is_debug_run=False):
     min_ui = 1
     max_ui = 16
     min_uj = 1
@@ -314,6 +320,7 @@ def unrollment_initial_guess(project_root, is_debug_run=False):
 
     ui, uj, ti, tj, _ = get_best_perf(
         project_root,
+        algorithm,
         96 if not is_debug_run else 48,
         BENCH_INPUT if not is_debug_run else TEST_INPUT,
         unroll_tile_list,
@@ -322,7 +329,9 @@ def unrollment_initial_guess(project_root, is_debug_run=False):
     return ui, uj
 
 
-def unrollment_hill_climbing(project_root, input_size, ui, uj, is_debug_run=False):
+def unrollment_hill_climbing(
+    project_root, algorithm, input_size, ui, uj, is_debug_run=False
+):
     visited = set()
     best_perf = 0
     while True:
@@ -356,6 +365,7 @@ def unrollment_hill_climbing(project_root, input_size, ui, uj, is_debug_run=Fals
 
         next_ui, next_uj, next_ti, next_tj, curr_perf = get_best_perf(
             project_root,
+            algorithm,
             input_size if not is_debug_run else 32,
             BENCH_INPUT if not is_debug_run else TEST_INPUT,
             unroll_tile_list,
@@ -372,7 +382,7 @@ def unrollment_hill_climbing(project_root, input_size, ui, uj, is_debug_run=Fals
 
 
 def tile_l2_hill_climbing(
-    project_root, input_size, l2_cache_bytes, ui, uj, is_debug_run=False
+    project_root, algorithm, input_size, l2_cache_bytes, ui, uj, is_debug_run=False
 ):
     t2 = 2 ** math.floor(np.log2(math.sqrt(l2_cache_bytes / 3)))  # TODO
 
@@ -438,6 +448,7 @@ def tile_l2_hill_climbing(
 
         next_ui, next_uj, next_ti, next_tj, curr_perf = get_best_perf(
             project_root,
+            algorithm,
             input_size,
             BENCH_INPUT if not is_debug_run else TEST_INPUT,
             unroll_tile_list,
@@ -453,7 +464,9 @@ def tile_l2_hill_climbing(
     return ui, uj
 
 
-def main(project_root, input_size, l1_cache_bytes, l2_cache_bytes, vectorize):
+def main(
+    project_root, input_size, l1_cache_bytes, l2_cache_bytes, algorithm, vectorize
+):
     # debug = True
     debug = False
 
@@ -461,19 +474,22 @@ def main(project_root, input_size, l1_cache_bytes, l2_cache_bytes, vectorize):
         logging.basicConfig(encoding="utf-8", level=logging.DEBUG, force=True)
 
     # exhaustive search with test input
-    #initial_ui, initial_uj = unrollment_initial_guess(project_root, is_debug_run=debug)
+    initial_ui, initial_uj = unrollment_initial_guess(
+        project_root, algorithm, is_debug_run=debug
+    )
 
     ## hill climbing search with bench input
     ## initial_ui = 9
     ## initial_uj = 1
-    #refined_ui, refined_uj = unrollment_hill_climbing(
-    #    project_root, input_size, initial_ui, initial_uj, is_debug_run=debug
-    #)
+    refined_ui, refined_uj = unrollment_hill_climbing(
+        project_root, algorithm, input_size, initial_ui, initial_uj, is_debug_run=debug
+    )
 
     refined_ui = 1
     refined_uj = 10
     tile_l2_hill_climbing(
         project_root,
+        algorithm,
         input_size,
         l2_cache_bytes,
         refined_ui,
@@ -489,5 +505,6 @@ if __name__ == "__main__":
         args.input_size,
         args.l1_cache,
         args.l2_cache,
+        args.algorithm,
         args.vectorize,
     )
