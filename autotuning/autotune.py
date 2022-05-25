@@ -12,9 +12,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "-p", "--project-root", help="path of the project root", type=str, required=True
 )
-parser.add_argument(
-    "-l1", "--l1-cache", help="size of the L1 cache in bytes", type=int, required=True
-)
+# parser.add_argument(
+#     "-l1", "--l1-cache", help="size of the L1 cache in bytes", type=int, required=True
+# )
 parser.add_argument(
     "-l2", "--l2-cache", help="size of the L2 cache in bytes", type=int, required=True
 )
@@ -28,12 +28,12 @@ parser.add_argument(
 parser.add_argument("-n", "--input-size", help="input size", type=int, required=True)
 # parser.add_argument("-n", "--min-n", help="minimum input size", type=int, required=True)
 # parser.add_argument("-N", "--max-n", help="maximum input size", type=int, required=True)
-parser.add_argument(
-    "-vec",
-    "--vectorize",
-    help="generated code should use vector instructions",
-    action="store_true",
-)
+# parser.add_argument(
+#     "-vec",
+#     "--vectorize",
+#     help="generated code should use vector instructions",
+#     action="store_true",
+# )
 
 IMPLEMENTATION = "c-autotune"
 COMPILER = "gcc"
@@ -464,9 +464,7 @@ def tile_l2_hill_climbing(
     return ui, uj
 
 
-def main(
-    project_root, input_size, l1_cache_bytes, l2_cache_bytes, algorithm, vectorize
-):
+def main(project_root, input_size, l2_cache_bytes, algorithm):
     debug = True
     # debug = False
 
@@ -485,8 +483,8 @@ def main(
         project_root, algorithm, input_size, initial_ui, initial_uj, is_debug_run=debug
     )
 
-    refined_ui = 1
-    refined_uj = 10
+    # refined_ui = 1
+    # refined_uj = 10
     tile_l2_hill_climbing(
         project_root,
         algorithm,
@@ -503,8 +501,6 @@ if __name__ == "__main__":
     main(
         args.project_root,
         args.input_size,
-        args.l1_cache,
         args.l2_cache,
         args.algorithm,
-        args.vectorize,
     )
