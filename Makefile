@@ -87,12 +87,26 @@ build-tc-c-naive-gcc: docker transitive-closure/c/*.c transitive-closure/c/impl/
 build-tc-c-naive-clang: docker transitive-closure/c/*.c transitive-closure/c/impl/naive.c transitive-closure/c/impl/tc.h
 	docker run ${DOCKER_RUN_ARGS} make tc-c-naive-clang
 
+# tc autotune
+build-tc-c-autotune-gcc: docker shortest-path/c/*.c autotuning/generated/shortest-path/*.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make tc-c-autotune-gcc
+
+build-tc-c-autotune-clang: docker shortest-path/c/*.c autotuning/generated/shortest-path/*.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make tc-c-autotune-clang
+
 # max-min: naive
 build-mm-c-naive-gcc: docker max-min/c/*.c max-min/c/impl/naive.c max-min/c/impl/mm.h
 	docker run ${DOCKER_RUN_ARGS} make mm-c-naive-gcc
 
 build-mm-c-naive-clang: docker max-min/c/*.c max-min/c/impl/naive.c max-min/c/impl/mm.h
 	docker run ${DOCKER_RUN_ARGS} make mm-c-naive-clang
+
+# max-min autotune
+build-mm-c-autotune-gcc: docker shortest-path/c/*.c autotuning/generated/shortest-path/*.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make mm-c-autotune-gcc
+
+build-mm-c-autotune-clang: docker shortest-path/c/*.c autotuning/generated/shortest-path/*.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make mm-c-autotune-clang
 
 # fw - go ref
 build-fw-go-ref: docker shortest-path/go/*

@@ -88,6 +88,21 @@ tc-c-unroll-clang: transitive-closure/c/*.c transitive-closure/c/impl/unroll.c t
 	cd transitive-closure/c; \
 	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/unroll.c main.c
 
+# tc - autotuning
+tc-c-autotune-gcc: shortest-path/c/*.c shortest-path/c/impl/tc_c-autotune*.c shortest-path/c/impl/sp.h
+	cd shortest-path/c/impl; \
+	for f in tc_c-autotune*.c; do \
+		echo $$f; \
+		gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c; \
+	done 
+
+tc-c-autotune-clang: shortest-path/c/*.c shortest-path/c/impl/tc_c-autotune*.c shortest-path/c/impl/sp.h
+	cd shortest-path/c/impl; \
+	for f in tc_c-autotune*.c; do \
+		echo $$f; \
+		clang-13 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c; \
+	done 
+
 # max-min: naive
 mm-c-naive-gcc: max-min/c/*.c max-min/c/impl/naive.c max-min/c/impl/mm.h
 	cd max-min/c; \
@@ -114,6 +129,21 @@ mm-c-vector-gcc: max-min/c/*.c max-min/c/impl/vector.c max-min/c/impl/mm.h
 mm-c-vector-clang: max-min/c/*.c max-min/c/impl/vector.c max-min/c/impl/mm.h
 	cd max-min/c; \
 	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/vector.c main.c;
+
+# max-min - autotuning
+mm-c-autotune-gcc: shortest-path/c/*.c shortest-path/c/impl/mm_c-autotune*.c shortest-path/c/impl/sp.h
+	cd shortest-path/c/impl; \
+	for f in mm_c-autotune*.c; do \
+		echo $$f; \
+		gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c; \
+	done 
+
+mm-c-autotune-clang: shortest-path/c/*.c shortest-path/c/impl/mm_c-autotune*.c shortest-path/c/impl/sp.h
+	cd shortest-path/c/impl; \
+	for f in mm_c-autotune*.c; do \
+		echo $$f; \
+		clang-13 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c; \
+	done 
 
 # fw - go ref
 fw-go-ref: shortest-path/go/*.go shortest-path/go/go.mod
