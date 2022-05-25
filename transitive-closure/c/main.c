@@ -189,9 +189,11 @@ int main(int argc, char **argv)
     char ref_output[256];
     sprintf(ref_output, "%s", argv[2]);
 
-#ifndef RANDOM_INPUT
-    output_matrix(ref_output, D, N);
+#ifdef RANDOM_INPUT
+    sprintf(ref_output, "/dev/null");
 #endif
+
+    output_matrix(ref_output, D, N);
 
     free(D);
 
