@@ -7,15 +7,15 @@
 
 #include "impl/mm.h"
 
-#define NUM_RUNS 1
+#define NUM_RUNS 20
 #define CYCLES_REQUIRED 1e8
 #define FREQUENCY 2.3e9
 #define CALIBRATE
 
-#define ERROR_RETURN(retval)                                                         \
-    {                                                                                \
-        fprintf(stderr, "PAPI error %d %s:line %d: \n", retval, __FILE__, __LINE__); \
-        exit(retval);                                                                \
+#define ERROR_RETURN(retval)                                                                                 \
+    {                                                                                                        \
+        fprintf(stderr, "PAPI error %d %s:line %d:\n%s", retval, __FILE__, __LINE__, PAPI_strerror(retval)); \
+        exit(retval);                                                                                        \
     }
 
 // The number of PAPI events we measure
@@ -250,14 +250,22 @@ int main(int argc, char **argv)
     free(D);
 
     // run measurements
-    fprintf(stderr, "measuring shortest paths for n=%d\n", N);
+    fprintf(stderr, "finding all-pairs widest paths for n=%d\n", N);
     int num_runs = measure(C, N, WarmupEventSet, MeasurementEventSet, measured_values);
 
     // output measurements
     printf("%d", num_runs);
     for (int i = 0; i < NUM_EVENT; i++)
     {
-        printf("\n%lld", measured_values[i]);
+        if (i == 0)
+        {
+            // Average number of cycles
+            printf("\n%lld", measured_values[i] / num_runs);
+        }
+        else
+        {
+            printf("\n%lld", measured_values[i]);
+        }
     }
 
     // clean up
