@@ -82,30 +82,38 @@ int measure(char *C, int N, int WarmupEventSet, int MeasurementEventSet, long lo
     // Compute how many runs we need to do and warm up cache
     long long warmup_cycles[1];
     /* Start counting */
-    if ((retval = PAPI_start(WarmupEventSet)) != PAPI_OK)
-    {
-        ERROR_RETURN(retval);
-    }
+    long long cycles = 0;
 
-    for (i = 0; i < num_runs; ++i)
+    while (num_runs < (1 << 14))
     {
-        floydWarshall(C, N);
-    }
+        if ((retval = PAPI_start(WarmupEventSet)) != PAPI_OK)
+        {
+            ERROR_RETURN(retval);
+        }
 
-    /* Stop counting, this reads from the counter as well as stop it. */
-    if ((retval = PAPI_stop(WarmupEventSet, warmup_cycles)) != PAPI_OK)
-    {
-        ERROR_RETURN(retval);
-    }
+        for (i = 0; i < num_runs; ++i)
+        {
+            floydWarshall(C, N);
+        }
 
-    if (warmup_cycles[0] < CYCLES_REQUIRED)
-    {
-        num_runs *= CYCLES_REQUIRED / warmup_cycles[0] + 1;
-    }
+        /* Stop counting, this reads from the counter as well as stop it. */
+        if ((retval = PAPI_stop(WarmupEventSet, warmup_cycles)) != PAPI_OK)
+        {
+            ERROR_RETURN(retval);
+        }
 
-    for (i = 0; i < num_runs; ++i)
-    {
-        floydWarshall(C, N);
+        cycles += warmup_cycles[0];
+
+        if (cycles >= CYCLES_REQUIRED)
+        {
+            break;
+        }
+
+        num_runs *= 2;
+        if ((retval = PAPI_reset(WarmupEventSet)) != PAPI_OK)
+        {
+            ERROR_RETURN(retval);
+        }
     }
 
     fprintf(stderr, "#runs: %d\n", num_runs);
@@ -271,7 +279,7 @@ int main(int argc, char **argv)
     printf("%d", num_runs);
     for (int i = 0; i < NUM_EVENT; i++)
     {
-        printf("\n%lld", measured_values[i]);
+        printf("\n%lld", measured_values[i] / num_runs);
     }
 
     // clean up
