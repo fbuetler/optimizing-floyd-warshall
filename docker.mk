@@ -95,14 +95,14 @@ tc-c-autotune-gcc: transitive-closure/c/*.c transitive-closure/c/impl/tc_c-autot
 	cd transitive-closure/c/impl; \
 	for f in tc_c-autotune*.c; do \
 		echo $$f; \
-		gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c; \
+		gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c $(LDFLAGS); \
 	done
 
 tc-c-autotune-clang: transitive-closure/c/*.c transitive-closure/c/impl/tc_c-autotune*.c transitive-closure/c/impl/tc.h
 	cd transitive-closure/c/impl; \
 	for f in tc_c-autotune*.c; do \
 		echo $$f; \
-		clang-13 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c; \
+		clang-13 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c $(LDFLAGS); \
 	done
 
 # max-min: naive
