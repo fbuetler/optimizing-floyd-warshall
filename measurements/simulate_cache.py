@@ -19,7 +19,7 @@ parser.add_argument(
     type=int,
     required=True
 )
-parser.add_argument("-n", "--input-size", help="input size", type=int, required=True)
+parser.add_argument("-n", "--input-size", help="input size", type=int, nargs='+', required=True)
 
 
 def init_cache(S: int, E: int):
@@ -83,7 +83,7 @@ def access(i: int, j: int, n:int, data_size: int, t: int, operation: str) -> int
 
 def output_cache(n:int, data_size: int):
     # output number of hits and misses
-    logging.info(f"#hits: {cache['hits']}  #misses: {cache['misses']}")
+    logging.info(f"n={n} - #hits: {cache['hits']}  #misses: {cache['misses']}")
     cache['hits'] = 0
     cache['misses'] = 0
 
@@ -95,8 +95,6 @@ def output_cache(n:int, data_size: int):
             for e in range(cache['E']):
                 tag = cache[s][e]['tag']
                 if tag == -1:
-                    field1 = '-'
-                    field2 = '-'
                     state = ' '.join('-' for _ in range(elems_per_line))
                     logging.debug(f'line{s}: {state}')
                 else:
@@ -111,13 +109,12 @@ def naive(n: int, data_size: int):
     # HACK: Caching behavior for naive, unrolled and vector implementations should be the same
     t = 0
     for k in range(n):
-        logging.info(f'k is at {k}')
+        # logging.info(f'k is at {k}')
         for i in range(n):
             for j in range(n):
                 t = access(i, k, n, data_size, t, 'R')
                 t = access(k, j, n, data_size, t, 'R')
                 t = access(i, j, n, data_size, t, 'W')
-    logging.info('outputting cache...')
     output_cache(n, data_size)
 
 if __name__ == "__main__":
@@ -126,5 +123,6 @@ if __name__ == "__main__":
     s = args.cache_size // (e * 64)
     logging.info(f'initializing cache with params (S,E,B) = ({s},{e},64)...')
     init_cache(s,e)
-    naive(args.input_size, args.data_size)
-    reset_cache()
+    for n in args.input_size:
+        naive(n, args.data_size)
+        reset_cache()
