@@ -46,10 +46,17 @@ int floydWarshall({{ datatype }} *C, int N) {
                         {{ "{} ckj{} = C[k * row_size + j + {}];".format(datatype, u_j, u_j) }}
                         {% endfor %}
 
-                        // compute
+                        // compute 1
                         {% for u_i in range(unroll_i) -%}
                         {% for u_j in range(unroll_j) -%}
-                        {{ "{} res{}_{} = {}(ci{}j{}, {}(ci{}k, ckj{}));".format(datatype, u_i, u_j, outer_op, u_i, u_j, inner_op, u_i, u_j) }}
+                        {{ "{} intermediate{}_{} = {}(ci{}k, ckj{});".format(datatype, u_i, u_j, inner_op, u_i, u_j) }}
+                        {% endfor -%}
+                        {% endfor %}
+
+                        // compute 2
+                        {% for u_i in range(unroll_i) -%}
+                        {% for u_j in range(unroll_j) -%}
+                        {{ "{} res{}_{} = {}(ci{}j{}, intermediate{}_{});".format(datatype, u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
                         {% endfor -%}
                         {% endfor %}
 
@@ -88,9 +95,14 @@ int floydWarshall({{ datatype }} *C, int N) {
                         {{ "{} ckj{} = C[k * row_size + j + {}];".format(datatype, u_j, u_j) }}
                         {% endfor %}
 
-                        // compute
+                        // compute 1
                         {% for u_j in range(unroll_j) -%}
-                        {{ "{} res{} = {}(cij{}, {}(cik, ckj{}));".format(datatype, u_j, outer_op, u_j, inner_op, u_j) }}
+                        {{ "{} intermediate{} = {}(cik, ckj{});".format(datatype, u_j, inner_op, u_j) }}
+                        {% endfor %}
+
+                        // compute 2
+                        {% for u_j in range(unroll_j) -%}
+                        {{ "{} res{} = {}(cij{}, intermediate{});".format(datatype, u_j, outer_op, u_j, u_j) }}
                         {% endfor %}
 
                         // store
