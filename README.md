@@ -52,14 +52,14 @@ Note that the corresponding Makefile recipes need to have been added, as describ
    stays at the top. Please also ensure that the recipe follows the naming scheme {algorithm}-{implementation}-{compiler}. For example, a recipe to build the vectorized C implementation for the shortest path algorithm compiled with gcc might look like this:
    ```make
    fw-c-vector-gcc: shortest-path/c/*.c shortest-path/c/impl/vector.c shortest-path/c/impl/sp.h
-	cd shortest-path/c; \
-	gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/vector.c main.c $(LDFLAGS);
+   cd shortest-path/c; \
+   gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/vector.c main.c $(LDFLAGS);
    ```
 3. Add a recipe in the `Makefile` which runs the appropriate `make` target in the container. Use
    `docker run ${DOCKER_RUN_ARGS} make <target in docker.mk>` as a template. Again, please follow the aforementioned naming scheme, now prefixed with 'build-'. For example, to build the vectorized C implementation for the shortest path algorithm inside the docker container, add the following rule:
    ```make
    build-fw-c-vector-gcc: docker shortest-path/c/*.c shortest-path/c/impl/vector.c shortest-path/c/impl/sp.h
-	docker run ${DOCKER_RUN_ARGS} make fw-c-vector-gcc
+   docker run ${DOCKER_RUN_ARGS} make fw-c-vector-gcc
    ```
 
 ## Validating an implementation
@@ -143,6 +143,20 @@ $ python3 roof-plots.py --data data/mm_c-naive_clang_-O3_bench-inputs.csv data/m
 ```
 
 where `pi` and `vpi` correspond to non- and vectorized peak performance, respectively, and `b` corresponds to peak memory bandwidth, as measured using the STREAM benchmark.
+
+### Autotuning
+
+We implemented an autotuner to get the best unrollment and tile size of a given input size.
+
+The autotuner can be run with
+
+```bash
+$ python autotuning/autotune.py -p $PWD -algo sp -l2 1048576 -n 1728
+```
+
+where the algorithm can either be `sp`, `mm` or `tc`, `-l2` should be your L2 cache size in bytes and with `-n` you can specify the input size it should run on.
+
+![](./assets/autotuning.png)
 
 ## Generate a graph AKA testcase input
 
