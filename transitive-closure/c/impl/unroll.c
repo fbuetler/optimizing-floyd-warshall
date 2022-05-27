@@ -44,23 +44,41 @@ int floydWarshall(char *C, int N)
                 char ckj2 = C[k * bpl + j + 2];
                 char ckj3 = C[k * bpl + j + 3];
 
-                // compute
-                char res0_0 = ci0j0 | (ci0k & ckj0);
-                char res0_1 = ci0j1 | (ci0k & ckj1);
-                char res0_2 = ci0j2 | (ci0k & ckj2);
-                char res0_3 = ci0j3 | (ci0k & ckj3);
-                char res1_0 = ci1j0 | (ci1k & ckj0);
-                char res1_1 = ci1j1 | (ci1k & ckj1);
-                char res1_2 = ci1j2 | (ci1k & ckj2);
-                char res1_3 = ci1j3 | (ci1k & ckj3);
-                char res2_0 = ci2j0 | (ci2k & ckj0);
-                char res2_1 = ci2j1 | (ci2k & ckj1);
-                char res2_2 = ci2j2 | (ci2k & ckj2);
-                char res2_3 = ci2j3 | (ci2k & ckj3);
-                char res3_0 = ci3j0 | (ci3k & ckj0);
-                char res3_1 = ci3j1 | (ci3k & ckj1);
-                char res3_2 = ci3j2 | (ci3k & ckj2);
-                char res3_3 = ci3j3 | (ci3k & ckj3);
+                // compute 1
+                char and0_0 = ci0k & ckj0;
+                char and0_1 = ci0k & ckj1;
+                char and0_2 = ci0k & ckj2;
+                char and0_3 = ci0k & ckj3;
+                char and1_0 = ci1k & ckj0;
+                char and1_1 = ci1k & ckj1;
+                char and1_2 = ci1k & ckj2;
+                char and1_3 = ci1k & ckj3;
+                char and2_0 = ci2k & ckj0;
+                char and2_1 = ci2k & ckj1;
+                char and2_2 = ci2k & ckj2;
+                char and2_3 = ci2k & ckj3;
+                char and3_0 = ci3k & ckj0;
+                char and3_1 = ci3k & ckj1;
+                char and3_2 = ci3k & ckj2;
+                char and3_3 = ci3k & ckj3;
+
+                // compute 2
+                char res0_0 = ci0j0 | and0_0;
+                char res0_1 = ci0j1 | and0_1;
+                char res0_2 = ci0j2 | and0_2;
+                char res0_3 = ci0j3 | and0_3;
+                char res1_0 = ci1j0 | and1_0;
+                char res1_1 = ci1j1 | and1_1;
+                char res1_2 = ci1j2 | and1_2;
+                char res1_3 = ci1j3 | and1_3;
+                char res2_0 = ci2j0 | and2_0;
+                char res2_1 = ci2j1 | and2_1;
+                char res2_2 = ci2j2 | and2_2;
+                char res2_3 = ci2j3 | and2_3;
+                char res3_0 = ci3j0 | and3_0;
+                char res3_1 = ci3j1 | and3_1;
+                char res3_2 = ci3j2 | and3_2;
+                char res3_3 = ci3j3 | and3_3;
 
                 // store
                 C[(i + 0) * bpl + j + 0] = res0_0;
@@ -107,11 +125,17 @@ int floydWarshall(char *C, int N)
                 char ckj2 = C[k * bpl + j + 2];
                 char ckj3 = C[k * bpl + j + 3];
 
-                // compute
-                char res0 = cij0 | (cik & ckj0);
-                char res1 = cij1 | (cik & ckj1);
-                char res2 = cij2 | (cik & ckj2);
-                char res3 = cij3 | (cik & ckj3);
+                // compute 1
+                char and0 = cik & ckj0;
+                char and1 = cik & ckj1;
+                char and2 = cik & ckj2;
+                char and3 = cik & ckj3;
+
+                // compute 2
+                char res0 = cij0 | and0;
+                char res1 = cij1 | and1;
+                char res2 = cij2 | and2;
+                char res3 = cij3 | and3;
 
                 // store
                 C[i * bpl + j + 0] = res0;
