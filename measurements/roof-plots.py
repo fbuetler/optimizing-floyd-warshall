@@ -119,7 +119,11 @@ def roofline_plot(
             n_list = reader.__next__()
             runs_list = reader.__next__()
             cycles_list = reader.__next__()
-            bytes_list = reader.__next__()
+            l3_misses_list = reader.__next__()
+            # NOTE: assume cache line size is 64 bytes (holds for most modern CPUs)
+            bytes_list = [m * 64 for m in l3_misses_list] # multiply num misses by bytes transfered per miss
+            _ = reader.__next__() # l2 cache misses
+            _ = reader.__next__() # l1 cache misses
 
         # compute performance (flops = 2 * n^3)
         i_list = list()
