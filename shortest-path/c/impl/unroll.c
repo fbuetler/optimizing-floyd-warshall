@@ -41,23 +41,41 @@ int floydWarshall(double *C, int N)
                 double ckj2 = C[k * N + j + 2];
                 double ckj3 = C[k * N + j + 3];
 
-                // compute
-                double res0_0 = MIN(ci0j0, ci0k + ckj0);
-                double res0_1 = MIN(ci0j1, ci0k + ckj1);
-                double res0_2 = MIN(ci0j2, ci0k + ckj2);
-                double res0_3 = MIN(ci0j3, ci0k + ckj3);
-                double res1_0 = MIN(ci1j0, ci1k + ckj0);
-                double res1_1 = MIN(ci1j1, ci1k + ckj1);
-                double res1_2 = MIN(ci1j2, ci1k + ckj2);
-                double res1_3 = MIN(ci1j3, ci1k + ckj3);
-                double res2_0 = MIN(ci2j0, ci2k + ckj0);
-                double res2_1 = MIN(ci2j1, ci2k + ckj1);
-                double res2_2 = MIN(ci2j2, ci2k + ckj2);
-                double res2_3 = MIN(ci2j3, ci2k + ckj3);
-                double res3_0 = MIN(ci3j0, ci3k + ckj0);
-                double res3_1 = MIN(ci3j1, ci3k + ckj1);
-                double res3_2 = MIN(ci3j2, ci3k + ckj2);
-                double res3_3 = MIN(ci3j3, ci3k + ckj3);
+                // compute 1
+                double sum0_0 = ci0k + ckj0;
+                double sum0_1 = ci0k + ckj1;
+                double sum0_2 = ci0k + ckj2;
+                double sum0_3 = ci0k + ckj3;
+                double sum1_0 = ci1k + ckj0;
+                double sum1_1 = ci1k + ckj1;
+                double sum1_2 = ci1k + ckj2;
+                double sum1_3 = ci1k + ckj3;
+                double sum2_0 = ci2k + ckj0;
+                double sum2_1 = ci2k + ckj1;
+                double sum2_2 = ci2k + ckj2;
+                double sum2_3 = ci2k + ckj3;
+                double sum3_0 = ci3k + ckj0;
+                double sum3_1 = ci3k + ckj1;
+                double sum3_2 = ci3k + ckj2;
+                double sum3_3 = ci3k + ckj3;
+
+                // compute 2
+                double res0_0 = MIN(ci0j0, sum0_0);
+                double res0_1 = MIN(ci0j1, sum0_1);
+                double res0_2 = MIN(ci0j2, sum0_2);
+                double res0_3 = MIN(ci0j3, sum0_3);
+                double res1_0 = MIN(ci1j0, sum1_0);
+                double res1_1 = MIN(ci1j1, sum1_1);
+                double res1_2 = MIN(ci1j2, sum1_2);
+                double res1_3 = MIN(ci1j3, sum1_3);
+                double res2_0 = MIN(ci2j0, sum2_0);
+                double res2_1 = MIN(ci2j1, sum2_1);
+                double res2_2 = MIN(ci2j2, sum2_2);
+                double res2_3 = MIN(ci2j3, sum2_3);
+                double res3_0 = MIN(ci3j0, sum3_0);
+                double res3_1 = MIN(ci3j1, sum3_1);
+                double res3_2 = MIN(ci3j2, sum3_2);
+                double res3_3 = MIN(ci3j3, sum3_3);
 
                 // store
                 C[(i + 0) * N + j + 0] = res0_0;
@@ -104,11 +122,17 @@ int floydWarshall(double *C, int N)
                 double ckj2 = C[k * N + j + 2];
                 double ckj3 = C[k * N + j + 3];
 
-                // compute
-                double res0 = MIN(cij0, cik + ckj0);
-                double res1 = MIN(cij1, cik + ckj1);
-                double res2 = MIN(cij2, cik + ckj2);
-                double res3 = MIN(cij3, cik + ckj3);
+                // compute 1
+                double sum0 = cik + ckj0;
+                double sum1 = cik + ckj1;
+                double sum2 = cik + ckj2;
+                double sum3 = cik + ckj3;
+
+                // compute 2
+                double res0 = MIN(cij0, sum0);
+                double res1 = MIN(cij1, sum1);
+                double res2 = MIN(cij2, sum2);
+                double res3 = MIN(cij3, sum3);
 
                 // store
                 C[i * N + j + 0] = res0;
