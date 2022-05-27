@@ -69,6 +69,7 @@ def main(
 ):
 
     if peak != 0.0:
+        print(f'plotting non-SIMD performance limit at {peak} flops/cycle')
         _, ax = plt.subplots()
         plt.axhline(
             y=peak,
@@ -78,6 +79,7 @@ def main(
         )
 
     if peak_simd != 0.0:
+        print(f'plotting SIMD performance limit at {peak_simd} flops/cycle')
         _, ax = plt.subplots()
         plt.axhline(
             y=peak_simd,
@@ -133,7 +135,7 @@ def main(
 
         perf_max = max(perf_list + [perf_max])
 
-    plt.ylim(0, max(perf_max + 0.1 * perf_max, peak + 0.1 * peak))
+    plt.ylim(0, max([perf_max + 0.1 * perf_max, peak + 0.1 * peak, peak_simd + 0.1 * peak_simd]))
 
     plt.grid(True, which="major", axis="y")
 
