@@ -1,10 +1,13 @@
 import argparse
 import csv
+import logging
 import pathlib
 from typing import Dict, List, Tuple
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from cycler import cycler
+
+logging.basicConfig(level=logging.INFO)
 
 COLOR_LIST = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a',
               '#66a61e', '#e6ab02', '#a6761d', '#666666']
@@ -58,6 +61,18 @@ parser.add_argument(
 parser.add_argument("-vpi","--simd-peak", help="maximum achievable performance in flops/cycle using SIMD instructions", type=float, default=16.0)
 parser.add_argument("-o", "--output", help="output file name", type=str, required=True)
 
+
+def estimate_q(n: int, datasize: int, l3_total_size:int, l3_cache_line: int) -> int:
+    """ computes total number of bytes transfered from memory to L3 cache """
+    if n**2 * datasize < l3_total_size:
+        # only cold misses
+        return n**2 * l3_cache_line
+    else:
+        # assume n >> cache size
+        op1_misses = n**2
+        op2_misses = n**2 * (n * datasize // l3_cache_line) - n
+        op3_misses = n**2 * (n * datasize // l3_cache_line) - 2 * n**2
+        return (op1_misses + op2_misses + op3_misses) * l3_cache_line
 
 def roofline_plot(
     data_file_list: List[str],
@@ -119,11 +134,15 @@ def roofline_plot(
             n_list = reader.__next__()
             runs_list = reader.__next__()
             cycles_list = reader.__next__()
-            l3_misses_list = reader.__next__()
-            # NOTE: assume cache line size is 64 bytes (holds for most modern CPUs)
-            bytes_list = [m * 64 for m in l3_misses_list] # multiply num misses by bytes transfered per miss
-            _ = reader.__next__() # l2 cache misses
-            _ = reader.__next__() # l1 cache misses
+            cache_line_size = 64
+            l3_total_size = 8388608
+            data_size = 8
+            bytes_list = [estimate_q(n, data_size, l3_total_size, cache_line_size) for n in n_list]
+            # l3_misses_list = reader.__next__()
+            # bytes_list = [m * 64 for m in l3_misses_list] # multiply num misses by bytes transfered per miss
+            _ = reader.__next__() # l3 cache misses (on warm cache)
+            _ = reader.__next__() # l2 cache misses (on warm cache)
+            _ = reader.__next__() # l1 cache misses (on warm cache)
 
         # compute performance (flops = 2 * n^3)
         i_list = list()
@@ -131,9 +150,14 @@ def roofline_plot(
         min_n = (0,0,None)
         max_n = (0,0,None)
         for (n, c, _, Q) in zip(n_list, cycles_list, runs_list, bytes_list):
+            logging.info(f'---- For n = {n} ----')
             W = (2 * n * n * n)
             I = W/Q
             P = W / c
+            logging.info(f'\tW = {W}')
+            logging.info(f'\tQ = {Q}')
+            logging.info(f'\t=> I = {round(I, 2)}')
+            logging.info(f'\t=> P = {round(P, 2)}')
             i_list.append(I)
             p_list.append(P)
             if min_n[2] is None or n < min_n[2]:
