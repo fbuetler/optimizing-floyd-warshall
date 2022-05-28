@@ -361,6 +361,17 @@ def unrollment_hill_climbing(
     project_root, algorithm, input_size, ui, uj, is_debug_run=False
 ):
     visited = set()
+    start_rock = f"ui{ui}_uj{uj}_tiN_tjN"
+    visited.add(start_rock)
+    logging.info("taking first measurement for hill climbing")
+    start_set = list()
+    start_set.append((ui, uj, "N", "N"))
+    _, _, _, _, best_perf = get_best_perf(
+        project_root,
+        algorithm,
+        input_size,
+        BENCH_INPUT,
+        start_set)
     best_perf = 0
     while True:
         logging.info(f"climing hill around unrollment ({ui}, {uj})")
@@ -435,8 +446,18 @@ def tile_l2_hill_climbing(
         raise Exception("heuristic makes no sense")
 
     visited = set()
-    best_perf = 0
-    while True:
+    start_rock = f"ui{ui}_uj{uj}_ti{t2}_tj{t2}"
+    visited.add(start_rock)
+    logging.info("taking first measurement for hill climbing")
+    start_set = list()
+    start_set.append((ui, uj, t2, t2))
+    _, _, _, _, best_perf = get_best_perf(
+        project_root,
+        algorithm,
+        input_size,
+        BENCH_INPUT,
+        start_set)
+    while True: 
         logging.info(f"climing hill around unrollement ({ui}, {uj}), tile ({t2})")
         unroll_tile_list = list()
         for i in range(ui - 2, ui + 3):
@@ -516,19 +537,19 @@ def main(project_root, input_size, l2_cache_bytes, algorithm):
         logging.basicConfig(encoding="utf-8", level=logging.DEBUG, force=True)
 
     # exhaustive search with test input
-    initial_ui, initial_uj = unrollment_initial_guess(
-        project_root, algorithm, is_debug_run=debug
-    )
+    #initial_ui, initial_uj = unrollment_initial_guess(
+    #    project_root, algorithm, is_debug_run=debug
+    #)
 
     ## hill climbing search with bench input
-    ## initial_ui = 9
-    ## initial_uj = 1
+    initial_ui = 8
+    initial_uj = 1
     refined_ui, refined_uj = unrollment_hill_climbing(
         project_root, algorithm, input_size, initial_ui, initial_uj, is_debug_run=debug
     )
 
-    # refined_ui = 1
-    # refined_uj = 10
+    #refined_ui = 10
+    #refined_uj = 1
     tile_l2_hill_climbing(
         project_root,
         algorithm,
