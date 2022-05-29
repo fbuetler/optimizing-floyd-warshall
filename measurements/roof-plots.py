@@ -9,6 +9,8 @@ from cycler import cycler
 
 logging.basicConfig(level=logging.INFO)
 
+USE_Q_ESTIMATE = False
+
 COLOR_LIST = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a',
               '#66a61e', '#e6ab02', '#a6761d', '#666666']
 
@@ -136,13 +138,17 @@ def roofline_plot(
             cycles_list = reader.__next__()
             cache_line_size = 64
             l3_total_size = 8388608
-            data_size = 8
-            bytes_list = [estimate_q(n, data_size, l3_total_size, cache_line_size) for n in n_list]
-            # l3_misses_list = reader.__next__()
-            # bytes_list = [m * 64 for m in l3_misses_list] # multiply num misses by bytes transfered per miss
-            _ = reader.__next__() # l3 cache misses (on warm cache)
-            _ = reader.__next__() # l2 cache misses (on warm cache)
-            _ = reader.__next__() # l1 cache misses (on warm cache)
+            if USE_Q_ESTIMATE:
+                data_size = 8
+                bytes_list = [estimate_q(n, data_size, l3_total_size, cache_line_size) for n in n_list]
+                _ = reader.__next__() # l3 cache misses (on cold cache)
+            else:
+                l3_misses_list = reader.__next__()
+                logging.debug(f'l3-misses: {l3_misses_list}')
+                bytes_list = [m * 64 for m in l3_misses_list] # multiply num misses by bytes transfered per miss
+                logging.debug(f'--> bytes transfered: {bytes_list}')
+            _ = reader.__next__() # l2 cache misses (on cold cache)
+            _ = reader.__next__() # l1 cache misses (on cold cache)
 
         # compute performance (flops = 2 * n^3)
         i_list = list()
@@ -152,10 +158,10 @@ def roofline_plot(
         for (n, c, _, Q) in zip(n_list, cycles_list, runs_list, bytes_list):
             logging.info(f'---- For n = {n} ----')
             W = (2 * n * n * n)
-            I = W/Q
-            P = W / c
             logging.info(f'\tW = {W}')
             logging.info(f'\tQ = {Q}')
+            I = W/Q
+            P = W / c
             logging.info(f'\t=> I = {round(I, 2)}')
             logging.info(f'\t=> P = {round(P, 2)}')
             i_list.append(I)
