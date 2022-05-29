@@ -101,7 +101,7 @@ def roofline_plot(
         ax._get_lines.prop_cycler)['color'])
     plt.axhline(y=pi_simd, label='P ≤ π-SIMD', linewidth=1,
                 color=next(ax._get_lines.prop_cycler)['color'])
-    plt.axline((pi/beta, pi), slope=beta, label='P ≤ βI', linewidth=1, color=next(ax._get_lines.prop_cycler)['color'])
+    plt.axline(xy1=(pi/beta, pi), xy2=(pi_simd/beta,pi_simd), label='P ≤ βI', linewidth=1, color=next(ax._get_lines.prop_cycler)['color'])
 
     perf_max = 0.0
 
