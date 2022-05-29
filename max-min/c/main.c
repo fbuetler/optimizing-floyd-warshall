@@ -280,7 +280,7 @@ int main(int argc, char **argv)
     }
 
     fprintf(stderr, "allocating memory...\n");
-    double *C = (double *)malloc(N * N * sizeof(double));
+    double *C = (double *)aligned_alloc(32, N * N * sizeof(double));
     fprintf(stderr, "parsing input matrix...\n");
     for (int i = 0; i < N; i++)
     {
@@ -301,7 +301,7 @@ int main(int argc, char **argv)
     }
     fclose(input_f);
 
-    double *D = (double *)malloc(N * N * sizeof(double));
+    double *D = (double *)aligned_alloc(32, N * N * sizeof(double));
     memcpy(D, C, N * N * sizeof(double));
     fprintf(stderr, "generating test output...\n");
     ref_output(D, N);

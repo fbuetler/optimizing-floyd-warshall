@@ -231,7 +231,7 @@ int main(int argc, char **argv)
 
     fprintf(stderr, "allocating memory...\n");
     int bpl = ceil(N / 8.0);
-    char *C = (char *)malloc(N * bpl * sizeof(char));
+    char *C = (char *)aligned_alloc(32, N * bpl * sizeof(char));
     fprintf(stderr, "parsing input matrix...\n");
 #ifndef RANDOM_INPUT
     for (int i = 0; i < N; i++)
@@ -256,7 +256,7 @@ int main(int argc, char **argv)
 #endif
     fclose(input_f);
 
-    char *D = (char *)malloc(N * bpl * sizeof(char));
+    char *D = (char *)aligned_alloc(32, N * bpl * sizeof(char));
     memcpy(D, C, N * bpl * sizeof(char));
     fprintf(stderr, "generating test output...\n");
     ref_output(D, N);
