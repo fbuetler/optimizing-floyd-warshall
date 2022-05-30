@@ -12,6 +12,15 @@ LDFLAGS:=/usr/local/lib/libpapi.a
 
 # Topmost rule must be to build the optimized C code
 
+# fw - tile
+fw-c-tile-gcc: shortest-path/c/*.c shortest-path/c/impl/tile.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/tile.c main.c $(LDFLAGS);
+
+fw-c-tile-clang: shortest-path/c/*.c shortest-path/c/impl/tile.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/tile.c main.c $(LDFLAGS);
+
 # fw - vector
 fw-c-vector-gcc: shortest-path/c/*.c shortest-path/c/impl/vector.c shortest-path/c/impl/sp.h
 	cd shortest-path/c; \
@@ -54,14 +63,14 @@ fw-c-autotune-gcc: shortest-path/c/*.c shortest-path/c/impl/fw_c-autotune*.c sho
 	for f in fw_c-autotune*.c; do \
 		echo $$f; \
 		gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c $(LDFLAGS); \
-	done 
+	done
 
 fw-c-autotune-clang: shortest-path/c/*.c shortest-path/c/impl/fw_c-autotune*.c shortest-path/c/impl/sp.h
 	cd shortest-path/c/impl; \
 	for f in fw_c-autotune*.c; do \
 		echo $$f; \
 		clang-13 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c $(LDFLAGS); \
-	done 
+	done
 
 # tc - vector
 tc-c-vector-gcc: transitive-closure/c/*.c transitive-closure/c/impl/vector.c transitive-closure/c/impl/tc.h

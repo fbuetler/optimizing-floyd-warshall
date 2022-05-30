@@ -15,6 +15,13 @@ DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} --privileged ${DOCKER_ENV_VARS} -t ${IM
 
 # Topmost rule must be to build the optimized C code
 
+# fw - tiled
+build-fw-c-tile-gcc: docker shortest-path/c/*.c shortest-path/c/impl/tile.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-tile-gcc
+
+build-fw-c-tile-clang: docker shortest-path/c/*.c shortest-path/c/impl/tile.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-tile-clang
+
 # fw - vector
 build-fw-c-vector-gcc: docker shortest-path/c/*.c shortest-path/c/impl/vector.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make fw-c-vector-gcc
