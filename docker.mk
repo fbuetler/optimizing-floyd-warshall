@@ -12,6 +12,15 @@ LDFLAGS:=/usr/local/lib/libpapi.a
 
 # Topmost rule must be to build the optimized C code
 
+# mm - tile
+mm-c-tile-gcc: max-min/c/*.c max-min/c/impl/tile.c max-min/c/impl/mm.h
+	cd max-min/c; \
+	gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/tile.c main.c $(LDFLAGS);
+
+mm-c-tile-clang: max-min/c/*.c max-min/c/impl/tile.c max-min/c/impl/mm.h
+	cd max-min/c; \
+	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/tile.c main.c $(LDFLAGS);
+
 # fw - tile
 fw-c-tile-gcc: shortest-path/c/*.c shortest-path/c/impl/tile.c shortest-path/c/impl/sp.h
 	cd shortest-path/c; \
