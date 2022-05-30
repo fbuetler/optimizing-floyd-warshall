@@ -12,6 +12,15 @@ LDFLAGS:=/usr/local/lib/libpapi.a
 
 # Topmost rule must be to build the optimized C code
 
+# tc - tile
+tc-c-tile-gcc: transitive-closure/c/*.c transitive-closure/c/impl/tile.c transitive-closure/c/impl/tc.h
+	cd transitive-closure/c; \
+	gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/tile.c main.c $(LDFLAGS);
+
+tc-c-tile-clang: transitive-closure/c/*.c transitive-closure/c/impl/tile.c transitive-closure/c/impl/tc.h
+	cd transitive-closure/c; \
+	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/tile.c main.c $(LDFLAGS);
+
 # mm - tile
 mm-c-tile-gcc: max-min/c/*.c max-min/c/impl/tile.c max-min/c/impl/mm.h
 	cd max-min/c; \

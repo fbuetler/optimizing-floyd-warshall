@@ -15,11 +15,18 @@ DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} --privileged ${DOCKER_ENV_VARS} -t ${IM
 
 # Topmost rule must be to build the optimized C code
 
+# tc - tiled
+build-tc-c-tile-gcc: docker transitive-closure/c/*.c transitive-closure/c/impl/tile.c transitive-closure/c/impl/tc.h
+	docker run ${DOCKER_RUN_ARGS} make tc-c-tile-gcc
+
+build-tc-c-tile-clang: docker transitive-closure/c/*.c transitive-closure/c/impl/tile.c transitive-closure/c/impl/tc.h
+	docker run ${DOCKER_RUN_ARGS} make tc-c-tile-clang
+
 # mm - tiled
 build-mm-c-tile-gcc: docker max-min/c/*.c max-min/c/impl/tile.c max-min/c/impl/mm.h
 	docker run ${DOCKER_RUN_ARGS} make mm-c-tile-gcc
 
-build-mm-c-tile-clang: docker shortest-path/c/*.c shortest-path/c/impl/tile.c shortest-path/c/impl/sp.h
+build-mm-c-tile-clang: docker max-min/c/*.c max-min/c/impl/tile.c max-min/c/impl/mm.h
 	docker run ${DOCKER_RUN_ARGS} make mm-c-tile-clang
 
 # fw - tiled
