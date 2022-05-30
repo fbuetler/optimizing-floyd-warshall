@@ -95,55 +95,6 @@ int floydWarshall(double *C, int N)
                 C[(i + 3) * N + j + 2] = res3_2;
                 C[(i + 3) * N + j + 3] = res3_3;
             }
-            for (; j < N; j++)
-            {
-                C[(i + 0) * N + j] = MIN(C[(i + 0) * N + j], ci0k + C[k * N + j]);
-                C[(i + 1) * N + j] = MIN(C[(i + 1) * N + j], ci1k + C[k * N + j]);
-                C[(i + 2) * N + j] = MIN(C[(i + 2) * N + j], ci2k + C[k * N + j]);
-                C[(i + 3) * N + j] = MIN(C[(i + 3) * N + j], ci3k + C[k * N + j]);
-            }
-        }
-
-        // rest of i
-        for (; i < N; i++)
-        {
-            int j = 0;
-            double cik = C[i * N + k];
-            for (; j < N - 3; j += 4)
-            {
-                // load
-                double cij0 = C[i * N + j + 0];
-                double cij1 = C[i * N + j + 1];
-                double cij2 = C[i * N + j + 2];
-                double cij3 = C[i * N + j + 3];
-
-                double ckj0 = C[k * N + j + 0];
-                double ckj1 = C[k * N + j + 1];
-                double ckj2 = C[k * N + j + 2];
-                double ckj3 = C[k * N + j + 3];
-
-                // compute 1
-                double sum0 = cik + ckj0;
-                double sum1 = cik + ckj1;
-                double sum2 = cik + ckj2;
-                double sum3 = cik + ckj3;
-
-                // compute 2
-                double res0 = MIN(cij0, sum0);
-                double res1 = MIN(cij1, sum1);
-                double res2 = MIN(cij2, sum2);
-                double res3 = MIN(cij3, sum3);
-
-                // store
-                C[i * N + j + 0] = res0;
-                C[i * N + j + 1] = res1;
-                C[i * N + j + 2] = res2;
-                C[i * N + j + 3] = res3;
-            }
-            for (; j < N; j++)
-            {
-                C[i * N + j] = MIN(C[i * N + j], cik + C[k * N + j]);
-            }
         }
     }
     return 0;
