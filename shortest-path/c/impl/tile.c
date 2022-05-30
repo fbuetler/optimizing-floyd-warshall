@@ -13,88 +13,88 @@ int FWI(double *A, double *B, double *C, int N, int L1)
         for (; i < L1 - 3; i += 4)
         {
             int j = 0;
-            double ci0k = C[(i + 0) * N + k];
-            double ci1k = C[(i + 1) * N + k];
-            double ci2k = C[(i + 2) * N + k];
-            double ci3k = C[(i + 3) * N + k];
+            double a0k = A[(i + 0) * N + k];
+            double a1k = A[(i + 1) * N + k];
+            double a2k = A[(i + 2) * N + k];
+            double a3k = A[(i + 3) * N + k];
             for (; j < L1 - 3; j += 4)
             {
                 // load
-                double ci0j0 = C[(i + 0) * N + j + 0];
-                double ci0j1 = C[(i + 0) * N + j + 1];
-                double ci0j2 = C[(i + 0) * N + j + 2];
-                double ci0j3 = C[(i + 0) * N + j + 3];
-                double ci1j0 = C[(i + 1) * N + j + 0];
-                double ci1j1 = C[(i + 1) * N + j + 1];
-                double ci1j2 = C[(i + 1) * N + j + 2];
-                double ci1j3 = C[(i + 1) * N + j + 3];
-                double ci2j0 = C[(i + 2) * N + j + 0];
-                double ci2j1 = C[(i + 2) * N + j + 1];
-                double ci2j2 = C[(i + 2) * N + j + 2];
-                double ci2j3 = C[(i + 2) * N + j + 3];
-                double ci3j0 = C[(i + 3) * N + j + 0];
-                double ci3j1 = C[(i + 3) * N + j + 1];
-                double ci3j2 = C[(i + 3) * N + j + 2];
-                double ci3j3 = C[(i + 3) * N + j + 3];
+                double c00 = C[(i + 0) * N + j + 0];
+                double c01 = C[(i + 0) * N + j + 1];
+                double c02 = C[(i + 0) * N + j + 2];
+                double c03 = C[(i + 0) * N + j + 3];
+                double c10 = C[(i + 1) * N + j + 0];
+                double c11 = C[(i + 1) * N + j + 1];
+                double c12 = C[(i + 1) * N + j + 2];
+                double c13 = C[(i + 1) * N + j + 3];
+                double c20 = C[(i + 2) * N + j + 0];
+                double c21 = C[(i + 2) * N + j + 1];
+                double c22 = C[(i + 2) * N + j + 2];
+                double c23 = C[(i + 2) * N + j + 3];
+                double c30 = C[(i + 3) * N + j + 0];
+                double c31 = C[(i + 3) * N + j + 1];
+                double c32 = C[(i + 3) * N + j + 2];
+                double c33 = C[(i + 3) * N + j + 3];
 
-                double ckj0 = C[k * N + j + 0];
-                double ckj1 = C[k * N + j + 1];
-                double ckj2 = C[k * N + j + 2];
-                double ckj3 = C[k * N + j + 3];
+                double bk0 = B[k * N + j + 0];
+                double bk1 = B[k * N + j + 1];
+                double bk2 = B[k * N + j + 2];
+                double bk3 = B[k * N + j + 3];
 
                 // op 1
-                double sum0_0 = ADD(ci0k, ckj0);
-                double sum0_1 = ADD(ci0k, ckj1);
-                double sum0_2 = ADD(ci0k, ckj2);
-                double sum0_3 = ADD(ci0k, ckj3);
-                double sum1_0 = ADD(ci1k, ckj0);
-                double sum1_1 = ADD(ci1k, ckj1);
-                double sum1_2 = ADD(ci1k, ckj2);
-                double sum1_3 = ADD(ci1k, ckj3);
-                double sum2_0 = ADD(ci2k, ckj0);
-                double sum2_1 = ADD(ci2k, ckj1);
-                double sum2_2 = ADD(ci2k, ckj2);
-                double sum2_3 = ADD(ci2k, ckj3);
-                double sum3_0 = ADD(ci3k, ckj0);
-                double sum3_1 = ADD(ci3k, ckj1);
-                double sum3_2 = ADD(ci3k, ckj2);
-                double sum3_3 = ADD(ci3k, ckj3);
+                double sum00 = ADD(a0k, bk0);
+                double sum01 = ADD(a0k, bk1);
+                double sum02 = ADD(a0k, bk2);
+                double sum03 = ADD(a0k, bk3);
+                double sum10 = ADD(a1k, bk0);
+                double sum11 = ADD(a1k, bk1);
+                double sum12 = ADD(a1k, bk2);
+                double sum13 = ADD(a1k, bk3);
+                double sum20 = ADD(a2k, bk0);
+                double sum21 = ADD(a2k, bk1);
+                double sum22 = ADD(a2k, bk2);
+                double sum23 = ADD(a2k, bk3);
+                double sum30 = ADD(a3k, bk0);
+                double sum31 = ADD(a3k, bk1);
+                double sum32 = ADD(a3k, bk2);
+                double sum33 = ADD(a3k, bk3);
 
                 // op 2
-                double res0_0 = MIN(ci0j0, sum0_0);
-                double res0_1 = MIN(ci0j1, sum0_1);
-                double res0_2 = MIN(ci0j2, sum0_2);
-                double res0_3 = MIN(ci0j3, sum0_3);
-                double res1_0 = MIN(ci1j0, sum1_0);
-                double res1_1 = MIN(ci1j1, sum1_1);
-                double res1_2 = MIN(ci1j2, sum1_2);
-                double res1_3 = MIN(ci1j3, sum1_3);
-                double res2_0 = MIN(ci2j0, sum2_0);
-                double res2_1 = MIN(ci2j1, sum2_1);
-                double res2_2 = MIN(ci2j2, sum2_2);
-                double res2_3 = MIN(ci2j3, sum2_3);
-                double res3_0 = MIN(ci3j0, sum3_0);
-                double res3_1 = MIN(ci3j1, sum3_1);
-                double res3_2 = MIN(ci3j2, sum3_2);
-                double res3_3 = MIN(ci3j3, sum3_3);
+                c00 = MIN(c00, sum00);
+                c01 = MIN(c01, sum01);
+                c02 = MIN(c02, sum02);
+                c03 = MIN(c03, sum03);
+                c10 = MIN(c10, sum10);
+                c11 = MIN(c11, sum11);
+                c12 = MIN(c12, sum12);
+                c13 = MIN(c13, sum13);
+                c20 = MIN(c20, sum20);
+                c21 = MIN(c21, sum21);
+                c22 = MIN(c22, sum22);
+                c23 = MIN(c23, sum23);
+                c30 = MIN(c30, sum30);
+                c31 = MIN(c31, sum31);
+                c32 = MIN(c32, sum32);
+                c33 = MIN(c33, sum33);
 
                 // store
-                C[(i + 0) * N + j + 0] = res0_0;
-                C[(i + 0) * N + j + 1] = res0_1;
-                C[(i + 0) * N + j + 2] = res0_2;
-                C[(i + 0) * N + j + 3] = res0_3;
-                C[(i + 1) * N + j + 0] = res1_0;
-                C[(i + 1) * N + j + 1] = res1_1;
-                C[(i + 1) * N + j + 2] = res1_2;
-                C[(i + 1) * N + j + 3] = res1_3;
-                C[(i + 2) * N + j + 0] = res2_0;
-                C[(i + 2) * N + j + 1] = res2_1;
-                C[(i + 2) * N + j + 2] = res2_2;
-                C[(i + 2) * N + j + 3] = res2_3;
-                C[(i + 3) * N + j + 0] = res3_0;
-                C[(i + 3) * N + j + 1] = res3_1;
-                C[(i + 3) * N + j + 2] = res3_2;
-                C[(i + 3) * N + j + 3] = res3_3;
+                C[(i + 0) * N + j + 0] = c00;
+                C[(i + 0) * N + j + 1] = c01;
+                C[(i + 0) * N + j + 2] = c02;
+                C[(i + 0) * N + j + 3] = c03;
+                C[(i + 1) * N + j + 0] = c10;
+                C[(i + 1) * N + j + 1] = c11;
+                C[(i + 1) * N + j + 2] = c12;
+                C[(i + 1) * N + j + 3] = c13;
+                C[(i + 2) * N + j + 0] = c20;
+                C[(i + 2) * N + j + 1] = c21;
+                C[(i + 2) * N + j + 2] = c22;
+                C[(i + 2) * N + j + 3] = c23;
+                C[(i + 3) * N + j + 0] = c30;
+                C[(i + 3) * N + j + 1] = c31;
+                C[(i + 3) * N + j + 2] = c32;
+                C[(i + 3) * N + j + 3] = c33;
             }
         }
     }
@@ -236,7 +236,6 @@ function FWT(A, B, C, N, L1)
 */
 int floydWarshall(double *C, int N)
 {
-    // tile size is set to 16
-    FWT(C, C, C, N, 16);
-    return 0;
+    // tile size is set to 8
+    return FWT(C, C, C, N, 8);
 }
