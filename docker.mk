@@ -8,7 +8,7 @@ BUILD_DIR=$(MAKE_BUILD_DIR)
 BUILD_NAME=$(MAKE_BUILD_NAME)
 #static is needed for shared libs only present in the build container
 CFLAGS=$(MAKE_CFLAGS) -I /usr/local/include -static
-LDFLAGS:=/usr/local/lib/libpapi.a
+LDFLAGS:=/usr/local/lib/libpapi.a -lm
 
 # Topmost rule must be to build the optimized C code
 
