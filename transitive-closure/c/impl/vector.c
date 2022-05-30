@@ -47,21 +47,6 @@ int floydWarshall(char *C, int N) {
                 // store
                 _mm256_storeu_si256((__m256i *)&C[ibpl + j], res);
             }
-
-            // the last (incomplete) vector
-            // load
-            __m256i cij = _mm256_loadu_si256((__m256i const *)&C[ibpl + j]);
-            __m256i ckj = _mm256_loadu_si256((__m256i const *)&C[kbpl + j]);
-
-            // compute
-            __m256i con = _mm256_and_si256(cik, ckj);
-            __m256i res = _mm256_or_si256(con, cij);
-
-            // blend - only keep the values we actually want to store - the rest is reset
-            __m256i to_store = _mm256_blendv_epi8(cij, res, index_mask);
-
-            // store
-            _mm256_storeu_si256((__m256i *)&C[ibpl + j], to_store);
         }
     }
     return 0;
