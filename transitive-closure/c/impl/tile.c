@@ -16,15 +16,13 @@ int FWI(char *A, char *B, char *C, int N, int L1)
     // NOTE: We assume Ui and Uj divide N for simplicity
     for (int k = 0; k < L1; k++)
     {
-        int i = 0;
-        for (; i < L1 - 3; i += 4)
+        for (int i = 0; i < L1 - 3; i += 4)
         {
-            int j = 0;
             char a0k = A[(i + 0) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00; // if this is 0, we can skip the innermost loop
             char a1k = A[(i + 1) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00; // if this is 0, we can skip the innermost loop
             char a2k = A[(i + 2) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00; // if this is 0, we can skip the innermost loop
             char a3k = A[(i + 3) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00; // if this is 0, we can skip the innermost loop
-            for (; j < bpt - 3; j += 4)
+            for (int j = 0; j < bpt - 3; j += 4)
             {
                 // load
                 char c00 = C[(i + 0) * bpl + j + 0];
@@ -249,15 +247,7 @@ function FWT(A, B, C, N, L1)
 */
 int floydWarshall(char *C, int N)
 {
-    // tile size is set to 8
-    return FWT(C, C, C, N, 8);
-    // int bpl = ceil(N / 8.0); // bytes per matrix line
-    // char *A = (char *)aligned_alloc(32, N * bpl * sizeof(char));
-    // char *B = (char *)aligned_alloc(32, N * bpl * sizeof(char));
-    // memcpy(A, C, N * bpl * sizeof(char));
-    // memcpy(B, C, N * bpl * sizeof(char));
-    // FWIabc(A, B, C, N, N);
-    // free(A);
-    // free(B);
-    // return 0;
+    // tile size is set to 32
+    // (this is the minimum due to Uj | L1 | N assumption)
+    return FWT(C, C, C, N, 32);
 }
