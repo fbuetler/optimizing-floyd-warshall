@@ -237,5 +237,5 @@ function FWT(A, B, C, N, L1)
 int floydWarshall(double *C, int N)
 {
     // tile size is set to 8
-    return FWT(C, C, C, N, 8);
+    return FWT(C, C, C, N, 32);
 }
