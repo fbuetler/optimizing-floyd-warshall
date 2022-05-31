@@ -12,6 +12,15 @@ LDFLAGS:=/usr/local/lib/libpapi.a -lm
 
 # Topmost rule must be to build the optimized C code
 
+# fw - vector tile
+fw-c-vector-tiles-gcc: shortest-path/c/*.c shortest-path/c/impl/vector-tiles.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/vector-tiles.c main.c $(LDFLAGS);
+
+fw-c-vector-tiles-clang: shortest-path/c/*.c shortest-path/c/impl/vector-tiles.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/vector-tiles.c main.c $(LDFLAGS);
+
 # mm - vector tile
 mm-c-vector-tiles-gcc: max-min/c/*.c max-min/c/impl/vector-tiles.c max-min/c/impl/mm.h
 	cd max-min/c; \
