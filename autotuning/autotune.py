@@ -323,7 +323,7 @@ def find_best_neighbour(project_root: str, algorithm: str, form: str, vectorized
     return best_neighbour, max_perf
 
 def find_local_optimum(
-    project_root: str, algorithm: str, form:str, vectorized: bool, input_size: int, initial_values: Tuple, find_neighbours: Callable[[Tuple, List[Tuple]], List[Tuple]]
+    project_root: str, algorithm: str, form: str, vectorized: bool, input_size: int, initial_values: Tuple, find_neighbours: Callable[[Tuple, List[Tuple]], List[Tuple]]
 ) -> Tuple:
     """ Uses the infamous hill-climbing algorithm to find a choice of parameters with optimal performance.
 
@@ -355,6 +355,54 @@ def find_local_optimum(
     return curr_choice
 
 # TODO: Now implement the actual search steps from the paper
+
+def find_initial_guess(project_root: str, algorithm: str, vectorized: bool) -> Tuple[Tuple[int, int], Tuple[int, int, int]]:
+    """ Find best (Ui,Uj) for FWI and (Ui',Uj',Uk') for FWIabc for N = 64 as an initial guess for unrolling parameters """
+    def exhaustive_FWI_search(curr_params: Tuple[int, int], visited: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+        if visited != []:
+            return []
+        else:
+            return [(2**i,2**j) for i in range(5) for j in (range(2,6) if vectorized else range(6))]
+
+    def exhaustive_FWIabc_search(curr_params: Tuple[int, int, int], visited: List[Tuple[int, int, int]]) -> List[Tuple[int, int, int]]:
+        if visited == []:
+            return [(2**i,2**j,1) for i in range(5) for j in (range(2,7) if vectorized else range(7))]
+        elif (1,1,2) not in visited:
+            (uii, ujj, _) = curr_params
+            return [(uii,ujj,2**k) for k in range(6)]
+        else:
+            return []
+
+    fwi_guess = find_local_optimum(project_root, algorithm, 'FWI', vectorized, 64, (0,0), exhaustive_FWI_search)
+    fwiabc_guess = find_local_optimum(project_root, algorithm, 'FWIabc', vectorized, 64, (0,0,0), exhaustive_FWIabc_search)
+
+    return fwi_guess, fwiabc_guess
+
+def optimize_fwi(project_root: str, algorithm: str, vectorized: bool, initial_guess: Tuple[int, int], input_size: int, factors: List[int]) -> Tuple[int, int]:
+    """ Further optimize an initial guess for FWI """
+    def find_neighbours(curr_params: Tuple[int, int], visited: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+        # use factors of n to compute possible unrollment factors
+        (ui,uj) = curr_params
+        if visited == []:
+            neighbours = [curr_params]
+        else:
+            neighbours = []
+        ui_ind = factors.index(ui)
+        uj_ind = factors.index(uj)
+
+        if ui_ind > 0 and (factors[ui_ind - 1], uj) not in visited:
+            neighbours.append((factors[ui_ind - 1], uj))
+        if ui_ind < len(factors) - 1 and (factors[ui_ind + 1], uj) not in visited:
+            neighbours.append((factors[ui_ind + 1], uj))
+
+        if uj_ind > 0 and (ui, factors[uj_ind - 1]) not in visited:
+            neighbours.append((ui, factors[uj_ind - 1]))
+        if uj_ind < len(factors) - 1 and (ui, factors[uj_ind + 1]) not in visited:
+            neighbours.append((ui, factors[uj_ind + 1]))
+
+        return neighbours
+
+    return find_local_optimum(project_root, algorithm, 'FWI', vectorized, input_size, initial_guess, find_neighbours)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
