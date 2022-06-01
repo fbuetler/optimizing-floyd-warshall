@@ -25,6 +25,12 @@ parser.add_argument(
     help="allow to run the measurements with turbo boost",
     action="store_true",
 )
+parser.add_argument(
+    "-i",
+    "--incremental",
+    help="store incrementally, reuse previously existing values",
+    action="store_true"
+)
 
 
 def main(
@@ -33,6 +39,7 @@ def main(
     testcases_raw,
     out_filepath,
     turbo_boost_allowed,
+    incremental
 ):
     if not turbo_boost_allowed:
         with open("/sys/devices/system/cpu/intel_pstate/no_turbo", "r") as f:
@@ -50,9 +57,25 @@ def main(
     l3_list = list()
     l2_list = list()
     l1_list = list()
+
+    if incremental:
+        if os.path.exists(f"{out_filepath}.csv"):
+            print(f"path is {out_filepath}")
+            with open(f"{out_filepath}.csv", "r") as f:
+                reader = iter(csv.reader(f))
+                nodes_list = list(map(int, next(reader)))
+                runs_list = list(map(int, next(reader)))
+                cycles_list = list(map(int, next(reader)))
+                l3_list = list(map(int, next(reader)))
+                l2_list = list(map(int, next(reader)))
+                l1_list = list(map(int, next(reader)))
+        print(f"\nexisting measurements found for n = {nodes_list}\n")
+
     tcs = os.listdir(testsuite_dir)
     for tc in tcs:
         if len(testcases) != 0 and tc not in testcases:
+            continue
+        elif incremental and int(tc[1:]) in nodes_list:
             continue
         print("Processing testcase: {}".format(tc))
 
@@ -146,4 +169,5 @@ if __name__ == "__main__":
         args.testcases,
         args.output,
         args.allow_turbo_boost,
+        args.incremental
     )
