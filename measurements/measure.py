@@ -76,6 +76,9 @@ def main(
         if len(testcases) != 0 and tc not in testcases:
             continue
         elif incremental and int(tc[1:]) in nodes_list:
+            print("==============")
+            print(f"already have measurements for {tc}")
+            print("")
             continue
         print("Processing testcase: {}".format(tc))
 
