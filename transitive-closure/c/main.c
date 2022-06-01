@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <papi.h>
+#include <immintrin.h>
 
 #include "impl/tc.h"
 
@@ -65,6 +66,21 @@ void ref_output(char *C, int N)
     }
 }
 
+// fine, I'll do it myself
+void flush_cache(void *addr, int nbytes)
+{
+    // assume cache line of 64 bytes, cause why wouldn't it be
+    void *p = addr;
+    while (p < addr + nbytes)
+    {
+        // Invalidate and flush the cache line that contains p from all levels of the cache hierarchy
+        _mm_clflush(p);
+        p += 64;
+    }
+    // Ensure cache flushes have completed
+    _mm_mfence();
+}
+
 /*
  * Timing function based on the TimeStep Counter of the CPU.
  *
@@ -79,27 +95,36 @@ int measure(char *C, int N, int WarmupEventSet, int MeasurementEventSet, long lo
     int i, retval;
     int num_runs = NUM_RUNS;
 
+    int bpl = ceil(N / 8.0);
+
     // Compute how many runs we need to do and warm up cache
     long long warmup_cycles[1];
+    long long warmup_cycles_tmp[1];
+
     /* Start counting */
     long long cycles = 0;
 
     while (num_runs < (1 << 14))
     {
-        if ((retval = PAPI_start(WarmupEventSet)) != PAPI_OK)
-        {
-            ERROR_RETURN(retval);
-        }
-
+        warmup_cycles[0] = 0;
         for (i = 0; i < num_runs; ++i)
         {
-            floydWarshall(C, N);
-        }
+            if ((retval = PAPI_start(WarmupEventSet)) != PAPI_OK)
+            {
+                ERROR_RETURN(retval);
+            }
 
-        /* Stop counting, this reads from the counter as well as stop it. */
-        if ((retval = PAPI_stop(WarmupEventSet, warmup_cycles)) != PAPI_OK)
-        {
-            ERROR_RETURN(retval);
+            floydWarshall(C, N);
+
+            /* Stop counting, this reads from the counter as well as stop it. */
+            if ((retval = PAPI_stop(WarmupEventSet, warmup_cycles_tmp)) != PAPI_OK)
+            {
+                ERROR_RETURN(retval);
+            }
+
+            warmup_cycles[0] += warmup_cycles_tmp[0]; // accumulate
+
+            flush_cache((void *)C, N * bpl * sizeof(char));
         }
 
         cycles += warmup_cycles[0];
@@ -123,6 +148,35 @@ int measure(char *C, int N, int WarmupEventSet, int MeasurementEventSet, long lo
      *  --> Suffers from timing bias and requires cache warmup
      *  --> Allows for more fine-grained statistics, e.g. median, variance, etc.
      */
+
+    long long measured_values_tmp[NUM_EVENT];
+
+    // ------- MEASURE CACHE MISSES ON COLD CACHE -------
+    for (i = 0; i < num_runs; ++i)
+    {
+        /* Start counting */
+        if ((retval = PAPI_start(MeasurementEventSet)) != PAPI_OK)
+        {
+            ERROR_RETURN(retval);
+        }
+
+        floydWarshall(C, N);
+
+        /* Stop counting, this reads from the counter as well as stop it. */
+        if ((retval = PAPI_stop(MeasurementEventSet, measured_values_tmp)) != PAPI_OK)
+        {
+            ERROR_RETURN(retval);
+        }
+
+        for (int i = 0; i < NUM_EVENT; i++)
+        {
+            measured_values[i] += measured_values_tmp[i]; // accumulate
+        }
+
+        flush_cache((void *)C, N * bpl * sizeof(char));
+    }
+
+    // ------- MEASURE NUMBER OF CYCLES ON WARM CACHE -------
     /* Start counting */
     if ((retval = PAPI_start(MeasurementEventSet)) != PAPI_OK)
     {
@@ -135,10 +189,13 @@ int measure(char *C, int N, int WarmupEventSet, int MeasurementEventSet, long lo
     }
 
     /* Stop counting, this reads from the counter as well as stop it. */
-    if ((retval = PAPI_stop(MeasurementEventSet, measured_values)) != PAPI_OK)
+    if ((retval = PAPI_stop(MeasurementEventSet, measured_values_tmp)) != PAPI_OK)
     {
         ERROR_RETURN(retval);
     }
+
+    // overwrite total cycles
+    measured_values[0] = measured_values_tmp[0];
 
     return num_runs;
 }
