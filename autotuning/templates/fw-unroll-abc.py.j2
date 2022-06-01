@@ -1,0 +1,100 @@
+#include "fw.h"
+
+// FWI for 3 distinct matrices (FWIabc)
+{{ "// tiling factors Uk', Ui' and Uj' are set to {}, {} and {}, respectively".format(unroll_kk, unroll_ii, unroll_jj) }}
+int FWIabc(double *A, double *B, double *C, int N)
+{
+    // NOTE: We assume Uk, Ui and Uj divide N for simplicity
+    for (int i = 0; i < N - {{ unroll_ii - 1 }}; i += {{ unroll_ii }})
+    {
+        for (int j = 0; j < N - {{ unroll_jj- 1 }}; j += {{ unroll_jj }})
+        {
+            for (int k = 0; k < N - {{ unroll_kk - 1 }}; k += {{ unroll_kk }})
+            {
+                // load
+                {% for u_i in range(unroll_ii) -%}
+                {% for u_k in range(unroll_kk) -%}
+                {% if vector -%}
+                {{ "__m256d a{}{} = _mm256_broadcast_sd(&A[(i + {}) * N + (k + {})]);".format(u_i, u_k, u_i, u_k) }}
+                {% else -%}
+                {{ "double a{}{} = A[(i + {}) * N + (k + {})];".format(u_i, u_k, u_i, u_k) }}
+                {% endif -%}
+                {% endfor -%}
+                {% endfor %}
+
+                {% for u_k in range(unroll_kk) -%}
+                {% if vector -%}
+                {% for u_j in range(0, unroll_jj, 4) -%}
+                {{ "__m256d b{}{} = _mm256_load_pd(&B[(k + {}) * N + (j + {})]);".format(u_k, u_j, u_k, u_j) }}
+                {% endfor -%}
+                {% else -%}
+                {% for u_j in range(unroll_jj) -%}
+                {{ "double b{}{} = B[(k + {}) * N + (j + {})];".format(u_k, u_j, u_k, u_j) }}
+                {% endfor -%}
+                {% endif %}
+                {%- endfor %}
+
+                {% for u_i in range(unroll_ii) -%}
+                {% if vector -%}
+                {% for u_j in range(0, unroll_jj, 4) -%}
+                {{ "__m256d c{}{} = _mm256_load_pd(&C[(i + {}) * N + j + {}]);".format(u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% else -%}
+                {% for u_j in range(unroll_jj) -%}
+                {{ "double c{}{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% endif -%}
+                {% endfor %}
+
+                {% for u_k in range(unroll_kk) -%}
+                {{ "// for k + {}".format(u_k) }}
+                {% for u_i in range(unroll_ii) -%}
+                {% if vector -%}
+                {% for u_j in range(0, unroll_jj, 4) -%}
+                {% if u_k == 0 %}__m256d {% endif -%}
+                {{ "res{}{} = V{}(a{}{}, b{}{});".format(u_i, u_j, inner_op, u_i, u_k, u_k, u_j) }}
+                {% endfor -%}
+                {% else -%}
+                {% for u_j in range(unroll_jj) -%}
+                {% if u_k == 0 %}double {% endif -%}
+                {{ "res{}{} = {}(a{}{}, b{}{});".format(u_i, u_j, inner_op, u_i, u_k, u_k, u_j) }}
+                {% endfor -%}
+                {% endif -%}
+                {% endfor %}
+
+                {% for u_i in range(unroll_ii) -%}
+                {% if vector -%}
+                {% for u_j in range(0, unroll_jj, 4) -%}
+                {{ "c{}{} = V{}(c{}{}, res{}{});".format(u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% else -%}
+                {% for u_j in range(unroll_jj) -%}
+                {{ "c{}{} = {}(c{}{}, res{}{});".format(u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% endif -%}
+                {% endfor %}
+                {% endfor -%}
+
+                // store
+                {% for u_i in range(unroll_ii) -%}
+                {% if vector -%}
+                {% for u_j in range(0, unroll_jj, 4) -%}
+                {{ "_mm256_store_pd(&C[(i + {}) * N + j + {}], c{}{});".format(u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% else -%}
+                {% for u_j in range(unroll_jj) -%}
+                {{ "C[(i + {}) * N + j + {}] = c{}{};".format(u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% endif -%}
+                {% endfor %}
+            }
+        }
+    }
+    return 0;
+}
+
+int floydWarshall(double *C, int N)
+{
+    // Won't return the correct result, but is only used to find initial guess for (Ui',Uj',Uk') anyways
+    return FWIabc(C, C, C, N);
+}
