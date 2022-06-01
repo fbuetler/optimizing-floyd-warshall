@@ -29,6 +29,13 @@ build-mm-c-vector-tiles-gcc: docker max-min/c/*.c max-min/c/impl/vector-tiles.c 
 build-mm-c-vector-tiles-clang: docker max-min/c/*.c max-min/c/impl/vector-tiles.c max-min/c/impl/mm.h
 	docker run ${DOCKER_RUN_ARGS} make mm-c-vector-tiles-clang
 
+# tc - vector tiled
+build-tc-c-vector-tiles-gcc: docker transitive-closure/c/*.c transitive-closure/c/impl/vector-tiles.c transitive-closure/c/impl/tc.h
+	docker run ${DOCKER_RUN_ARGS} make tc-c-vector-tiles-gcc
+
+build-tc-c-vector-tiles-clang: docker transitive-closure/c/*.c transitive-closure/c/impl/vector-tiles.c transitive-closure/c/impl/tc.h
+	docker run ${DOCKER_RUN_ARGS} make tc-c-vector-tiles-clang
+
 # tc - tiled
 build-tc-c-tile-gcc: docker transitive-closure/c/*.c transitive-closure/c/impl/tile.c transitive-closure/c/impl/tc.h
 	docker run ${DOCKER_RUN_ARGS} make tc-c-tile-gcc
