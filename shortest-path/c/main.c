@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <papi.h>
+#include <immintrin.h>
 
 #include "impl/sp.h"
 
