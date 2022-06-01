@@ -133,7 +133,7 @@ def main(
 
     binary_name = os.path.basename(binary)
     testsuite_name = os.path.basename(testsuite_dir)
-    with open("{}.csv".format(out_filepath), "w") as f:
+    with open("{}{}.csv".format(out_filepath, str(testcases_raw)), "w") as f:
         writer = csv.writer(f)
         writer.writerows([nodes_list_sorted, runs_list_sorted, cycles_list_sorted, l3_list_sorted, l2_list_sorted, l1_list_sorted])
 
