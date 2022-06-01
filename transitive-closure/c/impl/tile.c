@@ -122,10 +122,10 @@ int FWIabc(char *A, char *B, char *C, int N, int L1)
                 char a00, a01, a10, a11, b00, b01, b10, b11, c00, c01, c10, c11, sum00, sum01, sum10, sum11;
 
                 // load
-                a00 = A[(i + 0) * bpl + (k / 8 + 0)];
-                a01 = A[(i + 0) * bpl + (k / 8 + 1)];
-                a10 = A[(i + 1) * bpl + (k / 8 + 0)];
-                a11 = A[(i + 1) * bpl + (k / 8 + 1)];
+                a00 = A[(i + 0) * bpl + (k + 0) / 8] & (1 << ((k + 0) % 8)) ? 0xff : 0x00;
+                a01 = A[(i + 0) * bpl + (k + 1) / 8] & (1 << ((k + 1) % 8)) ? 0xff : 0x00;
+                a10 = A[(i + 1) * bpl + (k + 0) / 8] & (1 << ((k + 0) % 8)) ? 0xff : 0x00;
+                a11 = A[(i + 1) * bpl + (k + 1) / 8] & (1 << ((k + 1) % 8)) ? 0xff : 0x00;
                 b00 = B[(k + 0) * bpl + (j + 0)];
                 b01 = B[(k + 0) * bpl + (j + 1)];
                 b10 = B[(k + 1) * bpl + (j + 0)];
