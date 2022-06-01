@@ -1,80 +1,92 @@
-#include "sp.h"
+#include "fw.h"
 
-int floydWarshall(double *C, int N) {
-    for (int k = 0; k < N; k++) {
-        int i = 0;
-        for (; i < N - {{ unroll_i - 1 }}; i += {{ unroll_i }}) {
-            int j = 0;
-
+// iterative FW algorithm (FWI)
+{{ "// tiling factors Ui and Uj are set to {} and {}, respectively".format(unroll_i,unroll_j) }}
+int FWI(double *A, double *B, double *C, int N)
+{
+    // NOTE 1: We assume Ui and Uj divide N for simplicity
+    // NOTE 2: If generating vector code, we require that Uj is divisible by 4
+    for (int k = 0; k < N; k++)
+    {
+        for (int i = 0; i < N - {{ unroll_i - 1 }}; i += {{ unroll_i }})
+        {
             {% for u_i in range(unroll_i) -%}
-            {{ "double ci{}k = C[(i + {}) * N + k];".format(u_i, u_i) }}
+            {% if vector -%}
+            {{ "__m256d a{}k = _mm256_broadcast_sd(&A[(i + {}) * N + k]);".format(u_i, u_i) }}
+            {% else -%}
+            {{ "double a{}k = A[(i + {}) * N + k];".format(u_i, u_i) }}
+            {% endif -%}
             {% endfor -%}
-
-            for (; j < N - {{ unroll_j - 1 }}; j += {{ unroll_j }}) {
+            for (int j = 0; j < N - {{ unroll_j - 1 }}; j += {{ unroll_j }})
+            {
                 // load
                 {% for u_i in range(unroll_i) -%}
-                {% for u_j in range(unroll_j) -%}
-                {{ "double ci{}j{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
+                {% if vector -%}
+                {% for u_j in range(0, unroll_j, 4) -%}
+                {{ "__m256d c{}{} = _mm256_load_pd(&C[(i + {}) * N + j + {}]);".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
-                {% endfor %}
-
+                {% else -%}
                 {% for u_j in range(unroll_j) -%}
-                {{ "double ckj{} = C[k * N + j + {}];".format(u_j, u_j) }}
+                {{ "double c{}{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% endif -%}
                 {% endfor %}
 
-                // compute
+                {% if vector -%}
+                {% for u_j in range(0, unroll_j, 4) -%}
+                {{ "__m256d bk{} = _mm256_load_pd(&B[k * N + j + {}]);".format(u_j, u_j) }}
+                {% endfor -%}
+                {% else -%}
+                {% for u_j in range(unroll_j) -%}
+                {{ "double bk{} = B[k * N + j + {}];".format(u_j, u_j) }}
+                {% endfor -%}
+                {% endif %}
+
+                // op 1
                 {% for u_i in range(unroll_i) -%}
-                {% for u_j in range(unroll_j) -%}
-                {{ "double res{}_{} = MIN(ci{}j{}, ci{}k + ckj{});".format(u_i, u_j, u_i, u_j, u_i, u_j) }}
+                {% if vector -%}
+                {% for u_j in range(0, unroll_j, 4) -%}
+                {{ "__m256d res{}{} = V{}(a{}k, bk{});".format(u_i, u_j, inner_op, u_i, u_j) }}
                 {% endfor -%}
+                {% else -%}
+                {% for u_j in range(unroll_j) -%}
+                {{ "double res{}{} = {}(a{}k, bk{});".format(u_i, u_j, inner_op, u_i, u_j) }}
+                {% endfor -%}
+                {% endif -%}
+                {% endfor %}
+
+                // op 2
+                {% for u_i in range(unroll_i) -%}
+                {% if vector -%}
+                {% for u_j in range(0, unroll_j, 4) -%}
+                {{ "c{}{} = V{}(c{}{}, res{}{});".format(u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% else -%}
+                {% for u_j in range(unroll_j) -%}
+                {{ "c{}{} = {}(c{}{}, res{}{});".format(u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% endif -%}
                 {% endfor %}
 
                 // store
                 {% for u_i in range(unroll_i) -%}
-                {% for u_j in range(unroll_j) -%}
-                {{ "C[(i + {}) * N + j + {}] = res{}_{};".format(u_i, u_j, u_i, u_j) }}
+                {% if vector -%}
+                {% for u_j in range(0, unroll_j, 4) -%}
+                {{ "_mm256_store_pd(&C[(i + {}) * N + j + {}], c{}{});".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
-                {% endfor %}
-            }
-
-            // rest of j
-            for (; j < N; j++) {
-                {% for u_i in range(unroll_i) -%}
-                {{ "C[(i + {}) * N + j] = MIN(C[(i + {}) * N + j], ci{}k + C[k * N + j]);".format(u_i, u_i, u_i) }}
+                {% else -%}
+                {% for u_j in range(unroll_j) -%}
+                {{ "C[(i + {}) * N + j + {}] = c{}{};".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
-            }
-        }
-
-        // rest of i
-        for (; i < N; i++) {
-            int j = 0;
-            double cik = C[i * N + k];
-            for (; j < N - {{ unroll_j - 1 }}; j += {{ unroll_j }}) {
-                // load
-                {% for u_j in range(unroll_j) -%}
-                {{ "double cij{} = C[i * N + j + {}];".format(u_j, u_j) }}
+                {% endif -%}
                 {% endfor %}
-
-                {% for u_j in range(unroll_j) -%}
-                {{ "double ckj{} = C[k * N + j + {}];".format(u_j, u_j) }}
-                {% endfor %}
-
-                // compute
-                {% for u_j in range(unroll_j) -%}
-                {{ "double res{} = MIN(cij{}, cik + ckj{});".format(u_j,u_j,u_j) }}
-                {% endfor %}
-
-                // store
-                {% for u_j in range(unroll_j) -%}
-                {{ "C[i * N + j + {}] = res{};".format(u_j, u_j) }}
-                {% endfor %}
-            }
-
-            // rest of j
-            for (; j < N; j++) {
-                C[i * N + j] = MIN(C[i * N + j], cik + C[k * N + j]);
             }
         }
     }
     return 0;
+}
+
+int floydWarshall(double *C, int N)
+{
+    return FWI(C, C, C, N);
 }
