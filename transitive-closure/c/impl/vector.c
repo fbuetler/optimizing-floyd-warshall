@@ -11,13 +11,6 @@ int floydWarshall(char *C, int N) {
     int bpl = ceil(N / 8.0);  // bytes per matrix line
 
     // mask for the last vector operation: which bytes should be stored for the last vector?
-    __m256i byte_indices =
-        _mm256_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7,
-                         8, 9, 10, 11, 12, 13, 14, 15,
-                         16, 17, 18, 19, 20, 21, 22, 23,
-                         24, 25, 26, 27, 28, 29, 30, 31);
-    __m256i compare_index = _mm256_set1_epi8(bpl % bytes_per_vec);
-    __m256i index_mask = _mm256_cmpgt_epi8(compare_index, byte_indices);
     for (int k = 0; k < N; k++) {
         for (int i = 0; i < N; i++) {
             // compute some indices for reuse
@@ -37,8 +30,10 @@ int floydWarshall(char *C, int N) {
             int j = 0;
             for (; j < bpl - (bytes_per_vec - 1); j += bytes_per_vec) {
                 // load
-                __m256i cij = _mm256_loadu_si256((__m256i const *)&C[ibpl + j]);
-                __m256i ckj = _mm256_loadu_si256((__m256i const *)&C[kbpl + j]);
+                __m256i cij =
+                  _mm256_loadu_si256((__m256i const *)&C[ibpl + j]);
+                __m256i ckj =
+                  _mm256_loadu_si256((__m256i const *)&C[kbpl + j]);
 
                 // compute
                 __m256i con = _mm256_and_si256(cik, ckj);
