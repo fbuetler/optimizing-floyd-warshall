@@ -10,7 +10,6 @@ int floydWarshall(char *C, int N) {
     // compute constants / reused values
     int bpl = ceil(N / 8.0);  // bytes per matrix line
 
-    // mask for the last vector operation: which bytes should be stored for the last vector?
     for (int k = 0; k < N; k++) {
         for (int i = 0; i < N; i++) {
             // compute some indices for reuse
