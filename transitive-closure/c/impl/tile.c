@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// TODO: Make bpt an actual argument you lazy fuck
 #define SUBM(X, u, v, BL, byl, byt) (((X) + (u) * (byl) * (BL) + (v) * (byt)))
 
 // iterative FW algorithm (FWI)
