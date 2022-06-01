@@ -126,16 +126,16 @@ def main(
         l2_list.append(l2_misses)
         l1_list.append(l1_misses)
 
-    # sort by nodes ascending
-    nodes_list_sorted, runs_list_sorted, cycles_list_sorted, l3_list_sorted, l2_list_sorted, l1_list_sorted = zip(
-        *sorted(zip(nodes_list, runs_list, cycles_list, l3_list, l2_list, l1_list))
-    )
+        # sort by nodes ascending
+        nodes_list_sorted, runs_list_sorted, cycles_list_sorted, l3_list_sorted, l2_list_sorted, l1_list_sorted = zip(
+            *sorted(zip(nodes_list, runs_list, cycles_list, l3_list, l2_list, l1_list))
+        )
 
-    binary_name = os.path.basename(binary)
-    testsuite_name = os.path.basename(testsuite_dir)
-    with open("{}{}.csv".format(out_filepath, str(testcases_raw)), "w") as f:
-        writer = csv.writer(f)
-        writer.writerows([nodes_list_sorted, runs_list_sorted, cycles_list_sorted, l3_list_sorted, l2_list_sorted, l1_list_sorted])
+        binary_name = os.path.basename(binary)
+        testsuite_name = os.path.basename(testsuite_dir)
+        with open("{}.csv".format(out_filepath), "w") as f:
+            writer = csv.writer(f)
+            writer.writerows([nodes_list_sorted, runs_list_sorted, cycles_list_sorted, l3_list_sorted, l2_list_sorted, l1_list_sorted])
 
 
 if __name__ == "__main__":
