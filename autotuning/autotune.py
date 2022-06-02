@@ -8,8 +8,8 @@ import subprocess
 import logging
 import csv
 
-DEBUG = True
-VALIDATING = True
+DEBUG = False
+VALIDATING = False
 
 logging.basicConfig(level=logging.DEBUG) if DEBUG else logging.basicConfig(level=logging.INFO)
 
@@ -501,8 +501,8 @@ def clean_files(project_root):
 def tune_em_all(project_root: str, algorithm: str, vectorized: bool, input_size: int, l2_cache_bytes: int):
     generate_main(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm)
 
-    (fwi_guess, fwiabc_guess) = ((4,4),(4,4,64))
-    # (fwi_guess, fwiabc_guess) = find_initial_guess(project_root, algorithm, vectorized)
+    # (fwi_guess, fwiabc_guess) = ((4,4),(4,4,64))
+    (fwi_guess, fwiabc_guess) = find_initial_guess(project_root, algorithm, vectorized)
     logging.info('Done with step 1\n')
 
     factors = factors_of(input_size)
