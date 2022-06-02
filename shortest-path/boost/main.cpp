@@ -4,15 +4,31 @@
 #include <boost/graph/floyd_warshall_shortest.hpp>
 #include <boost/graph/directed_graph.hpp>
 #include <boost/graph/exterior_property.hpp>
-
-#ifdef __x86_64__
-#include "tsc_x86.h"
-#endif
+#include <papi.h>
 
 #define NUM_RUNS 16
 #define CYCLES_REQUIRED 1e8
 #define FREQUENCY 2.3e9
 #define CALIBRATE
+
+#define ERROR_RETURN(retval)                                                     \
+  {                                                                              \
+    fprintf(stderr, "PAPI error %d %s:line %d: \n", retval, __FILE__, __LINE__); \
+    exit(retval);                                                                \
+  }
+
+// The number of PAPI events we measure
+#define NUM_EVENT 4
+
+// The PAPI events we subscribe to for the measurement
+// Only add events supported on your machine. Check with the papi_avail tool in the PAPI utils
+// IMPORTANT: DO NOT CHANGE ORDER! Otherwise the data readout in the measurement script breaks
+static int event_codes[NUM_EVENT] = {
+    PAPI_TOT_CYC, // Total cycles executed
+    PAPI_L3_TCM,  // L3 cache misses
+    PAPI_L2_TCM,  // L2 data cache misses
+    PAPI_L1_DCM,  // L1 data cache misses
+};
 
 // types
 // graph type
@@ -57,7 +73,6 @@ void output_matrix(char *filename, distance_matrix &matr, int N)
   }
 }
 
-#ifdef __x86_64__
 /*
  * Timing function based on the TimeStep Counter of the CPU.
  *
@@ -67,56 +82,75 @@ void output_matrix(char *filename, distance_matrix &matr, int N)
  *
  * The function returns the average number of cycles per run.
  */
-unsigned long long rdtsc(Graph G, distance_matrix_map map, weight_map weights)
+int measure(Graph G, distance_matrix_map map, weight_map weights,
+            int WarmupEventSet, int MeasurementEventSet, long long *measured_values)
 {
-  int i, num_runs;
-  myInt64 cycles;
-  myInt64 start;
-  num_runs = NUM_RUNS;
+  int i, retval;
+  int num_runs = NUM_RUNS;
 
-  /*
-   * The CPUID instruction serializes the pipeline.
-   * Using it, we can create execution barriers around the code we want to time.
-   * The calibrate section is used to make the computation large enough so as to
-   * avoid measurements bias due to the timing overhead.
-   */
-#ifdef CALIBRATE
+  // Compute how many runs we need to do and warm up cache
+  long long warmup_cycles[1];
+  /* Start counting */
+  long long cycles = 0;
   while (num_runs < (1 << 14))
   {
-    start = start_tsc();
+    if ((retval = PAPI_start(WarmupEventSet)) != PAPI_OK)
+    {
+      ERROR_RETURN(retval);
+    }
+
     for (i = 0; i < num_runs; ++i)
     {
+
       floyd_warshall_all_pairs_shortest_paths(G, map, boost::weight_map(weights));
     }
-    cycles = stop_tsc(start);
+
+    /* Stop counting, this reads from the counter as well as stop it. */
+    if ((retval = PAPI_stop(WarmupEventSet, warmup_cycles)) != PAPI_OK)
+    {
+      ERROR_RETURN(retval);
+    }
+
+    cycles += warmup_cycles[0];
 
     if (cycles >= CYCLES_REQUIRED)
+    {
       break;
+    }
 
     num_runs *= 2;
+    if ((retval = PAPI_reset(WarmupEventSet)) != PAPI_OK)
+    {
+      ERROR_RETURN(retval);
+    }
   }
-#endif
 
-  fprintf(stderr, "#runs: ");
-  printf("%d\n", num_runs);
-
+  fprintf(stderr, "#runs: %d\n", num_runs);
   /*
    * Alternatives to the current approach:
    * - Measure #cycles for each run separately
    *  --> Suffers from timing bias and requires cache warmup
    *  --> Allows for more fine-grained statistics, e.g. median, variance, etc.
    */
+  /* Start counting */
+  if ((retval = PAPI_start(MeasurementEventSet)) != PAPI_OK)
+  {
+    ERROR_RETURN(retval);
+  }
 
-  start = start_tsc();
   for (i = 0; i < num_runs; ++i)
   {
     floyd_warshall_all_pairs_shortest_paths(G, map, boost::weight_map(weights));
   }
-  cycles = stop_tsc(start) / num_runs;
 
-  return cycles;
+  /* Stop counting, this reads from the counter as well as stop it. */
+  if ((retval = PAPI_stop(MeasurementEventSet, measured_values)) != PAPI_OK)
+  {
+    ERROR_RETURN(retval);
+  }
+
+  return num_runs;
 }
-#endif
 
 int main(int argc, char **argv)
 {
@@ -125,6 +159,40 @@ int main(int argc, char **argv)
     fprintf(stderr, "incorrect number of arguments\n");
     fprintf(stderr, "call as: ./main input_filename output_filename\n");
     return -1;
+  }
+
+  // setup PAPI
+  int retval;
+  int WarmupEventSet = PAPI_NULL;
+  int MeasurementEventSet = PAPI_NULL;
+  char errstring[PAPI_MAX_STR_LEN];
+  long long measured_values[NUM_EVENT];
+
+  if ((retval = PAPI_library_init(PAPI_VER_CURRENT)) != PAPI_VER_CURRENT)
+  {
+    fprintf(stderr, "Error: %s\n", errstring);
+    return 1;
+  }
+
+  /* Creating event set   */
+  if ((retval = PAPI_create_eventset(&MeasurementEventSet)) != PAPI_OK)
+  {
+    ERROR_RETURN(retval);
+  }
+  if ((retval = PAPI_create_eventset(&WarmupEventSet)) != PAPI_OK)
+  {
+    ERROR_RETURN(retval);
+  }
+
+  // add events to event sets
+  if ((retval = PAPI_add_event(WarmupEventSet, PAPI_TOT_CYC)) != PAPI_OK)
+  {
+    ERROR_RETURN(retval);
+  }
+
+  if ((retval = PAPI_add_events(MeasurementEventSet, event_codes, NUM_EVENT)) != PAPI_OK)
+  {
+    ERROR_RETURN(retval);
   }
 
   // read matrix
@@ -169,12 +237,38 @@ int main(int argc, char **argv)
 
   output_matrix(argv[2], dist, N);
 
-#ifdef __x86_64__
-  fprintf(stderr, "finding shortest paths...\n");
-  unsigned long long r = rdtsc(G, map, weights);
-  fprintf(stderr, "#cycles on avg: ");
-  printf("%llu\n", r);
-#endif
+  // run measurements
+  fprintf(stderr, "measuring shortest paths for n=%d\n", N);
+  int num_runs = measure(G, map, weights, WarmupEventSet, MeasurementEventSet, measured_values);
 
-  return 0;
+  // output measurements
+  printf("%d", num_runs);
+  for (int i = 0; i < NUM_EVENT; i++)
+  {
+    printf("\n%lld", measured_values[i] / num_runs);
+  }
+
+  /* Free all memory and data structures, EventSet must be empty. */
+  if ((retval = PAPI_cleanup_eventset(WarmupEventSet)) != PAPI_OK)
+  {
+    ERROR_RETURN(retval);
+  }
+  if ((retval = PAPI_cleanup_eventset(MeasurementEventSet)) != PAPI_OK)
+  {
+    ERROR_RETURN(retval);
+  }
+
+  if ((retval = PAPI_destroy_eventset(&WarmupEventSet)) != PAPI_OK)
+  {
+    ERROR_RETURN(retval);
+  }
+  if ((retval = PAPI_destroy_eventset(&MeasurementEventSet)) != PAPI_OK)
+  {
+    ERROR_RETURN(retval);
+  }
+
+  /* free the resources used by PAPI */
+  PAPI_shutdown();
+
+  return EXIT_SUCCESS;
 }

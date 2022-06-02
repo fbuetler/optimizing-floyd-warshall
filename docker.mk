@@ -206,7 +206,7 @@ fw-go-ref: shortest-path/go/*.go shortest-path/go/go.mod
 	cd shortest-path/go && go build -o ${BUILD_DIR}/fw_go-ref .
 
 # fw - boost ref
-fw-boost-ref: shortest-path/boost/*
+fw-boost-g++: shortest-path/boost/*
 	cd shortest-path/boost && g++ $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) main.cpp $(LDFLAGS)
 
 # fw - boost ref
