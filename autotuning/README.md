@@ -3,10 +3,10 @@
 ## Run
 
 ```bash
-python autotuning/fw-autotune.py \
+python3 autotuning/autotune.py \
     -p $PWD \
-    -l1 131072 \
-    -l2 1048576 \
+    -l2 262144 \
+    -algo mm \
     -n 256
 ```
 
