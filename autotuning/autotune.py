@@ -8,8 +8,8 @@ import subprocess
 import logging
 import csv
 
-DEBUG = False
-VALIDATING = False
+DEBUG = True
+VALIDATING = True
 
 logging.basicConfig(level=logging.DEBUG) if DEBUG else logging.basicConfig(level=logging.INFO)
 
@@ -121,8 +121,9 @@ def generate_fw(template_dir: str, output_dir: str, algorithm: str, form: str, v
     logging.info(f"generating source: {form} with {parameters}")
 
     context = dict()
+    context['vector'] = vectorized
     if form == 'FWI':
-        template_file = 'fw-unroll.py.j2'
+        template_file = 'fw-unroll-bitwise.py.j2' if algorithm == ALGORITHM_TC else 'fw-unroll.py.j2'
         (ui, uj) = parameters
         implementation = 'vector-unroll' if vectorized else 'unroll'
         param_implementation = f'{implementation}-{ui}-{uj}'
@@ -130,7 +131,7 @@ def generate_fw(template_dir: str, output_dir: str, algorithm: str, form: str, v
         context['unroll_i'] = ui
         context['unroll_j'] = uj
     elif form == 'FWIabc':
-        template_file = 'fw-unroll-abc.py.j2'
+        template_file = 'fw-unroll-abc-bitwise.py.j2' if algorithm == ALGORITHM_TC else 'fw-unroll-abc.py.j2'
         (uii, ujj, ukk) = parameters
         # HACK: Same filename as FWI file. Shouldn't matter because we only use this to find an initial value
         implementation = 'vector-unroll' if vectorized else 'unroll'
@@ -140,7 +141,7 @@ def generate_fw(template_dir: str, output_dir: str, algorithm: str, form: str, v
         context['unroll_jj'] = ujj
         context['unroll_kk'] = ukk
     elif form == 'FWT':
-        template_file = 'fw-tile.py.j2'
+        template_file = 'fw-tile-bitwise.py.j2' if algorithm == ALGORITHM_TC else 'fw-tile.py.j2'
         (l1, ui, uj, uii, ujj, ukk) = parameters
         implementation = 'vector-tiles' if vectorized else 'tile'
         param_implementation = f'{implementation}-{l1}-{ui}-{uj}-{uii}-{ujj}-{ukk}'
@@ -454,18 +455,24 @@ def optimize_fwt(project_root: str, algorithm: str, vectorized: bool, initial_gu
             if (
                 p_ind > 0 # neighbour exists
                 and curr_params[:i] + tuple([p_factors[p_ind - 1]]) + curr_params[i + 1:] not in visited # neighbour not visited
-                and ((p_factors[p_ind - 1] <= l1 and l1 % p_factors[p_ind - 1] == 0) if i!= 0 else True) # if unrollment: divides l1
+                and ((p_factors[p_ind - 1] <= l1 and l1 % p_factors[p_ind - 1] == 0) if i!= 0 else reduce(
+                    lambda x, u_factor: x & (u_factor <= p_factors[p_ind - 1]) & (p_factors[p_ind - 1] % u_factor == 0), tuple([True]) + curr_params[1:]
+                )) # ensure new parameters still divide l1
             ):
                 neighbours.append(curr_params[:i] + tuple([p_factors[p_ind - 1]]) + curr_params[i + 1:])
 
             if (
                 p_ind < len(p_factors) - 1 # neighbour exists
                 and curr_params[:i] + tuple([p_factors[p_ind + 1]]) + curr_params[i + 1:] not in visited # neighbour not visited
-                and ((p_factors[p_ind + 1] <= l1 and l1 % p_factors[p_ind + 1] == 0) if i!= 0 else True) # if unrollment: divides l1
+                and ((p_factors[p_ind + 1] <= l1 and l1 % p_factors[p_ind + 1] == 0) if i!= 0 else reduce(
+                    lambda x, u_factor: x & (u_factor <= p_factors[p_ind + 1]) & (p_factors[p_ind + 1] % u_factor == 0), tuple([True]) + curr_params[1:]
+                )) # ensure new parameters still divide l1
             ):
                 neighbours.append(curr_params[:i] + tuple([p_factors[p_ind + 1]]) + curr_params[i + 1:])
 
         return neighbours
+
+
 
     return find_local_optimum(project_root, algorithm, 'FWT', vectorized, input_size, initial_guess, find_neighbours)
 
@@ -494,15 +501,20 @@ def clean_files(project_root):
 def tune_em_all(project_root: str, algorithm: str, vectorized: bool, input_size: int, l2_cache_bytes: int):
     generate_main(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm)
 
-    (fwi_guess, fwiabc_guess) = ((4,4),(4,4,4))
-    (fwi_guess, fwiabc_guess) = find_initial_guess(project_root, algorithm, vectorized)
+    (fwi_guess, fwiabc_guess) = ((4,4),(4,4,64))
+    # (fwi_guess, fwiabc_guess) = find_initial_guess(project_root, algorithm, vectorized)
     logging.info('Done with step 1\n')
 
     factors = factors_of(input_size)
     fwi_optimal = optimize_fwi(project_root, algorithm, vectorized, fwi_guess, input_size, factors)
     logging.info('Done with step 2\n')
 
-    l1_guess = min(factors, key=lambda x: abs(x - int(math.sqrt(l2_cache_bytes))))
+    l1_guess = min(
+        # limit set of factors to those that are divisible by the unrollment factors
+        [f for f in factors if reduce(lambda x, u_factor: x & (f % u_factor == 0), tuple([True]) + fwi_guess + fwiabc_guess)],
+        key=lambda x: abs(x - int(math.sqrt(l2_cache_bytes/8)))
+    )
+
     fwt_optimal = optimize_fwt(project_root, algorithm, vectorized, tuple([l1_guess]) + fwi_guess + fwiabc_guess, input_size, factors)
     logging.info('Done with step 3\n')
 
