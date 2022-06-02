@@ -297,7 +297,7 @@ int main(int argc, char **argv)
             }
             else
             {
-                C[i * N + j] = 0.0;
+                C[i * N + j] = {{ neutral_element }};
             }
             fgetc(input_f); // skip ',' or '\n'
         }
