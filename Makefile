@@ -16,16 +16,16 @@ DOCKER_RUN_ARGS:=--rm ${BUILD_DIR_MOUNT} --privileged ${DOCKER_ENV_VARS} -t ${IM
 # Topmost rule must be to build the optimized C code
 
 # generic
-build-gg-c-vector-tiles-clang: docker generic/c/*.c generic/c/main.c generic/c/impl/vector-tiles*.c generic/c/impl/fw.h
+build-gg-c-vector-tiles-clang: docker generic/c/*.c generic/c/main.c generic/c/impl/*_vector-tiles*.c generic/c/impl/fw.h
 	docker run ${DOCKER_RUN_ARGS} make gg-c-vector-tiles-clang
 
-build-gg-c-tile-clang: docker generic/c/*.c generic/c/main.c generic/c/impl/tile*.c generic/c/impl/fw.h
+build-gg-c-tile-clang: docker generic/c/*.c generic/c/main.c generic/c/impl/*_tile*.c generic/c/impl/fw.h
 	docker run ${DOCKER_RUN_ARGS} make gg-c-tile-clang
 
-build-gg-c-vector-unroll-clang: docker generic/c/*.c generic/c/main.c generic/c/impl/vector-unroll*.c generic/c/impl/fw.h
+build-gg-c-vector-unroll-clang: docker generic/c/*.c generic/c/main.c generic/c/impl/*_vector-unroll*.c generic/c/impl/fw.h
 	docker run ${DOCKER_RUN_ARGS} make gg-c-vector-unroll-clang
 
-build-gg-c-unroll-clang: docker generic/c/*.c generic/c/main.c generic/c/impl/unroll*.c generic/c/impl/fw.h
+build-gg-c-unroll-clang: docker generic/c/*.c generic/c/main.c generic/c/impl/*_unroll*.c generic/c/impl/fw.h
 	docker run ${DOCKER_RUN_ARGS} make gg-c-unroll-clang
 
 # fw - vector tiled
