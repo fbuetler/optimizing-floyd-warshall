@@ -41,8 +41,8 @@ parser.add_argument(
     required=True,
 )
 parser.add_argument("-n", "--input-size", help="input size", type=int, required=True)
-# parser.add_argument("-n", "--min-n", help="minimum input size", type=int, required=True)
-# parser.add_argument("-N", "--max-n", help="maximum input size", type=int, required=True)
+# parser.add_argument("--min-n", help="minimum input size", type=int, required=True)
+# parser.add_argument("--max-n", help="maximum input size", type=int, required=True)
 parser.add_argument(
     "-vec",
     "--vectorized",
