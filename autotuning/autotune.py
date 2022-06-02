@@ -9,7 +9,7 @@ import logging
 import csv
 
 DEBUG = False
-VALIDATING = True
+VALIDATING = False
 
 logging.basicConfig(level=logging.DEBUG) if DEBUG else logging.basicConfig(level=logging.INFO)
 
@@ -53,7 +53,7 @@ parser.add_argument(
 COMPILER = "clang"
 C_FLAGS_SCALAR = "-O3 -fno-unroll-loops -fno-slp-vectorize"
 C_FLAGS_VECTOR = "-O3 -march=native -ffast-math"
-BENCH_INPUT_DIR = "bench-inputs"
+BENCH_INPUT_DIR = "test-inputs"
 TEMPLATE_DIR = 'autotuning/templates'
 SOURCE_DIR = 'generic/c/impl'
 DATA_DIR = 'measurements/data'
@@ -180,7 +180,7 @@ def generate_fw(template_dir: str, output_dir: str, algorithm: str, form: str, v
                 )
             )
 
-    return implementation, param_implementation
+    return implementation, param_implementation, output_fname
 
 def build_files(project_root: str, algorithm: str, implementation: str, compiler: str, c_flags: str) -> int:
     """ builds source file(s) as specified by the given parameters """
@@ -318,7 +318,7 @@ def find_best_neighbour(project_root: str, algorithm: str, form: str, vectorized
     param_impl_list = list()
     for parameters in parameter_list:
         # impl should be the same for each generated source file
-        impl, param_impl = generate_fw(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm, form, vectorized, COMPILER, c_flags, parameters)
+        impl, param_impl, _ = generate_fw(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm, form, vectorized, COMPILER, c_flags, parameters)
         param_impl_list.append((parameters, param_impl))
 
     # build source -'gg' for generic
@@ -383,8 +383,6 @@ def find_local_optimum(
     logging.info(f'Reached local maximum at {curr_choice}')
     return curr_choice
 
-# TODO: Now implement the actual search steps from the paper
-
 def find_initial_guess(project_root: str, algorithm: str, vectorized: bool) -> Tuple[Tuple[int, int], Tuple[int, int, int]]:
     """ Find best (Ui,Uj) for FWI and (Ui',Uj',Uk') for FWIabc for N = 64 as an initial guess for unrolling parameters """
     def exhaustive_FWI_search(curr_params: Tuple[int, int], visited: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
@@ -417,22 +415,59 @@ def optimize_fwi(project_root: str, algorithm: str, vectorized: bool, initial_gu
             neighbours = [curr_params]
         else:
             neighbours = []
+
+        uj_factors = [f for f in factors if f % 4 == 0] if vectorized else factors
+
         ui_ind = factors.index(ui)
-        uj_ind = factors.index(uj)
+        uj_ind = uj_factors.index(uj)
 
         if ui_ind > 0 and (factors[ui_ind - 1], uj) not in visited:
             neighbours.append((factors[ui_ind - 1], uj))
         if ui_ind < len(factors) - 1 and (factors[ui_ind + 1], uj) not in visited:
             neighbours.append((factors[ui_ind + 1], uj))
 
-        if uj_ind > 0 and (ui, factors[uj_ind - 1]) not in visited:
-            neighbours.append((ui, factors[uj_ind - 1]))
-        if uj_ind < len(factors) - 1 and (ui, factors[uj_ind + 1]) not in visited:
-            neighbours.append((ui, factors[uj_ind + 1]))
+        if uj_ind > 0 and (ui, uj_factors[uj_ind - 1]) not in visited:
+            neighbours.append((ui, uj_factors[uj_ind - 1]))
+        if uj_ind < len(uj_factors) - 1 and (ui, uj_factors[uj_ind + 1]) not in visited:
+            neighbours.append((ui, uj_factors[uj_ind + 1]))
 
         return neighbours
 
     return find_local_optimum(project_root, algorithm, 'FWI', vectorized, input_size, initial_guess, find_neighbours)
+
+def optimize_fwt(project_root: str, algorithm: str, vectorized: bool, initial_guess: Tuple[int, int], input_size: int, factors: List[int]) -> Tuple[int, int]:
+    """ Further optimize an initial guess for FWI """
+    def find_neighbours(curr_params: Tuple[int, int, int, int, int, int], visited: List[Tuple[int, int, int, int, int, int]]) -> List[Tuple[int, int, int, int, int, int]]:
+        # use factors of n as possible unrollment factors
+        (l1, _, _, _, _, _) = curr_params
+        if visited == []:
+            neighbours = [curr_params]
+        else:
+            neighbours = []
+
+        for i, p in enumerate(curr_params):
+
+            # if column unrollment and vectorized, multiple of 4
+            p_factors = [f for f in factors if f % 4 == 0] if (vectorized and (i==2 or i==4)) else factors
+            p_ind = p_factors.index(p)
+
+            if (
+                p_ind > 0 # neighbour exists
+                and curr_params[:i] + tuple([p_factors[p_ind - 1]]) + curr_params[i + 1:] not in visited # neighbour not visited
+                and ((p_factors[p_ind - 1] <= l1 and l1 % p_factors[p_ind - 1] == 0) if i!= 0 else True) # if unrollment: divides l1
+            ):
+                neighbours.append(curr_params[:i] + tuple([p_factors[p_ind - 1]]) + curr_params[i + 1:])
+
+            if (
+                p_ind < len(p_factors) - 1 # neighbour exists
+                and curr_params[:i] + tuple([p_factors[p_ind + 1]]) + curr_params[i + 1:] not in visited # neighbour not visited
+                and ((p_factors[p_ind + 1] <= l1 and l1 % p_factors[p_ind + 1] == 0) if i!= 0 else True) # if unrollment: divides l1
+            ):
+                neighbours.append(curr_params[:i] + tuple([p_factors[p_ind + 1]]) + curr_params[i + 1:])
+
+        return neighbours
+
+    return find_local_optimum(project_root, algorithm, 'FWT', vectorized, input_size, initial_guess, find_neighbours)
 
 def factors_of(n):
     """ utility function to compute all divisors of n """
@@ -459,6 +494,7 @@ def clean_files(project_root):
 def tune_em_all(project_root: str, algorithm: str, vectorized: bool, input_size: int, l2_cache_bytes: int):
     generate_main(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm)
 
+    (fwi_guess, fwiabc_guess) = ((4,4),(4,4,4))
     (fwi_guess, fwiabc_guess) = find_initial_guess(project_root, algorithm, vectorized)
     logging.info('Done with step 1\n')
 
@@ -466,114 +502,28 @@ def tune_em_all(project_root: str, algorithm: str, vectorized: bool, input_size:
     fwi_optimal = optimize_fwi(project_root, algorithm, vectorized, fwi_guess, input_size, factors)
     logging.info('Done with step 2\n')
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++
+    l1_guess = min(factors, key=lambda x: abs(x - int(math.sqrt(l2_cache_bytes))))
+    fwt_optimal = optimize_fwt(project_root, algorithm, vectorized, tuple([l1_guess]) + fwi_guess + fwiabc_guess, input_size, factors)
+    logging.info('Done with step 3\n')
 
+    clean_files(project_root)
+    _, _, outpath_fwi = generate_fw(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm, 'FWI', vectorized, COMPILER, C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR, fwi_optimal)
+    _, _, outpath_fwt = generate_fw(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm, 'FWT', vectorized, COMPILER, C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR, fwt_optimal)
 
-def tile_l2_hill_climbing(
-    project_root, algorithm, input_size, l2_cache_bytes, ui, uj, is_debug_run=False
-):
-    input_size = input_size if not is_debug_run else 48
+    logging.info(f'''
 
-    factors = factors_of(input_size)
-    logging.info(f"factors: {factors}")
+    Optimal parameters for N = {input_size}:
+        - FWI (Ui,Uj): {fwi_optimal}
+        - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): {fwt_optimal}
 
-    t2 = min(factors, key=lambda x: abs(x - int(math.sqrt(l2_cache_bytes))))
+    Source files were generated accordingly and stored at:
+        - {outpath_fwi}
+        - {outpath_fwt}
+    respectively.
 
-    if is_debug_run:
-        t2 = 12
-
-    if t2 == 0:
-        raise Exception("heuristic makes no sense")
-
-    visited = set()
-    start_rock = f"ui{ui}_uj{uj}_ti{t2}_tj{t2}"
-    visited.add(start_rock)
-    logging.info("taking first measurement for hill climbing")
-    start_set = list()
-    start_set.append((ui, uj, t2, t2))
-    _, _, _, _, best_perf = get_best_perf(
-        project_root,
-        algorithm,
-        input_size,
-        BENCH_INPUT,
-        start_set)
-    while True:
-        logging.info(f"climing hill around unrollement ({ui}, {uj}), tile ({t2})")
-        unroll_tile_list = list()
-        for i in range(ui - 2, ui + 3):
-            for j in range(uj - 1, uj + 3):
-                if i == ui and j == uj:
-                    # skip the rock we are standing on
-                    continue
-                if i < 1 or j < 1:
-                    # skip unrollment factors that make no sense
-                    continue
-                if (i > 1 and i % 2 != 0) or (j > 1 and j % 2 != 0):
-                    # skip odd unrolling factors greater than 1
-                    continue
-
-                fi = factors.index(t2)
-                for t in [
-                    factors[i] for i in [max(0, fi - 1), min(fi + 1, len(factors) - 1)]
-                ]:
-                    if t < 1:
-                        # skip unrollment factors that make no sense
-                        logging.debug(
-                            "skipping rock: unrollment factor would make no sense"
-                        )
-                        continue
-
-                    if i > t or j > t:
-                        # tile size should ALWAYS be larger than the unrolling factor
-                        logging.debug(
-                            "skipping rock: tile size should be larger than unrolling factor"
-                        )
-                        continue
-
-                    if t > input_size:
-                        # tile size cannot be large than the testcase size
-                        logging.debug(
-                            "skipping rock: tile size cannot be larger than the testcase"
-                        )
-                        continue
-
-                    # dont climb the same rock twice
-                    rock = f"ui{i}_uj{j}_ti{t}_tj{t}"
-                    if rock in visited:
-                        continue
-
-                    visited.add(rock)
-
-                    # we use only squared tiles here
-                    unroll_tile_list.append((i, j, t, t))
-
-        if len(unroll_tile_list) == 0:
-            logging.info(f"all visited:\n{visited}")
-            break
-
-        next_ui, next_uj, next_ti, next_tj, curr_perf = get_best_perf(
-            project_root,
-            algorithm,
-            input_size,
-            BENCH_INPUT,
-            unroll_tile_list,
-        )
-        if best_perf > curr_perf or (next_ui == ui and next_uj == uj and next_ti == t2):
-            break
-        ui = next_ui
-        uj = next_uj
-        t2 = next_ti
-        best_perf = curr_perf
-
-    logging.info(f"reached top with  unrollment ({ui}, {uj}), tile ({t2}, {t2})")
-    return ui, uj
+    NOTE: Don't rerun this script unless you want to overwrite the generated files!
+    ''')
 
 if __name__ == "__main__":
     args = parser.parse_args()
     tune_em_all(args.project_root, args.algorithm, args.vectorized, args.input_size, args.l2_cache)
-    # generate_optimal_source(
-    #     args.project_root,
-    #     args.input_size,
-    #     args.l2_cache,
-    #     args.algorithm,
-    # )
