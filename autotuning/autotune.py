@@ -1,4 +1,5 @@
 import argparse
+from functools import reduce
 import math
 from os import path
 from typing import List, Tuple, Callable
@@ -42,20 +43,16 @@ parser.add_argument(
 parser.add_argument("-n", "--input-size", help="input size", type=int, required=True)
 # parser.add_argument("-n", "--min-n", help="minimum input size", type=int, required=True)
 # parser.add_argument("-N", "--max-n", help="maximum input size", type=int, required=True)
-# parser.add_argument(
-#     "-vec",
-#     "--vectorize",
-#     help="generated code should use vector instructions",
-#     action="store_true",
-# )
+parser.add_argument(
+    "-vec",
+    "--vectorized",
+    help="generated code should use vector instructions",
+    action="store_true",
+)
 
-IMPLEMENTATION = "c-autotune"
 COMPILER = "clang"
-OPT_FLAGS = "-O3 -fno-tree-vectorize"
-C_FLAGS_SCALAR = "-O3 -fno-slp-vectorize"
+C_FLAGS_SCALAR = "-O3 -fno-unroll-loops -fno-slp-vectorize"
 C_FLAGS_VECTOR = "-O3 -march=native -ffast-math"
-TEST_INPUT = "test-inputs"
-BENCH_INPUT = "bench-inputs"
 BENCH_INPUT_DIR = "bench-inputs"
 TEMPLATE_DIR = 'autotuning/templates'
 SOURCE_DIR = 'generic/c/impl'
@@ -82,7 +79,39 @@ def render_jinja_template(template_loc: str, file_name: str, **context) -> str:
         .render(context)
     )
 
-def generate_fwi(template_dir: str, output_dir: str, algorithm: str, form: str, vectorized: bool, compiler: str, c_flags: str, parameters: Tuple[int, int]) -> str:
+def generate_main(template_dir: str, output_dir: str, algorithm: str) -> str:
+    """ Generates the main.c source required to run the generated implementations with the neutral element
+        and datatype specified.
+    """
+    logging.info(f"generating main.c for {algorithm}")
+
+    template_file = 'fw-main.py.j2'
+    output_fname = f"{output_dir}/../main.c"
+
+    context = dict()
+    if algorithm == ALGORITHM_FW:
+        context["algorithm"] = "sp"
+        context["datatype"] = "double"
+        context["neutral_element"] = 'INFINITY'
+    elif algorithm == ALGORITHM_MM:
+        context["algorithm"] = "mm"
+        context["datatype"] = "double"
+        context["neutral_element"] = 0.0
+    elif algorithm == ALGORITHM_TC:
+        context["algorithm"] = "tc"
+        context["datatype"] = "char"
+        context["neutral_element"] = 0
+
+    with open(output_fname, mode="w", encoding="utf-8") as f:
+            f.write(
+                render_jinja_template(
+                    f"{template_dir}",
+                    template_file,
+                    **context,
+                )
+            )
+
+def generate_fw(template_dir: str, output_dir: str, algorithm: str, form: str, vectorized: bool, compiler: str, c_flags: str, parameters: Tuple[int, int]) -> str:
     """ Generates a FW source file and returns the implementation and more specific (parametrized) name.
 
         Form needs to be one of 'FWI', 'FWIabc' or 'FWT', requiring parameters
@@ -105,7 +134,7 @@ def generate_fwi(template_dir: str, output_dir: str, algorithm: str, form: str, 
         (uii, ujj, ukk) = parameters
         # HACK: Same filename as FWI file. Shouldn't matter because we only use this to find an initial value
         implementation = 'vector-unroll' if vectorized else 'unroll'
-        param_implementation = f'{implementation}-{ui}-{uj}'
+        param_implementation = f'{implementation}-{uii}-{ujj}-{ukk}'
         output_fname = f"{output_dir}/{algorithm}_{param_implementation}_{compiler}_{c_flags.replace(' ', '_')}.c"
         context['unroll_ii'] = uii
         context['unroll_jj'] = ujj
@@ -155,28 +184,27 @@ def generate_fwi(template_dir: str, output_dir: str, algorithm: str, form: str, 
 
 def build_files(project_root: str, algorithm: str, implementation: str, compiler: str, c_flags: str) -> int:
     """ builds source file(s) as specified by the given parameters """
-
     build_cmd = [
         "make",
         "-C",
         f"{project_root}",
-        f"build-{algorithm}-{implementation}-{compiler}",
+        f"build-{algorithm}-c-{implementation}-{compiler}",
         "-e",
         f"CFLAGS_DOCKER={c_flags}",
     ]
 
     logging.debug(" ".join(build_cmd))
-    result = subprocess.run(build_cmd)
+    result = subprocess.run(build_cmd, stdout=subprocess.DEVNULL)
     return result.returncode
 
-def validate_fwi(
-    project_root: str, algorithm: str, p_impl: str, n_factor: int, compiler: str, c_flags: str
+def validate_fw(
+    project_root: str, algorithm: str, p_impl: str, n_factors: List[int], compiler: str, c_flags: str
 ) -> int:
     logging.info(f"validating code for: {p_impl}")
 
     testcases = list()
-    for n in [4, 8, 16, 30, 32, 512, 1152]:
-        if n % n_factor == 0:
+    for n in [4, 8, 16, 30, 32, 512]:
+        if len(testcases) < 3 and reduce(lambda x, n_factor: x & (n % n_factor == 0), [True] + n_factors):
             testcases.append(f"n{n}")
 
     if len(testcases) == 0:
@@ -208,7 +236,7 @@ def validate_fwi(
 
     return 0
 
-def measure_fwi(
+def measure_fw(
     project_root: str,
     algorithm: str,
     implementation: str,
@@ -233,7 +261,7 @@ def measure_fwi(
     ]
 
     logging.debug(" ".join(measure_cmd))
-    result = subprocess.run(measure_cmd, capture_output=False, text=True)
+    result = subprocess.run(measure_cmd, stdout=subprocess.DEVNULL, capture_output=False, text=True)
 
     logging.debug(result.stdout)
     if result.returncode != 0:
@@ -251,9 +279,9 @@ def get_perf(
     test_input_dir: str,
     input_size: str,
 ) -> float:
-    """ finds the performance for a specific implementation incl. parameters """
+    """ reads the performance of a specified implementation from a data csv file and returns it in flops/cycle """
 
-    logging.info(f"processing data: {p_impl}")
+    logging.info(f"processing performance data for: {p_impl}")
     data_fname = f"{data_dir}/{algorithm}_{p_impl}_{compiler}_{c_flags.replace(' ', '_')}_{test_input_dir}.csv"
     with open(data_fname) as f:
         reader = csv.reader(f, delimiter=",", quoting=csv.QUOTE_NONNUMERIC)
@@ -290,25 +318,25 @@ def find_best_neighbour(project_root: str, algorithm: str, form: str, vectorized
     param_impl_list = list()
     for parameters in parameter_list:
         # impl should be the same for each generated source file
-        impl, param_impl = generate_fwi(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm, form, vectorized, COMPILER, c_flags, parameters)
+        impl, param_impl = generate_fw(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm, form, vectorized, COMPILER, c_flags, parameters)
         param_impl_list.append((parameters, param_impl))
 
-    # build source
-    retcode = build_files(project_root, algorithm, impl, COMPILER, c_flags)
+    # build source -'gg' for generic
+    retcode = build_files(project_root, 'gg', impl, COMPILER, c_flags)
     if retcode != 0:
         raise Exception(f"Building {impl} failed")
 
     max_perf = -1
 
     for params, p_impl in param_impl_list:
-        if VALIDATING:
+        if VALIDATING and form != 'FWIabc':
             # validate correctness of neighbour
-            retcode = validate_fwi(project_root, algorithm, p_impl, 0, COMPILER, c_flags)
+            retcode = validate_fw(project_root, algorithm, p_impl, list(params), COMPILER, c_flags)
             if retcode != 0:
                 raise Exception(f"Validating {p_impl} failed")
 
         # measure performance
-        retcode = measure_fwi(project_root, algorithm, p_impl, COMPILER, c_flags, test_input_dir, input_size)
+        retcode = measure_fw(project_root, algorithm, p_impl, COMPILER, c_flags, test_input_dir, input_size)
         if retcode != 0:
             raise Exception(f"Running {p_impl} failed")
 
@@ -338,7 +366,8 @@ def find_local_optimum(
     curr_choice = initial_values
     curr_perf = -1.0
     while True:
-        logging.info(f'Climbing around parameters {curr_choice}')
+        clean_files(project_root) # save build time by always cleaning up
+        logging.info(f'===== Climbing around parameters {curr_choice} =====')
         neighbours = find_neighbours(curr_choice, visited)
         if neighbours == []:
             logging.info('No more neighbours to visit')
@@ -367,21 +396,22 @@ def find_initial_guess(project_root: str, algorithm: str, vectorized: bool) -> T
     def exhaustive_FWIabc_search(curr_params: Tuple[int, int, int], visited: List[Tuple[int, int, int]]) -> List[Tuple[int, int, int]]:
         if visited == []:
             return [(2**i,2**j,1) for i in range(5) for j in (range(2,7) if vectorized else range(7))]
-        elif (1,1,2) not in visited:
+        elif any([k != 1 for (_,_,k) in visited]):
+            return []
+        else:
             (uii, ujj, _) = curr_params
             return [(uii,ujj,2**k) for k in range(6)]
-        else:
-            return []
 
     fwi_guess = find_local_optimum(project_root, algorithm, 'FWI', vectorized, 64, (0,0), exhaustive_FWI_search)
+    logging.info(f'found initial guess (Ui,Uj) for FWI: {fwi_guess}')
     fwiabc_guess = find_local_optimum(project_root, algorithm, 'FWIabc', vectorized, 64, (0,0,0), exhaustive_FWIabc_search)
-
+    logging.info(f"found initial guess (Ui',Uj',Uk') for FWIabc: {fwiabc_guess}")
     return fwi_guess, fwiabc_guess
 
 def optimize_fwi(project_root: str, algorithm: str, vectorized: bool, initial_guess: Tuple[int, int], input_size: int, factors: List[int]) -> Tuple[int, int]:
     """ Further optimize an initial guess for FWI """
     def find_neighbours(curr_params: Tuple[int, int], visited: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
-        # use factors of n to compute possible unrollment factors
+        # use factors of n as possible unrollment factors
         (ui,uj) = curr_params
         if visited == []:
             neighbours = [curr_params]
@@ -404,354 +434,39 @@ def optimize_fwi(project_root: str, algorithm: str, vectorized: bool, initial_gu
 
     return find_local_optimum(project_root, algorithm, 'FWI', vectorized, input_size, initial_guess, find_neighbours)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-def measure_fw(
-    project_root,
-    algorithm,
-    implementation,
-    compiler,
-    opt_flags,
-    test_input,
-    input_size,
-    unroll_tile_list,
-):
-    for ui, uj, ti, tj in unroll_tile_list:
-        logging.info(f"measuring code: unroll ({ui}, {uj}), tile ({ti}, {tj})")
-        measure_cmd = [
-            "bash",
-            f"{project_root}/team7.sh",
-            "measure",
-            f"{algorithm}",
-            f"{implementation}-ui{ui}-uj{uj}-ti{ti}-tj{tj}",
-            f"{compiler}",
-            f"{opt_flags}",
-            f"{test_input}",
-            f"n{input_size}",
-        ]
-
-        logging.debug(" ".join(measure_cmd))
-        result = subprocess.run(measure_cmd, capture_output=False, text=True)
-        logging.debug(result.stdout)
-        if result.returncode != 0:
-            logging.error(result.stderr)
-            return result.returncode
-
-    return 0
-
-def generate_fw(
-    inpath,
-    outpath,
-    algorithm,
-    implementation,
-    compiler,
-    opt_flags_raw,
-    unroll_tile_list,
-):
-    opt_flags = opt_flags_raw.replace(" ", "_")
-
-    generated_files = list()
-    for ui, uj, ti, tj in unroll_tile_list:
-        logging.info(f"generating code: unroll ({ui}, {uj}), tile ({ti}, {tj})")
-        output_fname = f"{outpath}/{algorithm}_{implementation}-ui{ui}-uj{uj}-ti{ti}-tj{tj}_{compiler}_{opt_flags}.c"
-
-        context = dict()
-        context["unroll_i"] = ui
-        context["unroll_j"] = uj
-        context["tilesizei"] = ti
-        context["tilesizej"] = tj
-
-        if algorithm == ALGORITHM_FW:
-            context["algorithm"] = "sp"
-            context["datatype"] = "double"
-            context["outer_op"] = "MIN"
-            context["inner_op"] = "ADD"
-        elif algorithm == ALGORITHM_MM:
-            context["algorithm"] = "mm"
-            context["datatype"] = "double"
-            context["datatype"] = "double"
-            context["outer_op"] = "MAX"
-            context["inner_op"] = "MIN"
-        elif algorithm == ALGORITHM_TC:
-            context["algorithm"] = "tc"
-            context["datatype"] = "char"
-            context["outer_op"] = "OR"
-            context["inner_op"] = "AND"
-        else:
-            raise Exception("Unkown algorihtm")
-
-        with open(output_fname, mode="w", encoding="utf-8") as f:
-            f.write(
-                render_jinja_template(
-                    f"{inpath}",
-                    f"mighty-unroll-tile.py.j2",
-                    **context,
-                )
-            )
-        generated_files.append(output_fname)
-
-    return generated_files
-
-
-
-
-
-def validate_fw(
-    project_root, algorithm, implementation, compiler, opt_flags, unroll_tile_list
-):
-    for ui, uj, ti, tj in unroll_tile_list:
-        logging.info(f"validating code: unroll ({ui}, {uj}), tile ({ti}, {tj})")
-
-        testcases = list()
-        for n in [4, 8, 16, 30, 32]:
-            if (ti == "N" or n % ti == 0) and (tj == "N" or n % tj == 0):
-                testcases.append(f"n{n}")
-
-        if len(testcases) == 0:
-            # TODO
-            logging.warning("Skipping validation as there are no fiting testcases")
-            continue
-
-        validate_cmd = [
-            "bash",
-            f"{project_root}/team7.sh",
-            "validate",
-            f"{algorithm}",
-            f"{implementation}-ui{ui}-uj{uj}-ti{ti}-tj{tj}",
-            f"{compiler}",
-            f"{opt_flags}",
-            f"{','.join(testcases)}",
-        ]
-
-        logging.debug(" ".join(validate_cmd))
-        result = subprocess.run(
-            validate_cmd,
-            text=True,
-            capture_output=True,
-        )
-        logging.debug(result.stdout)
-        if result.returncode != 0:
-            logging.error(result.stderr)
-            return result.returncode
-
-    return 0
-
-
-
-
-
-def get_optimal_perf(
-    data_root,
-    algorithm,
-    implementation,
-    compiler,
-    opt_flags_raw,
-    test_input,
-    input_size,
-    unroll_tile_list,
-):
-    opt_flags = opt_flags_raw.replace(" ", "_")
-
-    ui_opt = 0
-    uj_opt = 0
-    ti_opt = 0
-    tj_opt = 0
-    p_opt = 0
-
-    for ui, uj, ti, tj in unroll_tile_list:
-        logging.info(f"processing data: unroll ({ui}, {uj}), tile ({ti}, {tj})")
-        data_fname = f"{data_root}/{algorithm}_{implementation}-ui{ui}-uj{uj}-ti{ti}-tj{tj}_{compiler}_{opt_flags}_{test_input}.csv"
-        with open(data_fname) as f:
-            reader = csv.reader(f, delimiter=",", quoting=csv.QUOTE_NONNUMERIC)
-            n_list = reader.__next__()
-            runs_list = reader.__next__()
-            cycles_list = reader.__next__()
-
-            n_ref = -1
-            for i, n in enumerate(n_list):
-                if n == input_size:
-                    n_ref = i
-                    break
-
-            if n_ref == -1:
-                logging.error("required column not found")
-                raise Exception("failed to get optimal perf")
-
-            c_ref = cycles_list[n_ref]
-            p_ref = round((2 * n * n * n) / c_ref, 2)
-
-            logging.debug(
-                f"performance for unroll ({ui}, {uj}), tile ({ti}, {tj})= {p_ref}"
-            )
-
-            if p_ref > p_opt:
-                p_opt = p_ref
-                ui_opt = ui
-                uj_opt = uj
-                ti_opt = ti
-                tj_opt = tj
-
-    return (ui_opt, uj_opt, ti_opt, tj_opt, p_opt)
-
-
-def get_best_perf(project_root, algorithm, input_size, input, unroll_tile_list):
-
-    clean_files(project_root)
-
-    generated_files = generate_fw(
-        f"{project_root}/autotuning",
-        f"{project_root}/autotuning/generated/{algorithm}",
-        algorithm,
-        IMPLEMENTATION,
-        COMPILER,
-        OPT_FLAGS,
-        unroll_tile_list,
-    )
-    if len(generated_files) == 0:
-        raise Exception("Generate files failed")
-
-    # build all generated files
-    retcode = build_files(project_root, algorithm, IMPLEMENTATION, COMPILER, OPT_FLAGS)
-    if retcode != 0:
-        raise Exception("Build files failed")
-
-    # validate all built files
-    retcode = validate_fw(
-        project_root, algorithm, IMPLEMENTATION, COMPILER, OPT_FLAGS, unroll_tile_list
-    )
-    if retcode != 0:
-        raise Exception("Validate files failed")
-
-    # measure all validates files
-    retcode = measure_fw(
-        project_root,
-        algorithm,
-        IMPLEMENTATION,
-        COMPILER,
-        OPT_FLAGS,
-        input,
-        input_size,
-        unroll_tile_list,
-    )
-    if retcode != 0:
-        raise Exception("Measure files failed")
-
-    # use measurements as feedback
-    opt_ui, opt_uj, opt_ti, opt_tj, p_opt = get_optimal_perf(
-        f"{project_root}/measurements/data",
-        algorithm,
-        IMPLEMENTATION,
-        COMPILER,
-        OPT_FLAGS,
-        input,
-        input_size,
-        unroll_tile_list,
-    )
-    logging.info(
-        f"optimal performance with:\nunrollment: ({opt_ui}, {opt_uj})\ntile: ({opt_ti}, {opt_tj})\nperformance: {p_opt}"
-    )
-
-    return (opt_ui, opt_uj, opt_ti, opt_tj, p_opt)
-
-
-def unrollment_initial_guess(project_root, algorithm, is_debug_run=False):
-    min_ui = 1
-    max_ui = 16
-    min_uj = 1
-    max_uj = 32
-
-    if is_debug_run:
-        min_ui = 4
-        max_ui = 6
-        min_uj = 4
-        max_uj = 6
-
-    unroll_tile_list = list()
-    for i in range(min_ui, max_ui + 1):
-        for j in range(min_uj, max_uj + 1):
-            unroll_tile_list.append((i, j, "N", "N"))
-
-    ui, uj, ti, tj, _ = get_best_perf(
-        project_root,
-        algorithm,
-        96 if not is_debug_run else 32,
-        BENCH_INPUT if not is_debug_run else TEST_INPUT,
-        unroll_tile_list,
-    )
-
-    return ui, uj
-
-
-def find_local_optimum(
-    project_root, algorithm, input_size, ui, uj, is_debug_run=False
-):
-    visited = set()
-    start_rock = f"ui{ui}_uj{uj}_tiN_tjN"
-    visited.add(start_rock)
-    logging.info("taking first measurement for hill climbing")
-    start_set = list()
-    start_set.append((ui, uj, "N", "N"))
-    _, _, _, _, best_perf = get_best_perf(
-        project_root,
-        algorithm,
-        input_size,
-        BENCH_INPUT,
-        start_set)
-    best_perf = 0
-    while True:
-        logging.info(f"climing hill around unrollment ({ui}, {uj})")
-
-        curr_perf = 0
-        unroll_tile_list = list()
-        for i in range(ui - 2, ui + 3):
-            for j in range(uj - 2, uj + 3):
-                if i == ui and j == uj:
-                    # skip the rock we are standing on
-                    continue
-                if i < 1 or j < 1:
-                    # skip unrollment factors that make no sense
-                    continue
-                if (i > 1 and i % 2 != 0) or (j > 1 and j % 2 != 0):
-                    # skip odd unrolling factors greater than 1
-                    continue
-                unroll_tile_list.append((i, j, "N", "N"))
-
-                # dont climb the same rock twice
-                rock = f"ui{i}_uj{j}_tiN_tjN"
-                if rock in visited:
-                    continue
-
-                visited.add(rock)
-
-        if len(unroll_tile_list) == 0:
-            logging.info(f"all visited:\n{visited}")
-            break
-
-        next_ui, next_uj, next_ti, next_tj, curr_perf = get_best_perf(
-            project_root,
-            algorithm,
-            input_size if not is_debug_run else 48,
-            BENCH_INPUT,
-            unroll_tile_list,
-        )
-        if best_perf > curr_perf or (next_ui == ui and next_uj == uj):
-            logging.info(f"reached local maximum with ({ui}, {uj}) ({best_perf}flops)")
-            break
-        ui = next_ui
-        uj = next_uj
-        best_perf = curr_perf
-
-    logging.info(f"reached top ({ui}, {uj})")
-    return ui, uj
-
-
 def factors_of(n):
+    """ utility function to compute all divisors of n """
     factors = [1]
     for i in range(2, int(math.sqrt(n)) + 1):
         if n % i == 0:
             factors.extend([i, n // i])
     factors.append(n)
     return sorted(list(set(factors)))
+
+def clean_files(project_root):
+    """ utility function to clean all build and auto-generated files """
+    clean_cmd = [
+        "bash",
+        f"{project_root}/team7.sh",
+        "clean",
+    ]
+
+    logging.debug(" ".join(clean_cmd))
+    result = subprocess.run(clean_cmd, stdout=subprocess.DEVNULL)
+    return result.returncode
+
+
+def tune_em_all(project_root: str, algorithm: str, vectorized: bool, input_size: int, l2_cache_bytes: int):
+    generate_main(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm)
+
+    (fwi_guess, fwiabc_guess) = find_initial_guess(project_root, algorithm, vectorized)
+    logging.info('Done with step 1\n')
+
+    factors = factors_of(input_size)
+    fwi_optimal = optimize_fwi(project_root, algorithm, vectorized, fwi_guess, input_size, factors)
+    logging.info('Done with step 2\n')
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 def tile_l2_hill_climbing(
@@ -853,47 +568,12 @@ def tile_l2_hill_climbing(
     logging.info(f"reached top with  unrollment ({ui}, {uj}), tile ({t2}, {t2})")
     return ui, uj
 
-
-def generate_optimal_source(project_root, input_size, l2_cache_bytes, algorithm):
-
-    # find initial guess of unrolling parameters:
-    # TODO: (Ui,Uj) for FWI with N = 64
-    # TODO: (Ui',Uj',Uk') for FWIabc with N = 64
-
-    # exhaustive search with test input
-    #initial_ui, initial_uj = unrollment_initial_guess(
-    #    project_root, algorithm, is_debug_run=debug
-    #)
-
-    # optimize FWI
-
-    # optimize FWT
-
-    ## hill climbing search with bench input
-    initial_ui = 8
-    initial_uj = 1
-    refined_ui, refined_uj = find_local_optimum(
-        project_root, algorithm, input_size, initial_ui, initial_uj, is_debug_run=DEBUG
-    )
-
-    #refined_ui = 10
-    #refined_uj = 1
-    tile_l2_hill_climbing(
-        project_root,
-        algorithm,
-        input_size,
-        l2_cache_bytes,
-        refined_ui,
-        refined_uj,
-        is_debug_run=DEBUG,
-    )
-
-
 if __name__ == "__main__":
     args = parser.parse_args()
-    generate_optimal_source(
-        args.project_root,
-        args.input_size,
-        args.l2_cache,
-        args.algorithm,
-    )
+    tune_em_all(args.project_root, args.algorithm, args.vectorized, args.input_size, args.l2_cache)
+    # generate_optimal_source(
+    #     args.project_root,
+    #     args.input_size,
+    #     args.l2_cache,
+    #     args.algorithm,
+    # )
