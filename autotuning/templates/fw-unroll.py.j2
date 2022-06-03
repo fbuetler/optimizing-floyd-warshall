@@ -1,3 +1,5 @@
+#include <immintrin.h>
+
 #include "fw.h"
 
 // iterative FW algorithm (FWI)
@@ -12,9 +14,9 @@ int FWI(double *A, double *B, double *C, int N)
         {
             {% for u_i in range(unroll_i) -%}
             {% if vector -%}
-            {{ "__m256d a{}k = _mm256_broadcast_sd(&A[(i + {}) * N + k]);".format(u_i, u_i) }}
+            {{ "__m256d a_i{}_k = _mm256_broadcast_sd(&A[(i + {}) * N + k]);".format(u_i, u_i) }}
             {% else -%}
-            {{ "double a{}k = A[(i + {}) * N + k];".format(u_i, u_i) }}
+            {{ "double a_i{}_k = A[(i + {}) * N + k];".format(u_i, u_i) }}
             {% endif -%}
             {% endfor -%}
             for (int j = 0; j < N - {{ unroll_j - 1 }}; j += {{ unroll_j }})
@@ -23,22 +25,22 @@ int FWI(double *A, double *B, double *C, int N)
                 {% for u_i in range(unroll_i) -%}
                 {% if vector -%}
                 {% for u_j in range(0, unroll_j, 4) -%}
-                {{ "__m256d c{}{} = _mm256_load_pd(&C[(i + {}) * N + j + {}]);".format(u_i, u_j, u_i, u_j) }}
+                {{ "__m256d c_i{}_j{} = _mm256_load_pd(&C[(i + {}) * N + j + {}]);".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_j) -%}
-                {{ "double c{}{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
+                {{ "double c_i{}_j{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% endif -%}
                 {% endfor %}
 
                 {% if vector -%}
                 {% for u_j in range(0, unroll_j, 4) -%}
-                {{ "__m256d bk{} = _mm256_load_pd(&B[k * N + j + {}]);".format(u_j, u_j) }}
+                {{ "__m256d b_k_j{} = _mm256_load_pd(&B[k * N + j + {}]);".format(u_j, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_j) -%}
-                {{ "double bk{} = B[k * N + j + {}];".format(u_j, u_j) }}
+                {{ "double b_k_j{} = B[k * N + j + {}];".format(u_j, u_j) }}
                 {% endfor -%}
                 {% endif %}
 
@@ -46,11 +48,11 @@ int FWI(double *A, double *B, double *C, int N)
                 {% for u_i in range(unroll_i) -%}
                 {% if vector -%}
                 {% for u_j in range(0, unroll_j, 4) -%}
-                {{ "__m256d res{}{} = V{}(a{}k, bk{});".format(u_i, u_j, inner_op, u_i, u_j) }}
+                {{ "__m256d res_i{}_j{} = V{}(a_i{}_k, b_k_j{});".format(u_i, u_j, inner_op, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_j) -%}
-                {{ "double res{}{} = {}(a{}k, bk{});".format(u_i, u_j, inner_op, u_i, u_j) }}
+                {{ "double res_i{}_j{} = {}(a_i{}_k, b_k_j{});".format(u_i, u_j, inner_op, u_i, u_j) }}
                 {% endfor -%}
                 {% endif -%}
                 {% endfor %}
@@ -59,11 +61,11 @@ int FWI(double *A, double *B, double *C, int N)
                 {% for u_i in range(unroll_i) -%}
                 {% if vector -%}
                 {% for u_j in range(0, unroll_j, 4) -%}
-                {{ "c{}{} = V{}(c{}{}, res{}{});".format(u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
+                {{ "c_i{}_j{} = V{}(c_i{}_j{}, res_i{}_j{});".format(u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_j) -%}
-                {{ "c{}{} = {}(c{}{}, res{}{});".format(u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
+                {{ "c_i{}_j{} = {}(c_i{}_j{}, res_i{}_j{});".format(u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% endif -%}
                 {% endfor %}
@@ -72,11 +74,11 @@ int FWI(double *A, double *B, double *C, int N)
                 {% for u_i in range(unroll_i) -%}
                 {% if vector -%}
                 {% for u_j in range(0, unroll_j, 4) -%}
-                {{ "_mm256_store_pd(&C[(i + {}) * N + j + {}], c{}{});".format(u_i, u_j, u_i, u_j) }}
+                {{ "_mm256_store_pd(&C[(i + {}) * N + j + {}], c_i{}_j{});".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_j) -%}
-                {{ "C[(i + {}) * N + j + {}] = c{}{};".format(u_i, u_j, u_i, u_j) }}
+                {{ "C[(i + {}) * N + j + {}] = c_i{}_j{};".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% endif -%}
                 {% endfor %}

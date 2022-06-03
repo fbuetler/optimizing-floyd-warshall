@@ -1,0 +1,97 @@
+#include <immintrin.h>
+
+#include "fw.h"
+
+// iterative FW algorithm (FWI)
+{{ "// tiling factors Ui and Uj are set to {} and {}, respectively".format(unroll_i,unroll_j) }}
+int FWI(char *A, char *B, char *C, int N)
+{
+    int bpl = ceil(N / 8.0);  // bytes per matrix line
+
+    // NOTE 1: We assume Ui and Uj divide N for simplicity
+    // NOTE 2: If generating vector code, we require that Uj is divisible by 256
+    for (int k = 0; k < N; k++)
+    {
+        for (int i = 0; i < N - {{ unroll_i - 1 }}; i += {{ unroll_i }})
+        {
+            {% for u_i in range(unroll_i) -%}
+            {% if vector -%}
+            {{ "char t_{}_k = A[(i + {}) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00;".format(u_i, u_i) }}
+            {{ "__m256i a_{}_k = _mm256_set1_epi8(t_{}_k);".format(u_i, u_i) }}
+            {% else -%}
+            {{ "char a_{}_k = A[(i + {}) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00;".format(u_i, u_i) }}
+            {% endif -%}
+            {% endfor -%}
+            for (int j = 0; j < bpl - {{ unroll_j - 1 }}; j += {{ unroll_j }})
+            {
+                // load
+                {% for u_i in range(unroll_i) -%}
+                {% if vector -%}
+                {% for u_j in range(0, unroll_j, 4) -%}
+                {{ "__m256i c_{}_{} = _mm256_loadu_si256((__m256i const *)&C[(i + {}) * bpl + j + {}]);".format(u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% else -%}
+                {% for u_j in range(unroll_j) -%}
+                {{ "char c_{}_{} = C[(i + {}) * bpl + j + {}];".format(u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% endif -%}
+                {% endfor %}
+
+                {% if vector -%}
+                {% for u_j in range(0, unroll_j, 4) -%}
+                {{ "__m256i b_k_{} = _mm256_loadu_si256((__m256i const *)&B[k * bpl + j + {}])".format(u_j, u_j) }}
+                {% endfor -%}
+                {% else -%}
+                {% for u_j in range(unroll_j) -%}
+                {{ "char b_k_{} = B[k * bpl + j + {}];".format(u_j, u_j) }}
+                {% endfor -%}
+                {% endif %}
+
+                // op 1
+                {% for u_i in range(unroll_i) -%}
+                {% if vector -%}
+                {% for u_j in range(0, unroll_j, 4) -%}
+                {{ "__m256i res_{}_{} = V{}(a_{}_k, b_k_{});".format(u_i, u_j, inner_op, u_i, u_j) }}
+                {% endfor -%}
+                {% else -%}
+                {% for u_j in range(unroll_j) -%}
+                {{ "char res_{}_{} = {}(a_{}_k, b_k_{});".format(u_i, u_j, inner_op, u_i, u_j) }}
+                {% endfor -%}
+                {% endif -%}
+                {% endfor %}
+
+                // op 2
+                {% for u_i in range(unroll_i) -%}
+                {% if vector -%}
+                {% for u_j in range(0, unroll_j, 4) -%}
+                {{ "c_{}_{} = V{}(c_{}_{}, res_{}_{});".format(u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% else -%}
+                {% for u_j in range(unroll_j) -%}
+                {{ "c_{}_{} = {}(c_{}_{}, res_{}_{});".format(u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% endif -%}
+                {% endfor %}
+
+                // store
+                {% for u_i in range(unroll_i) -%}
+                {% if vector -%}
+                {% for u_j in range(0, unroll_j, 4) -%}
+                {{ "_mm256_storeu_si256(&C[(i + {}) * bpl + j + {}], c_{}_{});".format(u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% else -%}
+                {% for u_j in range(unroll_j) -%}
+                {{ "C[(i + {}) * bpl + j + {}] = c_{}_{};".format(u_i, u_j, u_i, u_j) }}
+                {% endfor -%}
+                {% endif -%}
+                {% endfor %}
+            }
+        }
+    }
+    return 0;
+}
+
+int floydWarshall(char *C, int N)
+{
+    return FWI(C, C, C, N);
+}

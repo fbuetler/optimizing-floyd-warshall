@@ -26,6 +26,7 @@ COPY docker.mk Makefile
 COPY shortest-path ./shortest-path
 COPY transitive-closure ./transitive-closure
 COPY max-min ./max-min
+COPY generic ./generic
 
 RUN mkdir -p ./shortest-path/c/impl/generated
 COPY autotuning/generated/fw ./shortest-path/c/impl
