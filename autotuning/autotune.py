@@ -11,7 +11,15 @@ import csv
 DEBUG = False
 VALIDATING = False
 
-logging.basicConfig(level=logging.DEBUG) if DEBUG else logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.DEBUG)
+
+# create console handler and set level and formatting
+ch = logging.StreamHandler()
+ch.setLevel(level=(logging.DEBUG if DEBUG else logging.INFO))
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 ALGORITHM_FW = "fw"
 ALGORITHM_MM = "mm"
@@ -54,6 +62,8 @@ COMPILER = "clang"
 C_FLAGS_SCALAR = "-O3 -fno-unroll-loops -fno-slp-vectorize"
 C_FLAGS_VECTOR = "-O3 -march=native -ffast-math"
 BENCH_INPUT_DIR = "test-inputs"
+BENCH_INPUT_DIR_BITWISE = "bench-inputs-tc"
+LOG_FILE = 'autotuning/autotune.log'
 TEMPLATE_DIR = 'autotuning/templates'
 SOURCE_DIR = 'generic/c/impl'
 DATA_DIR = 'measurements/data'
@@ -66,7 +76,7 @@ def clean_files(project_root):
         "clean",
     ]
 
-    logging.debug(" ".join(clean_cmd))
+    logger.debug(" ".join(clean_cmd))
     result = subprocess.run(clean_cmd)
     return result.returncode
 
@@ -83,7 +93,7 @@ def generate_main(template_dir: str, output_dir: str, algorithm: str) -> str:
     """ Generates the main.c source required to run the generated implementations with the neutral element
         and datatype specified.
     """
-    logging.info(f"generating main.c for {algorithm}")
+    logger.info(f"generating main.c for {algorithm}")
 
     template_file = 'fw-main.py.j2'
     output_fname = f"{output_dir}/../main.c"
@@ -118,7 +128,7 @@ def generate_fw(template_dir: str, output_dir: str, algorithm: str, form: str, v
         (Ui,Uj), (Ui',Uj',Uk') or (L1,Ui,Uj,Ui',Uj',Uk'), respectively.
     """
 
-    logging.info(f"generating source: {form} with {parameters}")
+    logger.info(f"generating source: {form} with {parameters}")
 
     context = dict()
     context['vector'] = vectorized
@@ -194,14 +204,14 @@ def build_files(project_root: str, algorithm: str, implementation: str, compiler
         f"CFLAGS_DOCKER={c_flags}",
     ]
 
-    logging.debug(" ".join(build_cmd))
+    logger.debug(" ".join(build_cmd))
     result = subprocess.run(build_cmd, stdout=subprocess.DEVNULL)
     return result.returncode
 
 def validate_fw(
     project_root: str, algorithm: str, p_impl: str, n_factors: List[int], compiler: str, c_flags: str
 ) -> int:
-    logging.info(f"validating code for: {p_impl}")
+    logger.info(f"validating code for: {p_impl}")
 
     testcases = list()
     for n in [4, 8, 16, 30, 32, 512]:
@@ -209,7 +219,7 @@ def validate_fw(
             testcases.append(f"n{n}")
 
     if len(testcases) == 0:
-        logging.warning("Skipping validation as there are no fiting testcases")
+        logger.warning("Skipping validation as there are no fiting testcases")
         return 0
 
     validate_cmd = [
@@ -223,16 +233,16 @@ def validate_fw(
         f"{','.join(testcases)}",
     ]
 
-    logging.debug(" ".join(validate_cmd))
+    logger.debug(" ".join(validate_cmd))
     result = subprocess.run(
         validate_cmd,
         text=True,
         capture_output=True,
     )
 
-    logging.debug(result.stdout)
+    logger.debug(result.stdout)
     if result.returncode != 0:
-        logging.error(result.stderr)
+        logger.error(result.stderr)
         return result.returncode
 
     return 0
@@ -247,7 +257,7 @@ def measure_fw(
     input_size: int,
 ) -> int:
     """ run a generated and built implementation against a testcase of the given size """
-    logging.info(f"measuring code for: {implementation}")
+    logger.info(f"measuring code for: {implementation}")
 
     measure_cmd = [
         "bash",
@@ -261,12 +271,12 @@ def measure_fw(
         f"n{input_size}",
     ]
 
-    logging.debug(" ".join(measure_cmd))
+    logger.debug(" ".join(measure_cmd))
     result = subprocess.run(measure_cmd, stdout=subprocess.DEVNULL, capture_output=False, text=True)
 
-    logging.debug(result.stdout)
+    logger.debug(result.stdout)
     if result.returncode != 0:
-        logging.error(result.stderr)
+        logger.error(result.stderr)
         return result.returncode
 
     return 0
@@ -282,7 +292,7 @@ def get_perf(
 ) -> float:
     """ reads the performance of a specified implementation from a data csv file and returns it in flops/cycle """
 
-    logging.info(f"processing performance data for: {p_impl}")
+    logger.info(f"processing performance data for: {p_impl}")
     data_fname = f"{data_dir}/{algorithm}_{p_impl}_{compiler}_{c_flags.replace(' ', '_')}_{test_input_dir}.csv"
     with open(data_fname) as f:
         reader = csv.reader(f, delimiter=",", quoting=csv.QUOTE_NONNUMERIC)
@@ -297,13 +307,13 @@ def get_perf(
                 break
 
         if n_index == -1:
-            logging.error(f"data file didn't contain measurements for the desired input n{input_size}")
+            logger.error(f"data file didn't contain measurements for the desired input n{input_size}")
             raise Exception("failed to get optimal perf")
 
         cycles = cycles_list[n_index]
         p = round((2 * n * n * n) / cycles, 2)
 
-        logging.debug(
+        logger.debug(
             f"performance for {p_impl}: {p} flops/cycle"
         )
 
@@ -325,7 +335,7 @@ def find_best_neighbour(project_root: str, algorithm: str, form: str, vectorized
     # build source -'gg' for generic
     retcode = build_files(project_root, 'gg', impl, COMPILER, c_flags)
     if retcode != 0:
-        raise Exception(f"Building {impl} failed")
+        raise Exception("Building {} failed".format(impl))
 
     max_perf = -1
 
@@ -334,12 +344,12 @@ def find_best_neighbour(project_root: str, algorithm: str, form: str, vectorized
             # validate correctness of neighbour
             retcode = validate_fw(project_root, algorithm, p_impl, list(params), COMPILER, c_flags)
             if retcode != 0:
-                raise Exception(f"Validating {p_impl} failed")
+                raise Exception("Validating {} failed".format(p_impl))
 
         # measure performance
         retcode = measure_fw(project_root, algorithm, p_impl, COMPILER, c_flags, test_input_dir, input_size)
         if retcode != 0:
-            raise Exception(f"Running {p_impl} failed")
+            raise Exception("Running {} failed".format(p_impl))
 
         # find highest performance
         perf = get_perf(path.join(project_root, DATA_DIR), algorithm, p_impl, COMPILER, c_flags, test_input_dir, input_size)
@@ -347,7 +357,7 @@ def find_best_neighbour(project_root: str, algorithm: str, form: str, vectorized
             max_perf = perf
             best_neighbour = params
 
-    logging.info(f'Found best neighbour with parameters {best_neighbour} at a stellar {max_perf} flops/cycle')
+    logger.info(f'Found best neighbour with parameters {best_neighbour} at a stellar {max_perf} flops/cycle')
 
     return best_neighbour, max_perf
 
@@ -368,43 +378,52 @@ def find_local_optimum(
     curr_perf = -1.0
     while True:
         clean_files(project_root) # save build time by always cleaning up
-        logging.info(f'===== Climbing around parameters {curr_choice} =====')
+        logger.info(f'===== Climbing around parameters {curr_choice} =====')
         neighbours = find_neighbours(curr_choice, visited)
         if neighbours == []:
-            logging.info('No more neighbours to visit')
+            logger.info('No more neighbours to visit')
             break
         visited = visited + neighbours
-        best_neighbour, perf = find_best_neighbour(project_root, algorithm, form, vectorized, input_size, BENCH_INPUT_DIR, neighbours)
+        best_neighbour, perf = find_best_neighbour(project_root, algorithm, form, vectorized, input_size, BENCH_INPUT_DIR_BITWISE if algorithm == ALGORITHM_TC else BENCH_INPUT_DIR, neighbours)
         if perf < curr_perf:
-            logging.info('No way to improve')
+            logger.info('No way to improve')
             break
         curr_choice = best_neighbour
         curr_perf = perf
 
-    logging.info(f'Reached local maximum at {curr_choice}')
+    logger.info(f'Reached local maximum at {curr_choice}')
     return curr_choice
 
 def find_initial_guess(project_root: str, algorithm: str, vectorized: bool) -> Tuple[Tuple[int, int], Tuple[int, int, int]]:
-    """ Find best (Ui,Uj) for FWI and (Ui',Uj',Uk') for FWIabc for N = 64 as an initial guess for unrolling parameters """
-    def exhaustive_FWI_search(curr_params: Tuple[int, int], visited: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+    """ Find best (Ui,Uj) for FWI and (Ui',Uj',Uk') for FWIabc for N = 64 resp. N = 512 for bitwise as an initial guess for unrolling parameters """
+
+    N = 512 if algorithm == ALGORITHM_TC else 64
+
+    def exhaustive_FWI_search(_: Tuple[int, int], visited: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
         if visited != []:
             return []
         else:
-            return [(2**i,2**j) for i in range(5) for j in (range(2,6) if vectorized else range(6))]
+            if algorithm == ALGORITHM_TC:
+                return [(2**i,2**j) for i in range(5) for j in (range(5,8) if vectorized else range(8))]
+            else:
+                return [(2**i,2**j) for i in range(5) for j in (range(2,6) if vectorized else range(6))]
 
     def exhaustive_FWIabc_search(curr_params: Tuple[int, int, int], visited: List[Tuple[int, int, int]]) -> List[Tuple[int, int, int]]:
         if visited == []:
-            return [(2**i,2**j,1) for i in range(5) for j in (range(2,7) if vectorized else range(7))]
+            if algorithm == ALGORITHM_TC:
+                return [(2**i,2**j) for i in range(5) for j in (range(5,9) if vectorized else range(9))]
+            else:
+                return [(2**i,2**j) for i in range(5) for j in (range(2,7) if vectorized else range(7))]
         elif any([k != 1 for (_,_,k) in visited]):
             return []
         else:
             (uii, ujj, _) = curr_params
-            return [(uii,ujj,2**k) for k in range(6)]
+            return [(uii,ujj,2**k) for k in (range(8) if algorithm == ALGORITHM_TC else range(6))]
 
-    fwi_guess = find_local_optimum(project_root, algorithm, 'FWI', vectorized, 64, (0,0), exhaustive_FWI_search)
-    logging.info(f'found initial guess (Ui,Uj) for FWI: {fwi_guess}')
-    fwiabc_guess = find_local_optimum(project_root, algorithm, 'FWIabc', vectorized, 64, (0,0,0), exhaustive_FWIabc_search)
-    logging.info(f"found initial guess (Ui',Uj',Uk') for FWIabc: {fwiabc_guess}")
+    fwi_guess = find_local_optimum(project_root, algorithm, 'FWI', vectorized, N, (0,0), exhaustive_FWI_search)
+    logger.info(f'found initial guess (Ui,Uj) for FWI: {fwi_guess}')
+    fwiabc_guess = find_local_optimum(project_root, algorithm, 'FWIabc', vectorized, N, (0,0,0), exhaustive_FWIabc_search)
+    logger.info(f"found initial guess (Ui',Uj',Uk') for FWIabc: {fwiabc_guess}")
     return fwi_guess, fwiabc_guess
 
 def optimize_fwi(project_root: str, algorithm: str, vectorized: bool, initial_guess: Tuple[int, int], input_size: int, factors: List[int]) -> Tuple[int, int]:
@@ -493,12 +512,30 @@ def clean_files(project_root):
         "clean",
     ]
 
-    logging.debug(" ".join(clean_cmd))
+    logger.debug(" ".join(clean_cmd))
     result = subprocess.run(clean_cmd, stdout=subprocess.DEVNULL)
     return result.returncode
 
+def get_l1_guess(algorithm: str, l2_cache_bytes: int, factors: List[int], fwi_guess: Tuple, fwiabc_guess: Tuple) -> int:
+    # L2 cache size in number of elements
+    l2_cache_size = l2_cache_bytes*8 if algorithm == ALGORITHM_TC else l2_cache_bytes/8
+
+    return min(
+        # limit set of factors to those that are divisible by the unrollment factors
+        [f for f in factors if reduce(lambda x, u_factor: x & (f % u_factor == 0), tuple([True]) + fwi_guess + fwiabc_guess)],
+        key=lambda x: abs(x - int(math.sqrt(l2_cache_size)))
+    )
 
 def tune_em_all(project_root: str, algorithm: str, vectorized: bool, input_size: int, l2_cache_bytes: int):
+
+    # log to file to make midnight crashes and stalls more dealable with
+    fh = logging.FileHandler(path.join(project_root, LOG_FILE), mode='w')
+    fh.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+
+    # generate main.c file with correct neutral element and datatype
     generate_main(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm)
 
     # (fwi_guess, fwiabc_guess) = ((4,4),(4,4,64))
@@ -509,11 +546,7 @@ def tune_em_all(project_root: str, algorithm: str, vectorized: bool, input_size:
     fwi_optimal = optimize_fwi(project_root, algorithm, vectorized, fwi_guess, input_size, factors)
     logging.info('Done with step 2\n')
 
-    l1_guess = min(
-        # limit set of factors to those that are divisible by the unrollment factors
-        [f for f in factors if reduce(lambda x, u_factor: x & (f % u_factor == 0), tuple([True]) + fwi_guess + fwiabc_guess)],
-        key=lambda x: abs(x - int(math.sqrt(l2_cache_bytes/8)))
-    )
+    l1_guess = get_l1_guess(algorithm, l2_cache_bytes, factors, fwi_guess, fwiabc_guess)
 
     fwt_optimal = optimize_fwt(project_root, algorithm, vectorized, tuple([l1_guess]) + fwi_guess + fwiabc_guess, input_size, factors)
     logging.info('Done with step 3\n')
