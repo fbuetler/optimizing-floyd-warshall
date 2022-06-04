@@ -158,7 +158,7 @@ function plot() {
 function clean() {
     make clean
     rm -f $(find "${INPUT_CATEGORY_DIR}" -name "*.out.*")
-    rm -f $(find "${MEASUREMENTS_DIR}" -name "*.csv")
+    rm -f ${MEASUREMENTS_DIR}/*.csv # to prevent recursing into more directories
     rm -f $(find "${PLOTS_DIR}" -name "*test-inputs*")
     rm -f $(find "${GENERIC_DIR}/c/impl" -name "*.c")
 }
