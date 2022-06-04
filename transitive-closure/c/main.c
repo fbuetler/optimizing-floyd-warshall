@@ -124,7 +124,7 @@ int measure(char *C, int N, int WarmupEventSet, int MeasurementEventSet, long lo
 
             warmup_cycles[0] += warmup_cycles_tmp[0]; // accumulate
 
-            flush_cache((void *)C, N * bpl * sizeof(char));
+            /* flush_cache((void *)C, N * bpl * sizeof(char)); */
         }
 
         cycles += warmup_cycles[0];
