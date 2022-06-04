@@ -17,10 +17,10 @@ int FWI(char *A, char *B, char *C, int N, int L1)
     {
         for (int i = 0; i < L1 - 3; i += 4)
         {
-            char a0k = A[(i + 0) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00; // if this is 0, we can skip the innermost loop
-            char a1k = A[(i + 1) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00; // if this is 0, we can skip the innermost loop
-            char a2k = A[(i + 2) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00; // if this is 0, we can skip the innermost loop
-            char a3k = A[(i + 3) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00; // if this is 0, we can skip the innermost loop
+            char a0k = A[(i + 0) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00;
+            char a1k = A[(i + 1) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00;
+            char a2k = A[(i + 2) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00;
+            char a3k = A[(i + 3) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00;
             for (int j = 0; j < bpt - 3; j += 4)
             {
                 // load
@@ -248,5 +248,14 @@ int floydWarshall(char *C, int N)
 {
     // tile size is set to 32
     // (this is the minimum due to Uj | L1 | N assumption)
-    return FWT(C, C, C, N, 32);
+    // find optimal tile size for this thingy
+    int L1 = 832; // this is the largest tile size feasible
+    if (L1 >= N) { // tile cannot be larger than the whole matrix
+      L1 = N;
+    } else {
+      while (N % L1) {
+        L1 -= 32;
+      }
+    }
+    return FWT(C, C, C, N, L1);
 }

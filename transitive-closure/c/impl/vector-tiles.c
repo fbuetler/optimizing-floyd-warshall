@@ -195,5 +195,13 @@ int floydWarshall(char *C, int N)
 {
     // tile size is set to 32
     // (this is the minimum due to Uj | L1 | N assumption)
-    return FWT(C, C, C, N, 256);
+    int L1 = 768; // this is the largest tile size feasible
+    if (L1 >= N) { // tile cannot be larger than the whole matrix
+      L1 = N;
+    } else {
+      while (N % L1) {
+        L1 -= 256;
+      }
+    }
+    return FWT(C, C, C, N, L1);
 }
