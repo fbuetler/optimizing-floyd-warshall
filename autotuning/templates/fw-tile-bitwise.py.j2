@@ -7,48 +7,52 @@
 {{ "// tiling factors Ui and Uj are set to {} and {}, respectively".format(unroll_i,unroll_j) }}
 int FWI(char *A, char *B, char *C, int N, int L1)
 {
+    int bpl = ceil(N / 8.0);  // bytes per matrix line
+    int bpt = ceil(L1 / 8.0);  // bytes per tile line
+
     // NOTE 1: We assume Ui and Uj divide N for simplicity
-    // NOTE 2: If generating vector code, we require that Uj is divisible by 4
+    // NOTE 2: If generating vector code, we require that Uj is divisible by 256
     for (int k = 0; k < L1; k++)
     {
         for (int i = 0; i < L1 - {{ unroll_i - 1 }}; i += {{ unroll_i }})
         {
             {% for u_i in range(unroll_i) -%}
             {% if vector -%}
-            {{ "__m256i a_{}_k = _mm256_broadcast_sd(&A[(i + {}) * N + k]);".format(u_i, u_i) }}
+            {{ "char t_{}_k = A[(i + {}) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00;".format(u_i, u_i) }}
+            {{ "__m256i a_{}_k = _mm256_set1_epi8(t_{}_k);".format(u_i, u_i) }}
             {% else -%}
-            {{ "char a_{}_k = A[(i + {}) * N + k];".format(u_i, u_i) }}
+            {{ "char a_{}_k = A[(i + {}) * bpl + k / 8] & (1 << (k % 8)) ? 0xff : 0x00;".format(u_i, u_i) }}
             {% endif -%}
             {% endfor -%}
-            for (int j = 0; j < L1 - {{ unroll_j - 1 }}; j += {{ unroll_j }})
+            for (int j = 0; j < bpt - {{ unroll_j - 1 }}; j += {{ unroll_j }})
             {
                 // load
                 {% for u_i in range(unroll_i) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_j, 4) -%}
-                {{ "__m256i c_{}_{} = _mm256_load_pd(&C[(i + {}) * N + j + {}]);".format(u_i, u_j, u_i, u_j) }}
+                {% for u_j in range(0, unroll_j, 32) -%}
+                {{ "__m256i c_{}_{} = _mm256_loadu_si256((__m256i const *)&C[(i + {}) * bpl + j + {}]);".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_j) -%}
-                {{ "char c_{}_{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
+                {{ "char c_{}_{} = C[(i + {}) * bpl + j + {}];".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% endif -%}
                 {% endfor %}
 
                 {% if vector -%}
-                {% for u_j in range(0, unroll_j, 4) -%}
-                {{ "__m256i b_k_{} = _mm256_load_pd(&B[k * N + j + {}]);".format(u_j, u_j) }}
+                {% for u_j in range(0, unroll_j, 32) -%}
+                {{ "__m256i b_k_{} = _mm256_loadu_si256((__m256i const *)&B[k * bpl + j + {}]);".format(u_j, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_j) -%}
-                {{ "char b_k_{} = B[k * N + j + {}];".format(u_j, u_j) }}
+                {{ "char b_k_{} = B[k * bpl + j + {}];".format(u_j, u_j) }}
                 {% endfor -%}
                 {% endif %}
 
                 // op 1
                 {% for u_i in range(unroll_i) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_j, 4) -%}
+                {% for u_j in range(0, unroll_j, 32) -%}
                 {{ "__m256i res_{}_{} = V{}(a_{}_k, b_k_{});".format(u_i, u_j, inner_op, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
@@ -61,7 +65,7 @@ int FWI(char *A, char *B, char *C, int N, int L1)
                 // op 2
                 {% for u_i in range(unroll_i) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_j, 4) -%}
+                {% for u_j in range(0, unroll_j, 32) -%}
                 {{ "c_{}_{} = V{}(c_{}_{}, res_{}_{});".format(u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
@@ -74,12 +78,12 @@ int FWI(char *A, char *B, char *C, int N, int L1)
                 // store
                 {% for u_i in range(unroll_i) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_j, 4) -%}
-                {{ "_mm256_store_pd(&C[(i + {}) * N + j + {}], c_{}_{});".format(u_i, u_j, u_i, u_j) }}
+                {% for u_j in range(0, unroll_j, 32) -%}
+                {{ "_mm256_storeu_si256((__m256i *)&C[(i + {}) * bpl + j + {}], c_{}_{});".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_j) -%}
-                {{ "C[(i + {}) * N + j + {}] = c_{}_{};".format(u_i, u_j, u_i, u_j) }}
+                {{ "C[(i + {}) * bpl + j + {}] = c_{}_{};".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% endif -%}
                 {% endfor %}
@@ -93,10 +97,13 @@ int FWI(char *A, char *B, char *C, int N, int L1)
 {{ "// tiling factors Uk', Ui' and Uj' are set to {}, {} and {}, respectively".format(unroll_kk, unroll_ii, unroll_jj) }}
 int FWIabc(char *A, char *B, char *C, int N, int L1)
 {
+    int bpl = ceil(N / 8.0);  // bytes per matrix line
+    int bpt = ceil(L1 / 8.0); // bytes per tile line
+
     // NOTE: We assume Uk, Ui and Uj divide N for simplicity
     for (int i = 0; i < L1 - {{ unroll_ii - 1 }}; i += {{ unroll_ii }})
     {
-        for (int j = 0; j < L1 - {{ unroll_jj- 1 }}; j += {{ unroll_jj }})
+        for (int j = 0; j < bpt - {{ unroll_jj- 1 }}; j += {{ unroll_jj }})
         {
             for (int k = 0; k < L1 - {{ unroll_kk - 1 }}; k += {{ unroll_kk }})
             {
@@ -104,33 +111,34 @@ int FWIabc(char *A, char *B, char *C, int N, int L1)
                 {% for u_i in range(unroll_ii) -%}
                 {% for u_k in range(unroll_kk) -%}
                 {% if vector -%}
-                {{ "__m256i a_{}_{} = _mm256_broadcast_sd(&A[(i + {}) * N + (k + {})]);".format(u_i, u_k, u_i, u_k) }}
+                {{ "char t_{}_{} = A[(i + {}) * bpl + (k + {}) / 8] & (1 << ((k + {}) % 8)) ? 0xff : 0x00;".format(u_i, u_k, u_i, u_k, u_k) }}
+                {{ "__m256i a_{}_{} = _mm256_set1_epi8(t_{}_{});".format(u_i, u_k, u_i, u_k) }}
                 {% else -%}
-                {{ "char a_{}_{} = A[(i + {}) * N + (k + {})];".format(u_i, u_k, u_i, u_k) }}
+                {{ "char a_{}_{} = A[(i + {}) * bpl + (k + {}) / 8] & (1 << ((k + {}) % 8)) ? 0xff : 0x00;".format(u_i, u_k, u_i, u_k, u_k) }}
                 {% endif -%}
                 {% endfor -%}
                 {% endfor %}
 
                 {% for u_k in range(unroll_kk) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_jj, 4) -%}
-                {{ "__m256i b_{}_{} = _mm256_load_pd(&B[(k + {}) * N + (j + {})]);".format(u_k, u_j, u_k, u_j) }}
+                {% for u_j in range(0, unroll_jj, 32) -%}
+                {{ "__m256i b_{}_{} = _mm256_loadu_si256((__m256i const *)&B[(k + {}) * bpl + j + {}]);".format(u_k, u_j, u_k, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_jj) -%}
-                {{ "char b_{}_{} = B[(k + {}) * N + (j + {})];".format(u_k, u_j, u_k, u_j) }}
+                {{ "char b_{}_{} = B[(k + {}) * bpl + j + {}];".format(u_k, u_j, u_k, u_j) }}
                 {% endfor -%}
                 {% endif %}
                 {%- endfor %}
 
                 {% for u_i in range(unroll_ii) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_jj, 4) -%}
-                {{ "__m256i c_{}_{} = _mm256_load_pd(&C[(i + {}) * N + j + {}]);".format(u_i, u_j, u_i, u_j) }}
+                {% for u_j in range(0, unroll_jj, 32) -%}
+                {{ "__m256i c_{}_{} = _mm256_loadu_si256((__m256i const *)&C[(i + {}) * bpl + j + {}]);".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_jj) -%}
-                {{ "char c_{}_{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
+                {{ "char c_{}_{} = C[(i + {}) * bpl + j + {}];".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% endif -%}
                 {% endfor %}
@@ -139,7 +147,7 @@ int FWIabc(char *A, char *B, char *C, int N, int L1)
                 {{ "// for k + {}".format(u_k) }}
                 {% for u_i in range(unroll_ii) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_jj, 4) -%}
+                {% for u_j in range(0, unroll_jj, 32) -%}
                 {% if u_k == 0 %}__m256i {% endif -%}
                 {{ "res_{}_{} = V{}(a_{}_{}, b_{}_{});".format(u_i, u_j, inner_op, u_i, u_k, u_k, u_j) }}
                 {% endfor -%}
@@ -153,7 +161,7 @@ int FWIabc(char *A, char *B, char *C, int N, int L1)
 
                 {% for u_i in range(unroll_ii) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_jj, 4) -%}
+                {% for u_j in range(0, unroll_jj, 32) -%}
                 {{ "c_{}_{} = V{}(c_{}_{}, res_{}_{});".format(u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
@@ -167,12 +175,12 @@ int FWIabc(char *A, char *B, char *C, int N, int L1)
                 // store
                 {% for u_i in range(unroll_ii) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_jj, 4) -%}
-                {{ "_mm256_store_pd(&C[(i + {}) * N + j + {}], c_{}_{});".format(u_i, u_j, u_i, u_j) }}
+                {% for u_j in range(0, unroll_jj, 32) -%}
+                {{ "_mm256_storeu_si256((__m256i *)&C[(i + {}) * bpl + j + {}], c_{}_{});".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_jj) -%}
-                {{ "C[(i + {}) * N + j + {}] = c_{}_{};".format(u_i, u_j, u_i, u_j) }}
+                {{ "C[(i + {}) * bpl + j + {}] = c_{}_{};".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% endif -%}
                 {% endfor %}
@@ -186,6 +194,9 @@ int FWIabc(char *A, char *B, char *C, int N, int L1)
 // tile size: L1 x L1
 int FWT(char *A, char *B, char *C, int N, int L1)
 {
+    int bpl = ceil(N / 8.0);  // bytes per matrix line
+    int bpt = ceil(L1 / 8.0); // bytes per tile line
+
     // NOTE: We assume L1 divides N for simplicity
     // Notation: A_ij is the L1 x L1 submatrix (i,j) of A
     int M = N / L1;
@@ -193,7 +204,7 @@ int FWT(char *A, char *B, char *C, int N, int L1)
     {
         // phase 1: update all diagonal tiles
         // FWI(A_kk, B_kk, C_kk, L1)
-        FWI(SUBM(A, k, k, N, L1, L1), SUBM(B, k, k, N, L1, L1), SUBM(C, k, k, N, L1, L1), N, L1);
+        FWI(SUBM(A, k, k, L1, bpl, bpt), SUBM(B, k, k, L1, bpl, bpt), SUBM(C, k, k, L1, bpl, bpt), N, L1);
 
         // phase 2: update all tiles in row k
         for (int j = 0; j < M; j++)
@@ -201,7 +212,7 @@ int FWT(char *A, char *B, char *C, int N, int L1)
             if (j != k)
             {
                 // FWI(A_kk,B_kj,C_kj, L1)
-                FWI(SUBM(A, k, k, N, L1, L1), SUBM(B, k, j, N, L1, L1), SUBM(C, k, j, N, L1, L1), N, L1);
+                FWI(SUBM(A, k, k, L1, bpl, bpt), SUBM(B, k, j, L1, bpl, bpt), SUBM(C, k, j, L1, bpl, bpt), N, L1);
             }
         }
 
@@ -211,7 +222,7 @@ int FWT(char *A, char *B, char *C, int N, int L1)
             if (i != k)
             {
                 // FWI(A_ik, B_kk, C_ik, L1)
-                FWI(SUBM(A, i, k, N, L1, L1), SUBM(B, k, k, N, L1, L1), SUBM(C, i, k, N, L1, L1), N, L1);
+                FWI(SUBM(A, i, k, L1, bpl, bpt), SUBM(B, k, k, L1, bpl, bpt), SUBM(C, i, k, L1, bpl, bpt), N, L1);
             }
         }
 
@@ -225,7 +236,7 @@ int FWT(char *A, char *B, char *C, int N, int L1)
                     if (j != k)
                     {
                         // FWIabc(A_ik,B_kj,C_ij, L1)
-                        FWIabc(SUBM(A, i, k, N, L1, L1), SUBM(B, k, j, N, L1, L1), SUBM(C, i, j, N, L1, L1), N, L1);
+                        FWIabc(SUBM(A, i, k, L1, bpl, bpt), SUBM(B, k, j, L1, bpl, bpt), SUBM(C, i, j, L1, bpl, bpt), N, L1);
                     }
                 }
             }
