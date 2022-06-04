@@ -1,15 +1,18 @@
 #include <immintrin.h>
+#include <math.h>
 
 #include "fw.h"
 
 // FWI for 3 distinct matrices (FWIabc)
 {{ "// tiling factors Uk', Ui' and Uj' are set to {}, {} and {}, respectively".format(unroll_kk, unroll_ii, unroll_jj) }}
-int FWIabc(double *A, double *B, double *C, int N)
+int FWIabc(char *A, char *B, char *C, int N)
 {
+    int bpl = ceil(N / 8.0);  // bytes per matrix line
+
     // NOTE: We assume Uk, Ui and Uj divide N for simplicity
     for (int i = 0; i < N - {{ unroll_ii - 1 }}; i += {{ unroll_ii }})
     {
-        for (int j = 0; j < N - {{ unroll_jj- 1 }}; j += {{ unroll_jj }})
+        for (int j = 0; j < bpl - {{ unroll_jj- 1 }}; j += {{ unroll_jj }})
         {
             for (int k = 0; k < N - {{ unroll_kk - 1 }}; k += {{ unroll_kk }})
             {
@@ -17,33 +20,34 @@ int FWIabc(double *A, double *B, double *C, int N)
                 {% for u_i in range(unroll_ii) -%}
                 {% for u_k in range(unroll_kk) -%}
                 {% if vector -%}
-                {{ "__m256d a_{}_{} = _mm256_broadcast_sd(&A[(i + {}) * N + (k + {})]);".format(u_i, u_k, u_i, u_k) }}
+                {{ "char t_{}_{} = A[(i + {}) * bpl + (k + {}) / 8] & (1 << ((k + {}) % 8)) ? 0xff : 0x00;".format(u_i, u_k, u_i, u_k, u_k) }}
+                {{ "__m256i a_{}_{} = _mm256_set1_epi8(t_{}_{});".format(u_i, u_k, u_i, u_k) }}
                 {% else -%}
-                {{ "double a_{}_{} = A[(i + {}) * N + (k + {})];".format(u_i, u_k, u_i, u_k) }}
+                {{ "char a_{}_{} = A[(i + {}) * bpl + (k + {}) / 8] & (1 << ((k + {}) % 8)) ? 0xff : 0x00;".format(u_i, u_k, u_i, u_k, u_k) }}
                 {% endif -%}
                 {% endfor -%}
                 {% endfor %}
 
                 {% for u_k in range(unroll_kk) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_jj, 4) -%}
-                {{ "__m256d b_{}_{} = _mm256_load_pd(&B[(k + {}) * N + (j + {})]);".format(u_k, u_j, u_k, u_j) }}
+                {% for u_j in range(0, unroll_jj, 32) -%}
+                {{ "__m256i b_{}_{} = _mm256_loadu_si256((__m256i const *)&B[(k + {}) * bpl + j + {}]);".format(u_k, u_j, u_k, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_jj) -%}
-                {{ "double b_{}_{} = B[(k + {}) * N + (j + {})];".format(u_k, u_j, u_k, u_j) }}
+                {{ "char b_{}_{} = B[(k + {}) * bpl + j + {}];".format(u_k, u_j, u_k, u_j) }}
                 {% endfor -%}
                 {% endif %}
                 {%- endfor %}
 
                 {% for u_i in range(unroll_ii) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_jj, 4) -%}
-                {{ "__m256d c_{}_{} = _mm256_load_pd(&C[(i + {}) * N + j + {}]);".format(u_i, u_j, u_i, u_j) }}
+                {% for u_j in range(0, unroll_jj, 32) -%}
+                {{ "__m256i c_{}_{} = _mm256_loadu_si256((__m256i const *)&C[(i + {}) * bpl + j + {}]);".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_jj) -%}
-                {{ "double c_{}_{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
+                {{ "char c_{}_{} = C[(i + {}) * bpl + j + {}];".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% endif -%}
                 {% endfor %}
@@ -52,13 +56,13 @@ int FWIabc(double *A, double *B, double *C, int N)
                 {{ "// for k + {}".format(u_k) }}
                 {% for u_i in range(unroll_ii) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_jj, 4) -%}
-                {% if u_k == 0 %}__m256d {% endif -%}
+                {% for u_j in range(0, unroll_jj, 32) -%}
+                {% if u_k == 0 %}__m256i {% endif -%}
                 {{ "res_{}_{} = V{}(a_{}_{}, b_{}_{});".format(u_i, u_j, inner_op, u_i, u_k, u_k, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_jj) -%}
-                {% if u_k == 0 %}double {% endif -%}
+                {% if u_k == 0 %}char {% endif -%}
                 {{ "res_{}_{} = {}(a_{}_{}, b_{}_{});".format(u_i, u_j, inner_op, u_i, u_k, u_k, u_j) }}
                 {% endfor -%}
                 {% endif -%}
@@ -66,7 +70,7 @@ int FWIabc(double *A, double *B, double *C, int N)
 
                 {% for u_i in range(unroll_ii) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_jj, 4) -%}
+                {% for u_j in range(0, unroll_jj, 32) -%}
                 {{ "c_{}_{} = V{}(c_{}_{}, res_{}_{});".format(u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
@@ -80,12 +84,12 @@ int FWIabc(double *A, double *B, double *C, int N)
                 // store
                 {% for u_i in range(unroll_ii) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_jj, 4) -%}
-                {{ "_mm256_store_pd(&C[(i + {}) * N + j + {}], c_{}_{});".format(u_i, u_j, u_i, u_j) }}
+                {% for u_j in range(0, unroll_jj, 32) -%}
+                {{ "_mm256_storeu_si256((__m256i *)&C[(i + {}) * bpl + j + {}], c_{}_{});".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_jj) -%}
-                {{ "C[(i + {}) * N + j + {}] = c_{}_{};".format(u_i, u_j, u_i, u_j) }}
+                {{ "C[(i + {}) * bpl + j + {}] = c_{}_{};".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% endif -%}
                 {% endfor %}
@@ -95,7 +99,7 @@ int FWIabc(double *A, double *B, double *C, int N)
     return 0;
 }
 
-int floydWarshall(double *C, int N)
+int floydWarshall(char *C, int N)
 {
     // Won't return the correct result, but is only used to find initial guess for (Ui',Uj',Uk') anyways
     return FWIabc(C, C, C, N);

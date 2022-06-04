@@ -8,8 +8,8 @@ import subprocess
 import logging
 import csv
 
-DEBUG = False
-VALIDATING = False
+DEBUG = True
+VALIDATING = True
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.DEBUG)
@@ -17,7 +17,7 @@ logger.setLevel(level=logging.DEBUG)
 # create console handler and set level and formatting
 ch = logging.StreamHandler()
 ch.setLevel(level=(logging.DEBUG if DEBUG else logging.INFO))
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
@@ -93,24 +93,40 @@ def generate_main(template_dir: str, output_dir: str, algorithm: str) -> str:
     """ Generates the main.c source required to run the generated implementations with the neutral element
         and datatype specified.
     """
-    logger.info(f"generating main.c for {algorithm}")
 
-    template_file = 'fw-main.py.j2'
-    output_fname = f"{output_dir}/../main.c"
 
     context = dict()
     if algorithm == ALGORITHM_FW:
+        template_file = 'fw-main.py.j2'
         context["algorithm"] = "sp"
         context["datatype"] = "double"
         context["neutral_element"] = 'INFINITY'
     elif algorithm == ALGORITHM_MM:
+        template_file = 'fw-main.py.j2'
         context["algorithm"] = "mm"
         context["datatype"] = "double"
         context["neutral_element"] = 0.0
     elif algorithm == ALGORITHM_TC:
+        template_file = 'fw-main-bitwise.py.j2'
         context["algorithm"] = "tc"
         context["datatype"] = "char"
         context["neutral_element"] = 0
+
+    logger.info(f"generating main.c and fw.h for {algorithm}")
+
+    output_fname = f"{output_dir}/../main.c"
+
+    with open(output_fname, mode="w", encoding="utf-8") as f:
+            f.write(
+                render_jinja_template(
+                    f"{template_dir}",
+                    template_file,
+                    **context,
+                )
+            )
+
+    template_file = 'fw-header.py.j2'
+    output_fname = f"{output_dir}/fw.h"
 
     with open(output_fname, mode="w", encoding="utf-8") as f:
             f.write(
@@ -214,12 +230,12 @@ def validate_fw(
     logger.info(f"validating code for: {p_impl}")
 
     testcases = list()
-    for n in [4, 8, 16, 30, 32, 512]:
+    for n in ([8, 16, 30, 32, 512, 1152] if algorithm == ALGORITHM_TC else [4, 8, 16, 30, 32, 512]):
         if len(testcases) < 3 and reduce(lambda x, n_factor: x & (n % n_factor == 0), [True] + n_factors):
             testcases.append(f"n{n}")
 
     if len(testcases) == 0:
-        logger.warning("Skipping validation as there are no fiting testcases")
+        logger.warning(f"Skipping validation as there are no fiting testcases for factors {n_factors}")
         return 0
 
     validate_cmd = [
@@ -241,6 +257,7 @@ def validate_fw(
     )
 
     logger.debug(result.stdout)
+    logger.debug(f'got returncode {result.returncode}')
     if result.returncode != 0:
         logger.error(result.stderr)
         return result.returncode
@@ -342,7 +359,7 @@ def find_best_neighbour(project_root: str, algorithm: str, form: str, vectorized
     for params, p_impl in param_impl_list:
         if VALIDATING and form != 'FWIabc':
             # validate correctness of neighbour
-            retcode = validate_fw(project_root, algorithm, p_impl, list(params), COMPILER, c_flags)
+            retcode = validate_fw(project_root, algorithm, p_impl, list(params_to_factors(algorithm, form, params)), COMPILER, c_flags)
             if retcode != 0:
                 raise Exception("Validating {} failed".format(p_impl))
 
@@ -404,21 +421,21 @@ def find_initial_guess(project_root: str, algorithm: str, vectorized: bool) -> T
             return []
         else:
             if algorithm == ALGORITHM_TC:
-                return [(2**i,2**j) for i in range(5) for j in (range(5,8) if vectorized else range(8))]
+                return [(2**i,2**j) for i in range(5) for j in (range(5,6) if vectorized else range(6))]
             else:
                 return [(2**i,2**j) for i in range(5) for j in (range(2,6) if vectorized else range(6))]
 
     def exhaustive_FWIabc_search(curr_params: Tuple[int, int, int], visited: List[Tuple[int, int, int]]) -> List[Tuple[int, int, int]]:
         if visited == []:
             if algorithm == ALGORITHM_TC:
-                return [(2**i,2**j) for i in range(5) for j in (range(5,9) if vectorized else range(9))]
+                return [(2**i,2**j, 1) for i in range(5) for j in (range(5,7) if vectorized else range(7))]
             else:
-                return [(2**i,2**j) for i in range(5) for j in (range(2,7) if vectorized else range(7))]
+                return [(2**i,2**j, 1) for i in range(5) for j in (range(2,7) if vectorized else range(7))]
         elif any([k != 1 for (_,_,k) in visited]):
             return []
         else:
             (uii, ujj, _) = curr_params
-            return [(uii,ujj,2**k) for k in (range(8) if algorithm == ALGORITHM_TC else range(6))]
+            return [(uii,ujj,2**k) for k in range(6)]
 
     fwi_guess = find_local_optimum(project_root, algorithm, 'FWI', vectorized, N, (0,0), exhaustive_FWI_search)
     logger.info(f'found initial guess (Ui,Uj) for FWI: {fwi_guess}')
@@ -436,7 +453,9 @@ def optimize_fwi(project_root: str, algorithm: str, vectorized: bool, initial_gu
         else:
             neighbours = []
 
-        uj_factors = [f for f in factors if f % 4 == 0] if vectorized else factors
+        # vector size in number of elements
+        vector_size = 32 if algorithm == ALGORITHM_TC else 4
+        uj_factors = [f for f in factors if f % vector_size == 0] if vectorized else factors
 
         ui_ind = factors.index(ui)
         uj_ind = uj_factors.index(uj)
@@ -467,8 +486,10 @@ def optimize_fwt(project_root: str, algorithm: str, vectorized: bool, initial_gu
 
         for i, p in enumerate(curr_params):
 
-            # if column unrollment and vectorized, multiple of 4
-            p_factors = [f for f in factors if f % 4 == 0] if (vectorized and (i==2 or i==4)) else factors
+            # vector size in number of elements
+            vector_size = 32 if algorithm == ALGORITHM_TC else 4
+            # if column unrollment and vectorized, multiple of vector size
+            p_factors = [f for f in factors if f % vector_size == 0] if (vectorized and (i==2 or i==4)) else factors
             p_ind = p_factors.index(p)
 
             if (
@@ -504,6 +525,22 @@ def factors_of(n):
     factors.append(n)
     return sorted(list(set(factors)))
 
+def params_to_factors(algorithm: str, form: str, params: Tuple) -> Tuple:
+    if algorithm == ALGORITHM_TC:
+        if form == 'FWI':
+            # Ui, Uj
+            p_factors = (params[0], params[1] * 8)
+        elif form == 'FWT':
+            # L1, Ui, Uj, Ui', Uj'. Uk'
+            p_factors = (params[0], params[1], params[2] * 8, params[3], params[4] * 8, params[5])
+        else:
+            # Ui, Uj, Uk
+            p_factors = (params[0], params[1] * 8, params[2])
+    else:
+        p_factors = params
+    logger.debug(f'for {algorithm} params {params} computed factors {p_factors}')
+    return p_factors
+
 def clean_files(project_root):
     """ utility function to clean all build and auto-generated files """
     clean_cmd = [
@@ -518,12 +555,13 @@ def clean_files(project_root):
 
 def get_l1_guess(algorithm: str, l2_cache_bytes: int, factors: List[int], fwi_guess: Tuple, fwiabc_guess: Tuple) -> int:
     # L2 cache size in number of elements
-    l2_cache_size = l2_cache_bytes*8 if algorithm == ALGORITHM_TC else l2_cache_bytes/8
+    elements_per_byte = 8 if algorithm == ALGORITHM_TC else 1/8
+    l2_cache_size = l2_cache_bytes*elements_per_byte
 
     return min(
         # limit set of factors to those that are divisible by the unrollment factors
-        [f for f in factors if reduce(lambda x, u_factor: x & (f % u_factor == 0), tuple([True]) + fwi_guess + fwiabc_guess)],
-        key=lambda x: abs(x - int(math.sqrt(l2_cache_size)))
+        [f for f in factors if reduce(lambda x, u_factor: x & (f % u_factor == 0), tuple([True]) + params_to_factors(algorithm, 'FWI', fwi_guess) + params_to_factors(algorithm, 'FWIabc', fwiabc_guess))],
+        key=lambda x: abs(x - int(math.sqrt(l2_cache_size / 3)))
     )
 
 def tune_em_all(project_root: str, algorithm: str, vectorized: bool, input_size: int, l2_cache_bytes: int):
@@ -538,24 +576,23 @@ def tune_em_all(project_root: str, algorithm: str, vectorized: bool, input_size:
     # generate main.c file with correct neutral element and datatype
     generate_main(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm)
 
-    # (fwi_guess, fwiabc_guess) = ((4,4),(4,4,64))
     (fwi_guess, fwiabc_guess) = find_initial_guess(project_root, algorithm, vectorized)
-    logging.info('Done with step 1\n')
+    logger.info('Done with step 1\n')
 
     factors = factors_of(input_size)
     fwi_optimal = optimize_fwi(project_root, algorithm, vectorized, fwi_guess, input_size, factors)
-    logging.info('Done with step 2\n')
+    logger.info('Done with step 2\n')
 
     l1_guess = get_l1_guess(algorithm, l2_cache_bytes, factors, fwi_guess, fwiabc_guess)
 
     fwt_optimal = optimize_fwt(project_root, algorithm, vectorized, tuple([l1_guess]) + fwi_guess + fwiabc_guess, input_size, factors)
-    logging.info('Done with step 3\n')
+    logger.info('Done with step 3\n')
 
     clean_files(project_root)
     _, _, outpath_fwi = generate_fw(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm, 'FWI', vectorized, COMPILER, C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR, fwi_optimal)
     _, _, outpath_fwt = generate_fw(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm, 'FWT', vectorized, COMPILER, C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR, fwt_optimal)
 
-    logging.info(f'''
+    logger.info(f'''
 
     Optimal parameters for N = {input_size}:
         - FWI (Ui,Uj): {fwi_optimal}

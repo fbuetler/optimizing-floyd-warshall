@@ -1,0 +1,26 @@
+#ifndef FW_HEADER
+#define FW_HEADER
+
+// Computes the address of the upper-left element of tile X_uv
+#define SUBM(X, u, v, RW, TH, TW) ((X) + (u) * (RW) * (TH) + (v) * (TW))
+
+// supported scalar operations
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+#define ADD(X, Y) ((X) + (Y))
+#define MUL(X, Y) ((X) * (Y))
+#define AND(X, Y) ((X) & (Y))
+#define OR(X, Y) ((X) | (Y))
+
+// supported vector operations
+#define VMIN(X, Y) (_mm256_min_pd((X), (Y)))
+#define VMAX(X, Y) (_mm256_max_pd((X), (Y)))
+#define VADD(X, Y) (_mm256_add_pd((X), (Y)))
+#define VMUL(X, Y) (_mm256_mul_pd((X), (Y)))
+#define VAND(X, Y) (_mm256_and_si256((X), (Y)))
+#define VOR(X, Y) (_mm256_or_si256((X), (Y)))
+
+/* Computes the shortest paths between any pair of vertices and stores their lengths in C. N is the number of nodes.*/
+int floydWarshall({{ datatype }} *C, int N);
+
+#endif

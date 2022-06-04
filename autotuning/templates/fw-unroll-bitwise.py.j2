@@ -1,4 +1,5 @@
 #include <immintrin.h>
+#include <math.h>
 
 #include "fw.h"
 
@@ -27,7 +28,7 @@ int FWI(char *A, char *B, char *C, int N)
                 // load
                 {% for u_i in range(unroll_i) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_j, 4) -%}
+                {% for u_j in range(0, unroll_j, 32) -%}
                 {{ "__m256i c_{}_{} = _mm256_loadu_si256((__m256i const *)&C[(i + {}) * bpl + j + {}]);".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
@@ -38,8 +39,8 @@ int FWI(char *A, char *B, char *C, int N)
                 {% endfor %}
 
                 {% if vector -%}
-                {% for u_j in range(0, unroll_j, 4) -%}
-                {{ "__m256i b_k_{} = _mm256_loadu_si256((__m256i const *)&B[k * bpl + j + {}])".format(u_j, u_j) }}
+                {% for u_j in range(0, unroll_j, 32) -%}
+                {{ "__m256i b_k_{} = _mm256_loadu_si256((__m256i const *)&B[k * bpl + j + {}]);".format(u_j, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_j) -%}
@@ -50,7 +51,7 @@ int FWI(char *A, char *B, char *C, int N)
                 // op 1
                 {% for u_i in range(unroll_i) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_j, 4) -%}
+                {% for u_j in range(0, unroll_j, 32) -%}
                 {{ "__m256i res_{}_{} = V{}(a_{}_k, b_k_{});".format(u_i, u_j, inner_op, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
@@ -63,7 +64,7 @@ int FWI(char *A, char *B, char *C, int N)
                 // op 2
                 {% for u_i in range(unroll_i) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_j, 4) -%}
+                {% for u_j in range(0, unroll_j, 32) -%}
                 {{ "c_{}_{} = V{}(c_{}_{}, res_{}_{});".format(u_i, u_j, outer_op, u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
@@ -76,7 +77,7 @@ int FWI(char *A, char *B, char *C, int N)
                 // store
                 {% for u_i in range(unroll_i) -%}
                 {% if vector -%}
-                {% for u_j in range(0, unroll_j, 4) -%}
+                {% for u_j in range(0, unroll_j, 32) -%}
                 {{ "_mm256_storeu_si256(&C[(i + {}) * bpl + j + {}], c_{}_{});".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}

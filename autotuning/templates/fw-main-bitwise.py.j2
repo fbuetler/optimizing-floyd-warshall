@@ -32,31 +32,21 @@ static int event_codes[NUM_EVENT] = {
     PAPI_L1_DCM,  // L1 data cache misses
 };
 
-void printMatrix(double *C, int N)
+void printMatrix(char *C, int N)
 {
+    int bpl = ceil(N / 8.0); // bytes per matrix line
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N; j++)
         {
-            fprintf(stderr, "%.2f, ", C[i * N + j]);
+            int bind = j % 8;
+            char cur = C[i * bpl + j / 8];
+            if (cur & (1 << bind))
+                fprintf(stderr, "1, ");
+            else
+                fprintf(stderr, "0, ");
         }
         fprintf(stderr, "\n");
-    }
-}
-
-/*
-Copies data from one matrix to another.
-Assumes matrices 'from' and 'to' point to separate memory locations.
-*/
-void copyMatrix(float *from, float *to, int N)
-{
-#pragma ivdep
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            to[i * N + j] = from[i * N + j];
-        }
     }
 }
 
@@ -64,13 +54,13 @@ void copyMatrix(float *from, float *to, int N)
  * Runs the FW implementation once for testing purposes
  * Note that the matrix C is modified in-place
  */
-void ref_output(double *C, int N)
+void ref_output(char *C, int N)
 {
     int err = floydWarshall(C, N);
-    if (err != EXIT_SUCCESS)
+    if (err != 0)
     {
         printf("implementation reported an error\n");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 }
 
@@ -98,31 +88,41 @@ void flush_cache(void *addr, int nbytes)
  *
  * The function returns the average number of cycles per run.
  */
-int measure(double *C, int N, int WarmupEventSet, int MeasurementEventSet, long long *measured_values)
+int measure(char *C, int N, int WarmupEventSet, int MeasurementEventSet, long long *measured_values)
 {
     int i, retval;
     int num_runs = NUM_RUNS;
 
+    int bpl = ceil(N / 8.0);
+
     // Compute how many runs we need to do and warm up cache
     long long warmup_cycles[1];
+    long long warmup_cycles_tmp[1];
+
     /* Start counting */
     long long cycles = 0;
+
     while (num_runs < (1 << 14))
     {
-        if ((retval = PAPI_start(WarmupEventSet)) != PAPI_OK)
-        {
-            ERROR_RETURN(retval);
-        }
-
+        warmup_cycles[0] = 0;
         for (i = 0; i < num_runs; ++i)
         {
-            floydWarshall(C, N);
-        }
+            if ((retval = PAPI_start(WarmupEventSet)) != PAPI_OK)
+            {
+                ERROR_RETURN(retval);
+            }
 
-        /* Stop counting, this reads from the counter as well as stop it. */
-        if ((retval = PAPI_stop(WarmupEventSet, warmup_cycles)) != PAPI_OK)
-        {
-            ERROR_RETURN(retval);
+            floydWarshall(C, N);
+
+            /* Stop counting, this reads from the counter as well as stop it. */
+            if ((retval = PAPI_stop(WarmupEventSet, warmup_cycles_tmp)) != PAPI_OK)
+            {
+                ERROR_RETURN(retval);
+            }
+
+            warmup_cycles[0] += warmup_cycles_tmp[0]; // accumulate
+
+            flush_cache((void *)C, N * bpl * sizeof(char));
         }
 
         cycles += warmup_cycles[0];
@@ -146,6 +146,35 @@ int measure(double *C, int N, int WarmupEventSet, int MeasurementEventSet, long 
      *  --> Suffers from timing bias and requires cache warmup
      *  --> Allows for more fine-grained statistics, e.g. median, variance, etc.
      */
+
+    long long measured_values_tmp[NUM_EVENT];
+
+    // ------- MEASURE CACHE MISSES ON COLD CACHE -------
+    for (i = 0; i < num_runs; ++i)
+    {
+        /* Start counting */
+        if ((retval = PAPI_start(MeasurementEventSet)) != PAPI_OK)
+        {
+            ERROR_RETURN(retval);
+        }
+
+        floydWarshall(C, N);
+
+        /* Stop counting, this reads from the counter as well as stop it. */
+        if ((retval = PAPI_stop(MeasurementEventSet, measured_values_tmp)) != PAPI_OK)
+        {
+            ERROR_RETURN(retval);
+        }
+
+        for (int i = 0; i < NUM_EVENT; i++)
+        {
+            measured_values[i] += measured_values_tmp[i]; // accumulate
+        }
+
+        flush_cache((void *)C, N * bpl * sizeof(char));
+    }
+
+    // ------- MEASURE NUMBER OF CYCLES ON WARM CACHE -------
     /* Start counting */
     if ((retval = PAPI_start(MeasurementEventSet)) != PAPI_OK)
     {
@@ -158,27 +187,33 @@ int measure(double *C, int N, int WarmupEventSet, int MeasurementEventSet, long 
     }
 
     /* Stop counting, this reads from the counter as well as stop it. */
-    if ((retval = PAPI_stop(MeasurementEventSet, measured_values)) != PAPI_OK)
+    if ((retval = PAPI_stop(MeasurementEventSet, measured_values_tmp)) != PAPI_OK)
     {
         ERROR_RETURN(retval);
     }
 
+    // overwrite total cycles
+    measured_values[0] = measured_values_tmp[0];
+
     return num_runs;
 }
 
-
-
-void output_matrix(char *filename, double *C, int N)
+void output_matrix(char *filename, char *C, int N)
 {
-    fprintf(stderr, "outputting shortest-path matrix to %s...\n", filename);
+    int bpl = ceil(N / 8.0); // bytes per matrix line
+    fprintf(stderr, "outputting transitive closure matrix to %s...\n", filename);
     FILE *output_f = fopen(filename, "w+");
     fprintf(output_f, "%d\n", N);
-
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N; j++)
         {
-            fprintf(output_f, "%.2f", C[i * N + j]);
+            int bind = j % 8;
+            char cur = C[i * bpl + j / 8];
+            if (cur & (1 << bind))
+                fprintf(output_f, "1");
+            else
+                fprintf(output_f, "0");
             if (j < N - 1)
             {
                 fputc(',', output_f);
@@ -191,6 +226,11 @@ void output_matrix(char *filename, double *C, int N)
     }
 }
 
+/*
+ * Compile with -DRANDOM_INPUT to only read N from the input files,
+ * and not write anything to the output file.
+ * - the input data for floyd_warshall will essentially be random bits
+ */
 int main(int argc, char **argv)
 {
     if (argc != 3)
@@ -235,10 +275,8 @@ int main(int argc, char **argv)
     }
 
     // read input
-    char *input_fname = argv[1];
-    char *output_fname = argv[2];
+    FILE *input_f = fopen(argv[1], "r");
 
-    FILE *input_f = fopen(input_fname, "r");
     int N; // num nodes
     if (fscanf(input_f, "%d ", &N) < 1)
     {
@@ -247,39 +285,49 @@ int main(int argc, char **argv)
     }
 
     fprintf(stderr, "allocating memory...\n");
-    double *C = (double *)aligned_alloc(32, N * N * sizeof(double));
+    int bpl = ceil(N / 8.0);
+    char *C = (char *)aligned_alloc(32, N * bpl * sizeof(char));
     fprintf(stderr, "parsing input matrix...\n");
+#ifndef RANDOM_INPUT
     for (int i = 0; i < N; i++)
     {
         char inputValue[100];
+        char curbyte = 0;
         for (int j = 0; j < N; j++)
         {
+            int bj = j % 8;
+            if (bj == 0)
+                curbyte = 0; // new byte - set all 0
+
             int numValues = fscanf(input_f, "%[^,\n]s", inputValue);
             if (numValues == 1)
             {
-                C[i * N + j] = strtof(inputValue, NULL);
-            }
-            else
-            {
-                C[i * N + j] = {{ neutral_element }};
+                curbyte |= 1 << bj;
             }
             fgetc(input_f); // skip ',' or '\n'
+            C[i * bpl + j / 8] = curbyte;
         }
     }
+#endif
     fclose(input_f);
 
-    remove(output_fname);
-    double *D = (double *)aligned_alloc(32, N * N * sizeof(double));
-    memcpy(D, C, N * N * sizeof(double));
+    char *D = (char *)aligned_alloc(32, N * bpl * sizeof(char));
+    memcpy(D, C, N * bpl * sizeof(char));
     fprintf(stderr, "generating test output...\n");
     ref_output(D, N);
     char ref_output[256];
-    sprintf(ref_output, "%s", output_fname);
+    sprintf(ref_output, "%s", argv[2]);
+
+#ifdef RANDOM_INPUT
+    sprintf(ref_output, "/dev/null");
+#endif
+
     output_matrix(ref_output, D, N);
+
     free(D);
 
     // run measurements
-    fprintf(stderr, "running floyd-warshall for n=%d\n", N);
+    fprintf(stderr, "measuring shortest paths for n=%d\n", N);
     int num_runs = measure(C, N, WarmupEventSet, MeasurementEventSet, measured_values);
 
     // output measurements
