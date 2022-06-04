@@ -39,7 +39,7 @@ int FWI(char *A, char *B, char *C, int N)
 
                 {% if vector -%}
                 {% for u_j in range(0, unroll_j, 4) -%}
-                {{ "__m256i b_k_{} = _mm256_loadu_si256((__m256i const *)&B[k * bpl + j + {}])".format(u_j, u_j) }}
+                {{ "__m256i b_k_{} = _mm256_loadu_si256((__m256i const *)&B[k * bpl + j + {}]);".format(u_j, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_j) -%}
