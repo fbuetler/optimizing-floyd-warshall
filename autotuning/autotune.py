@@ -243,6 +243,8 @@ def build_files(
     project_root: str, algorithm: str, implementation: str, compiler: str, c_flags: str
 ) -> int:
     """builds source file(s) as specified by the given parameters"""
+    logger.info("Building generated files...")
+
     build_cmd = [
         "make",
         "-C",

@@ -16,24 +16,28 @@ LDFLAGS:=/usr/local/lib/libpapi.a -lm
 gg-c-vector-tiles-clang: generic/c/*.c generic/c/impl/*_vector-tiles*.c generic/c/impl/fw.h
 	cd generic/c/impl; \
 	for f in *_vector-tiles*.c; do \
+		echo $$f; \
 		clang-13 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c $(LDFLAGS); \
 	done
 
 gg-c-tile-clang: generic/c/*.c generic/c/impl/*_tile*.c generic/c/impl/fw.h
 	cd generic/c/impl; \
 	for f in *_tile*.c; do \
+		echo $$f; \
 		clang-13 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c $(LDFLAGS); \
 	done
 
 gg-c-vector-unroll-clang: generic/c/*.c generic/c/impl/*_vector-unroll*.c generic/c/impl/fw.h
 	cd generic/c/impl; \
 	for f in *_vector-unroll*.c; do \
+		echo $$f; \
 		clang-13 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c $(LDFLAGS); \
 	done
 
 gg-c-unroll-clang: generic/c/*.c generic/c/impl/*_unroll*.c generic/c/impl/fw.h
 	cd generic/c/impl; \
 	for f in *_unroll*.c; do \
+		echo $$f; \
 		clang-13 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c $(LDFLAGS); \
 	done
 
