@@ -8,8 +8,8 @@ import subprocess
 import logging
 import csv
 
-DEBUG = True
-VALIDATING = True
+DEBUG = False
+VALIDATING = False
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.DEBUG)
@@ -57,13 +57,20 @@ parser.add_argument(
     help="generated code should use vector instructions",
     action="store_true",
 )
+parser.add_argument(
+    "-run",
+    "--run-measurements",
+    help="run and store measurements once optimal parameters have been found",
+    action="store_true",
+)
 
 COMPILER = "clang"
 C_FLAGS_SCALAR = "-O3 -fno-unroll-loops -fno-slp-vectorize"
 C_FLAGS_VECTOR = "-O3 -march=native -ffast-math"
-BENCH_INPUT_DIR = "test-inputs"
+BENCH_INPUT_DIR = "bench-inputs"
 BENCH_INPUT_DIR_BITWISE = "bench-inputs-tc"
 LOG_FILE = 'autotuning/autotune.log'
+PERSIST_DIR = 'autotuning/generated'
 TEMPLATE_DIR = 'autotuning/templates'
 SOURCE_DIR = 'generic/c/impl'
 DATA_DIR = 'measurements/data'
@@ -272,31 +279,43 @@ def measure_fw(
     c_flags: str,
     test_input_dir: str,
     input_size: int,
+    p_impl: str = None,
+    output_dir: str = None
 ) -> int:
     """ run a generated and built implementation against a testcase of the given size """
     logger.info(f"measuring code for: {implementation}")
 
+    if p_impl:
+        binary = f"{algorithm}_{p_impl}_{compiler}_{c_flags.replace(' ', '_')}"
+    else:
+        binary = f"{algorithm}_{implementation}_{compiler}_{c_flags.replace(' ', '_')}"
+
+    output_fname = f"{algorithm}_{implementation}_{compiler}_{c_flags.replace(' ', '_')}_{test_input_dir}"
+
+    if not output_dir:
+        output_dir = path.join(project_root, DATA_DIR)
+
+    outpath = path.join(output_dir, output_fname)
+
     measure_cmd = [
-        "bash",
-        f"{project_root}/team7.sh",
-        "measure",
-        f"{algorithm}",
-        f"{implementation}",
-        f"{compiler}",
-        f"{c_flags}",
-        f"{test_input_dir}",
-        f"n{input_size}",
+        "python3",
+        f'{path.join(project_root, "measurements", "measure.py")}',
+        f'--binary \"{path.join(project_root, "build", binary)}\"',
+        f'--testsuite \"{path.join(project_root, "testcases", test_input_dir)}\"',
+        f'--testcases \"n{input_size}\"',
+        f'--output \"{outpath}\"',
+        '--incremental',
     ]
 
     logger.debug(" ".join(measure_cmd))
-    result = subprocess.run(measure_cmd, stdout=subprocess.DEVNULL, capture_output=False, text=True)
+    result = subprocess.run(" ".join(measure_cmd), stdout=subprocess.DEVNULL, shell=True)
 
     logger.debug(result.stdout)
     if result.returncode != 0:
         logger.error(result.stderr)
         return result.returncode
 
-    return 0
+    return 0, outpath
 
 def get_perf(
     data_dir: str,
@@ -364,7 +383,7 @@ def find_best_neighbour(project_root: str, algorithm: str, form: str, vectorized
                 raise Exception("Validating {} failed".format(p_impl))
 
         # measure performance
-        retcode = measure_fw(project_root, algorithm, p_impl, COMPILER, c_flags, test_input_dir, input_size)
+        retcode, _ = measure_fw(project_root, algorithm, p_impl, COMPILER, c_flags, test_input_dir, input_size)
         if retcode != 0:
             raise Exception("Running {} failed".format(p_impl))
 
@@ -474,7 +493,7 @@ def optimize_fwi(project_root: str, algorithm: str, vectorized: bool, initial_gu
 
     return find_local_optimum(project_root, algorithm, 'FWI', vectorized, input_size, initial_guess, find_neighbours)
 
-def optimize_fwt(project_root: str, algorithm: str, vectorized: bool, initial_guess: Tuple[int, int], input_size: int, factors: List[int]) -> Tuple[int, int]:
+def optimize_fwt(project_root: str, algorithm: str, vectorized: bool, initial_guess: Tuple[int, int], input_size: int, factors: List[int]) -> Tuple[int, int, int, int, int]:
     """ Further optimize an initial guess for FWI """
     def find_neighbours(curr_params: Tuple[int, int, int, int, int, int], visited: List[Tuple[int, int, int, int, int, int]]) -> List[Tuple[int, int, int, int, int, int]]:
         # use factors of n as possible unrollment factors
@@ -564,7 +583,7 @@ def get_l1_guess(algorithm: str, l2_cache_bytes: int, factors: List[int], fwi_gu
         key=lambda x: abs(x - int(math.sqrt(l2_cache_size / 3)))
     )
 
-def tune_em_all(project_root: str, algorithm: str, vectorized: bool, input_size: int, l2_cache_bytes: int):
+def tune_em_all(project_root: str, algorithm: str, vectorized: bool, input_size: int, l2_cache_bytes: int, do_measure: bool = True):
 
     # log to file to make midnight crashes and stalls more dealable with
     fh = logging.FileHandler(path.join(project_root, LOG_FILE), mode='w')
@@ -588,9 +607,12 @@ def tune_em_all(project_root: str, algorithm: str, vectorized: bool, input_size:
     fwt_optimal = optimize_fwt(project_root, algorithm, vectorized, tuple([l1_guess]) + fwi_guess + fwiabc_guess, input_size, factors)
     logger.info('Done with step 3\n')
 
+    fwi_optimal = (16, 4)
+    fwt_optimal = (64, 16, 4, 1, 4, 1)
+
     clean_files(project_root)
-    _, _, outpath_fwi = generate_fw(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm, 'FWI', vectorized, COMPILER, C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR, fwi_optimal)
-    _, _, outpath_fwt = generate_fw(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm, 'FWT', vectorized, COMPILER, C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR, fwt_optimal)
+    impl_fwi, p_impl_fwi, outpath_fwi_source = generate_fw(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm, 'FWI', vectorized, COMPILER, C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR, fwi_optimal)
+    impl_fwt, p_impl_fwt, outpath_fwt_source = generate_fw(path.join(project_root, TEMPLATE_DIR), path.join(project_root, SOURCE_DIR), algorithm, 'FWT', vectorized, COMPILER, C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR, fwt_optimal)
 
     logger.info(f'''
 
@@ -599,13 +621,38 @@ def tune_em_all(project_root: str, algorithm: str, vectorized: bool, input_size:
         - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): {fwt_optimal}
 
     Source files were generated accordingly and stored at:
-        - {outpath_fwi}
-        - {outpath_fwt}
+        - {outpath_fwi_source}
+        - {outpath_fwt_source}
     respectively.
 
     NOTE: Don't rerun this script unless you want to overwrite the generated files!
     ''')
 
+    if do_measure:
+        cflags = C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR
+        input_dir = BENCH_INPUT_DIR_BITWISE if algorithm == ALGORITHM_TC else BENCH_INPUT_DIR
+        output_dir = path.join(project_root, PERSIST_DIR, algorithm)
+
+        retcode = build_files(project_root, 'gg', impl_fwi, COMPILER, cflags)
+        if retcode != 0:
+            raise Exception("Building {} failed".format(impl_fwi))
+
+        retcode, outpath_fwi_csv = measure_fw(project_root, algorithm, impl_fwi, COMPILER, cflags, input_dir, input_size, p_impl_fwi, output_dir)
+        if retcode != 0:
+            raise Exception("Running measurements for {} failed".format(outpath_fwi_source))
+        else:
+            logging.info(f'Ran FWI measurements for N = {input_size} and stored them at {outpath_fwi_csv}')
+
+        retcode = build_files(project_root, 'gg', impl_fwt, COMPILER, cflags)
+        if retcode != 0:
+            raise Exception("Building {} failed".format(impl_fwt))
+
+        retcode, outpath_fwt_csv = measure_fw(project_root, algorithm, impl_fwt, COMPILER, cflags, input_dir, input_size, p_impl_fwt, output_dir)
+        if retcode != 0:
+            raise Exception("Running measurements for {} failed".format(outpath_fwt_source))
+        else:
+            logging.info(f'Ran FWT measurements for N = {input_size} and stored them at {outpath_fwt_csv}')
+
 if __name__ == "__main__":
     args = parser.parse_args()
-    tune_em_all(args.project_root, args.algorithm, args.vectorized, args.input_size, args.l2_cache)
+    tune_em_all(args.project_root, args.algorithm, args.vectorized, args.input_size, args.l2_cache, args.run_measurements)
