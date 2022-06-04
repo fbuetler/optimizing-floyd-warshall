@@ -1,10 +1,11 @@
 #include <immintrin.h>
+#include <math.h>
 
 #include "fw.h"
 
 // iterative FW algorithm (FWI)
 {{ "// tiling factors Ui and Uj are set to {} and {}, respectively".format(unroll_i,unroll_j) }}
-int FWI(double *A, double *B, double *C, int N, int L1)
+int FWI(char *A, char *B, char *C, int N, int L1)
 {
     // NOTE 1: We assume Ui and Uj divide N for simplicity
     // NOTE 2: If generating vector code, we require that Uj is divisible by 4
@@ -14,9 +15,9 @@ int FWI(double *A, double *B, double *C, int N, int L1)
         {
             {% for u_i in range(unroll_i) -%}
             {% if vector -%}
-            {{ "__m256d a_{}_k = _mm256_broadcast_sd(&A[(i + {}) * N + k]);".format(u_i, u_i) }}
+            {{ "__m256i a_{}_k = _mm256_broadcast_sd(&A[(i + {}) * N + k]);".format(u_i, u_i) }}
             {% else -%}
-            {{ "double a_{}_k = A[(i + {}) * N + k];".format(u_i, u_i) }}
+            {{ "char a_{}_k = A[(i + {}) * N + k];".format(u_i, u_i) }}
             {% endif -%}
             {% endfor -%}
             for (int j = 0; j < L1 - {{ unroll_j - 1 }}; j += {{ unroll_j }})
@@ -25,22 +26,22 @@ int FWI(double *A, double *B, double *C, int N, int L1)
                 {% for u_i in range(unroll_i) -%}
                 {% if vector -%}
                 {% for u_j in range(0, unroll_j, 4) -%}
-                {{ "__m256d c_{}_{} = _mm256_load_pd(&C[(i + {}) * N + j + {}]);".format(u_i, u_j, u_i, u_j) }}
+                {{ "__m256i c_{}_{} = _mm256_load_pd(&C[(i + {}) * N + j + {}]);".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_j) -%}
-                {{ "double c_{}_{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
+                {{ "char c_{}_{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% endif -%}
                 {% endfor %}
 
                 {% if vector -%}
                 {% for u_j in range(0, unroll_j, 4) -%}
-                {{ "__m256d b_k_{} = _mm256_load_pd(&B[k * N + j + {}]);".format(u_j, u_j) }}
+                {{ "__m256i b_k_{} = _mm256_load_pd(&B[k * N + j + {}]);".format(u_j, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_j) -%}
-                {{ "double b_k_{} = B[k * N + j + {}];".format(u_j, u_j) }}
+                {{ "char b_k_{} = B[k * N + j + {}];".format(u_j, u_j) }}
                 {% endfor -%}
                 {% endif %}
 
@@ -48,11 +49,11 @@ int FWI(double *A, double *B, double *C, int N, int L1)
                 {% for u_i in range(unroll_i) -%}
                 {% if vector -%}
                 {% for u_j in range(0, unroll_j, 4) -%}
-                {{ "__m256d res_{}_{} = V{}(a_{}_k, b_k_{});".format(u_i, u_j, inner_op, u_i, u_j) }}
+                {{ "__m256i res_{}_{} = V{}(a_{}_k, b_k_{});".format(u_i, u_j, inner_op, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_j) -%}
-                {{ "double res_{}_{} = {}(a_{}_k, b_k_{});".format(u_i, u_j, inner_op, u_i, u_j) }}
+                {{ "char res_{}_{} = {}(a_{}_k, b_k_{});".format(u_i, u_j, inner_op, u_i, u_j) }}
                 {% endfor -%}
                 {% endif -%}
                 {% endfor %}
@@ -90,7 +91,7 @@ int FWI(double *A, double *B, double *C, int N, int L1)
 
 // FWI for 3 distinct matrices (FWIabc)
 {{ "// tiling factors Uk', Ui' and Uj' are set to {}, {} and {}, respectively".format(unroll_kk, unroll_ii, unroll_jj) }}
-int FWIabc(double *A, double *B, double *C, int N, int L1)
+int FWIabc(char *A, char *B, char *C, int N, int L1)
 {
     // NOTE: We assume Uk, Ui and Uj divide N for simplicity
     for (int i = 0; i < L1 - {{ unroll_ii - 1 }}; i += {{ unroll_ii }})
@@ -103,9 +104,9 @@ int FWIabc(double *A, double *B, double *C, int N, int L1)
                 {% for u_i in range(unroll_ii) -%}
                 {% for u_k in range(unroll_kk) -%}
                 {% if vector -%}
-                {{ "__m256d a_{}_{} = _mm256_broadcast_sd(&A[(i + {}) * N + (k + {})]);".format(u_i, u_k, u_i, u_k) }}
+                {{ "__m256i a_{}_{} = _mm256_broadcast_sd(&A[(i + {}) * N + (k + {})]);".format(u_i, u_k, u_i, u_k) }}
                 {% else -%}
-                {{ "double a_{}_{} = A[(i + {}) * N + (k + {})];".format(u_i, u_k, u_i, u_k) }}
+                {{ "char a_{}_{} = A[(i + {}) * N + (k + {})];".format(u_i, u_k, u_i, u_k) }}
                 {% endif -%}
                 {% endfor -%}
                 {% endfor %}
@@ -113,11 +114,11 @@ int FWIabc(double *A, double *B, double *C, int N, int L1)
                 {% for u_k in range(unroll_kk) -%}
                 {% if vector -%}
                 {% for u_j in range(0, unroll_jj, 4) -%}
-                {{ "__m256d b_{}_{} = _mm256_load_pd(&B[(k + {}) * N + (j + {})]);".format(u_k, u_j, u_k, u_j) }}
+                {{ "__m256i b_{}_{} = _mm256_load_pd(&B[(k + {}) * N + (j + {})]);".format(u_k, u_j, u_k, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_jj) -%}
-                {{ "double b_{}_{} = B[(k + {}) * N + (j + {})];".format(u_k, u_j, u_k, u_j) }}
+                {{ "char b_{}_{} = B[(k + {}) * N + (j + {})];".format(u_k, u_j, u_k, u_j) }}
                 {% endfor -%}
                 {% endif %}
                 {%- endfor %}
@@ -125,11 +126,11 @@ int FWIabc(double *A, double *B, double *C, int N, int L1)
                 {% for u_i in range(unroll_ii) -%}
                 {% if vector -%}
                 {% for u_j in range(0, unroll_jj, 4) -%}
-                {{ "__m256d c_{}_{} = _mm256_load_pd(&C[(i + {}) * N + j + {}]);".format(u_i, u_j, u_i, u_j) }}
+                {{ "__m256i c_{}_{} = _mm256_load_pd(&C[(i + {}) * N + j + {}]);".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_jj) -%}
-                {{ "double c_{}_{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
+                {{ "char c_{}_{} = C[(i + {}) * N + j + {}];".format(u_i, u_j, u_i, u_j) }}
                 {% endfor -%}
                 {% endif -%}
                 {% endfor %}
@@ -139,12 +140,12 @@ int FWIabc(double *A, double *B, double *C, int N, int L1)
                 {% for u_i in range(unroll_ii) -%}
                 {% if vector -%}
                 {% for u_j in range(0, unroll_jj, 4) -%}
-                {% if u_k == 0 %}__m256d {% endif -%}
+                {% if u_k == 0 %}__m256i {% endif -%}
                 {{ "res_{}_{} = V{}(a_{}_{}, b_{}_{});".format(u_i, u_j, inner_op, u_i, u_k, u_k, u_j) }}
                 {% endfor -%}
                 {% else -%}
                 {% for u_j in range(unroll_jj) -%}
-                {% if u_k == 0 %}double {% endif -%}
+                {% if u_k == 0 %}char {% endif -%}
                 {{ "res_{}_{} = {}(a_{}_{}, b_{}_{});".format(u_i, u_j, inner_op, u_i, u_k, u_k, u_j) }}
                 {% endfor -%}
                 {% endif -%}
@@ -183,7 +184,7 @@ int FWIabc(double *A, double *B, double *C, int N, int L1)
 
 // tiled FW algorithm (FWT)
 // tile size: L1 x L1
-int FWT(double *A, double *B, double *C, int N, int L1)
+int FWT(char *A, char *B, char *C, int N, int L1)
 {
     // NOTE: We assume L1 divides N for simplicity
     // Notation: A_ij is the L1 x L1 submatrix (i,j) of A
@@ -254,7 +255,7 @@ function FWT(A, B, C, N, L1)
                 FWIabc(A_ik,B_kj,C_ij, L1);
 
 */
-int floydWarshall(double *C, int N)
+int floydWarshall(char *C, int N)
 {
     // tile size is set to 8
     return FWT(C, C, C, N, {{ L1 }});
