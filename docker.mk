@@ -41,6 +41,42 @@ gg-c-unroll-clang: generic/c/*.c generic/c/impl/*_unroll*.c generic/c/impl/fw.h
 		clang-13 $(CFLAGS) -o $(BUILD_DIR)/$${f%.*} "$$f" ../main.c $(LDFLAGS); \
 	done
 
+# fw - autotune vector tile
+fw-c-autotune-vector-tiles-gcc: shortest-path/c/*.c shortest-path/c/impl/autotune-vector-tile.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/autotune-vector-tile.c main.c $(LDFLAGS);
+
+fw-c-autotune-vector-tile-clang: shortest-path/c/*.c shortest-path/c/impl/autotune-vector-tile.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/vector-tiles.c main.c $(LDFLAGS);
+
+# fw - autotune vector unrolled
+fw-c-autotune-vector-unroll-gcc: shortest-path/c/*.c shortest-path/c/impl/autotune-vector-unroll.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/vector-tiles.c main.c $(LDFLAGS);
+
+fw-c-autotune-vector-unroll-clang: shortest-path/c/*.c shortest-path/c/impl/autotune-vector-unroll.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/autotune-vector-unroll.c main.c $(LDFLAGS);
+
+# fw - autotune tile
+fw-c-autotune-tile-gcc: shortest-path/c/*.c shortest-path/c/impl/autotune-tile.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/autotune-tile.c main.c $(LDFLAGS);
+
+fw-c-autotune-tile-clang: shortest-path/c/*.c shortest-path/c/impl/autotune-tile.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/autotune-tile.c main.c $(LDFLAGS);
+
+# fw - autotune unroll
+fw-c-autotune-unroll-gcc: shortest-path/c/*.c shortest-path/c/impl/autotune-unroll.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	gcc-11 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/autotune-unroll.c main.c $(LDFLAGS);
+
+fw-c-autotune-unroll-clang: shortest-path/c/*.c shortest-path/c/impl/autotune-unroll.c shortest-path/c/impl/sp.h
+	cd shortest-path/c; \
+	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/autotune-unroll.c main.c $(LDFLAGS);
+
 # fw - vector tile
 fw-c-vector-tiles-gcc: shortest-path/c/*.c shortest-path/c/impl/vector-tiles.c shortest-path/c/impl/sp.h
 	cd shortest-path/c; \

@@ -28,6 +28,34 @@ build-gg-c-vector-unroll-clang: docker generic/c/*.c generic/c/main.c generic/c/
 build-gg-c-unroll-clang: docker generic/c/*.c generic/c/main.c generic/c/impl/*_unroll*.c generic/c/impl/fw.h
 	docker run ${DOCKER_RUN_ARGS} make gg-c-unroll-clang
 
+# fw - autotune vector tiled
+build-fw-c-autotune-vector-tile-gcc: docker shortest-path/c/*.c shortest-path/c/impl/autotune-vector-tile.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-autotune-vector-tile-gcc
+
+build-fw-c-autotune-vector-tile-clang: docker shortest-path/c/*.c shortest-path/c/impl/autotune-vector-tile.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-autotune-vector-tile-clang
+
+# fw - autotune vector unrolled
+build-fw-c-autotune-vector-untoll-gcc: docker shortest-path/c/*.c shortest-path/c/impl/autotune-vector-unroll.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-autotune-vector-unroll-gcc
+
+build-fw-c-autotune-vector-unroll-clang: docker shortest-path/c/*.c shortest-path/c/impl/autotune-vector-unroll.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-autotune-vector-unroll-clang
+
+# fw - autotune tiled
+build-fw-c-autotune-tile-gcc: docker shortest-path/c/*.c shortest-path/c/impl/autotune-tile.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-autotune-tile-gcc
+
+build-fw-c-autotune-tile-clang: docker shortest-path/c/*.c shortest-path/c/impl/autotune-tile.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-autotune-tile-clang
+
+# fw - autotune unrolled
+build-fw-c-autotune-unroll-gcc: docker shortest-path/c/*.c shortest-path/c/impl/autotune-unroll.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-autotune-unroll-gcc
+
+build-fw-c-autotune-unroll-clang: docker shortest-path/c/*.c shortest-path/c/impl/autotune-unroll.c shortest-path/c/impl/sp.h
+	docker run ${DOCKER_RUN_ARGS} make fw-c-autotune-unroll-clang
+
 # fw - vector tiled
 build-fw-c-vector-tiles-gcc: docker shortest-path/c/*.c shortest-path/c/impl/vector-tiles.c shortest-path/c/impl/sp.h
 	docker run ${DOCKER_RUN_ARGS} make fw-c-vector-tiles-gcc

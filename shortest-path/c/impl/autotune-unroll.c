@@ -1,6 +1,6 @@
 #include <immintrin.h>
 
-#include "fw.h"
+#include "sp.h"
 
 // iterative FW algorithm (FWI)
 // tiling factors Ui and Uj are set to 16 and 4, respectively
