@@ -69,11 +69,12 @@ C_FLAGS_SCALAR = "-O3 -fno-unroll-loops -fno-slp-vectorize"
 C_FLAGS_VECTOR = "-O3 -march=native -ffast-math"
 BENCH_INPUT_DIR = "bench-inputs"
 BENCH_INPUT_DIR_BITWISE = "bench-inputs-tc"
-LOG_FILE = "autotuning/autotune.log"
-PERSIST_DIR = "autotuning/generated"
-TEMPLATE_DIR = "autotuning/templates"
-SOURCE_DIR = "generic/c/impl"
-DATA_DIR = "measurements/data"
+TEST_INPUT_DIR = "test-inputs"
+LOG_FILE = 'autotuning/autotune.log'
+PERSIST_DIR = 'autotuning/generated'
+TEMPLATE_DIR = 'autotuning/templates'
+SOURCE_DIR = 'generic/c/impl'
+DATA_DIR = 'measurements/data'
 
 
 def clean_files(project_root):
@@ -341,18 +342,19 @@ def measure_fw(
 
     measure_cmd = [
         "python3",
-        f'{path.join(project_root, "measurements", "measure.py")}',
-        f'--binary "{path.join(project_root, "build", binary)}"',
-        f'--testsuite "{path.join(project_root, "testcases", test_input_dir)}"',
-        f'--testcases "n{input_size}"',
-        f'--output "{outpath}"',
-        "--incremental",
+        path.join(project_root, "measurements", "measure.py"),
+        "--binary",
+        path.join(project_root, "build", binary),
+        "--testsuite",
+        path.join(project_root, "testcases", test_input_dir),
+        "--testcases",
+        f'n{input_size}',
+        "--output",
+        outpath,
     ]
 
-    logger.debug(" ".join(measure_cmd))
-    result = subprocess.run(
-        " ".join(measure_cmd), stdout=subprocess.DEVNULL, shell=True
-    )
+    logger.debug(measure_cmd)
+    result = subprocess.run(args=measure_cmd, stdout=subprocess.DEVNULL)
 
     logger.debug(result.stdout)
     if result.returncode != 0:
@@ -515,15 +517,7 @@ def find_local_optimum(
             logger.info("No more neighbours to visit")
             break
         visited = visited + neighbours
-        best_neighbour, perf = find_best_neighbour(
-            project_root,
-            algorithm,
-            form,
-            vectorized,
-            input_size,
-            BENCH_INPUT_DIR_BITWISE if algorithm == ALGORITHM_TC else BENCH_INPUT_DIR,
-            neighbours,
-        )
+        best_neighbour, perf = find_best_neighbour(project_root, algorithm, form, vectorized, input_size, BENCH_INPUT_DIR_BITWISE if algorithm == ALGORITHM_TC else TEST_INPUT_DIR if input_size == 64 else BENCH_INPUT_DIR, neighbours)
         if perf < curr_perf:
             logger.info("No way to improve")
             break
