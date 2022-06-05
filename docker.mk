@@ -48,7 +48,7 @@ fw-c-autotune-vector-tiles-gcc: shortest-path/c/*.c shortest-path/c/impl/autotun
 
 fw-c-autotune-vector-tile-clang: shortest-path/c/*.c shortest-path/c/impl/autotune-vector-tile.c shortest-path/c/impl/sp.h
 	cd shortest-path/c; \
-	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/vector-tiles.c main.c $(LDFLAGS);
+	clang-13 $(CFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME) impl/autotune-vector-tile.c main.c $(LDFLAGS);
 
 # fw - autotune vector unrolled
 fw-c-autotune-vector-unroll-gcc: shortest-path/c/*.c shortest-path/c/impl/autotune-vector-unroll.c shortest-path/c/impl/sp.h

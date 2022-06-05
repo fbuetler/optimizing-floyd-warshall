@@ -1,6 +1,6 @@
 #include "sp.h"
 
-#define SUBM(X, u, v, BL, B) (((X) + (u) * (BL) * (B) * (BL) + (v) * (BL)))
+#define SUBMs(X, u, v, BL, B) (((X) + (u) * (BL) * (B) * (BL) + (v) * (BL)))
 
 // iterative FW algorithm (FWI)
 // tiling factors Ui and Uj are set to 4 and 4, respectively
@@ -172,7 +172,7 @@ int FWT(double *A, double *B, double *C, int N, int L1)
     {
         // phase 1: update all diagonal tiles
         // FWI(A_kk, B_kk, C_kk, L1)
-        FWI(SUBM(A, k, k, L1, M), SUBM(B, k, k, L1, M), SUBM(C, k, k, L1, M), N, L1);
+        FWI(SUBMs(A, k, k, L1, M), SUBMs(B, k, k, L1, M), SUBMs(C, k, k, L1, M), N, L1);
 
         // phase 2: update all tiles in row k
         for (int j = 0; j < M; j++)
@@ -180,7 +180,7 @@ int FWT(double *A, double *B, double *C, int N, int L1)
             if (j != k)
             {
                 // FWI(A_kk,B_kj,C_kj, L1)
-                FWI(SUBM(A, k, k, L1, M), SUBM(B, k, j, L1, M), SUBM(C, k, j, L1, M), N, L1);
+                FWI(SUBMs(A, k, k, L1, M), SUBMs(B, k, j, L1, M), SUBMs(C, k, j, L1, M), N, L1);
             }
         }
 
@@ -190,7 +190,7 @@ int FWT(double *A, double *B, double *C, int N, int L1)
             if (i != k)
             {
                 // FWI(A_ik, B_kk, C_ik, L1)
-                FWI(SUBM(A, i, k, L1, M), SUBM(B, k, k, L1, M), SUBM(C, i, k, L1, M), N, L1);
+                FWI(SUBMs(A, i, k, L1, M), SUBMs(B, k, k, L1, M), SUBMs(C, i, k, L1, M), N, L1);
             }
         }
 
@@ -204,7 +204,7 @@ int FWT(double *A, double *B, double *C, int N, int L1)
                     if (j != k)
                     {
                         // FWIabc(A_ik,B_kj,C_ij, L1)
-                        FWIabc(SUBM(A, i, k, L1, M), SUBM(B, k, j, L1, M), SUBM(C, i, j, L1, M), N, L1);
+                        FWIabc(SUBMs(A, i, k, L1, M), SUBMs(B, k, j, L1, M), SUBMs(C, i, j, L1, M), N, L1);
                     }
                 }
             }
