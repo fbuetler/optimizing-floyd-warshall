@@ -73,6 +73,9 @@ def main(
     peak_simd,
     output_file,
 ):
+    mpl.rcParams["axes.prop_cycle"] = mpl.cycler(
+        color=COLOR_LIST
+    )  # sets colors using given cycle
 
     if peak != 0.0:
         print(f"plotting non-SIMD performance limit at {peak} flops/cycle")
@@ -93,10 +96,6 @@ def main(
             linewidth=1,
             color=next(ax._get_lines.prop_cycler)["color"],
         )
-
-    mpl.rcParams["axes.prop_cycle"] = mpl.cycler(
-        color=COLOR_LIST
-    )  # sets colors using given cycle
 
     perf_max = 0.0
 
@@ -137,7 +136,7 @@ def main(
         for (n, c, r) in zip(n_list, cycles_list, runs_list):
             perf_list.append((2 * n * n * n) / c)
 
-        plt.plot(n_list, perf_list, label=label, marker="^")
+        plt.plot(n_list, perf_list, label=label, marker="o")
 
         perf_max = max(perf_list + [perf_max])
 
@@ -148,14 +147,15 @@ def main(
         ),
     )
 
-    plt.grid(True, which="major", axis="y")
-
-    plt.legend()
-
-    plt.title(title)
+    # configure plot
     plt.xlabel("n")
-    plt.semilogx(base=2)
-    plt.ylabel("[flops/cycle]")
+    plt.ylabel("P(n) [flops/cycle]")
+    # plt.semilogx(base=2)
+    plt.xscale("log", base=2)
+    plt.grid(True, which="major", axis="y")
+    plt.title(title)
+    plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))  # TODO: Label lines directly
+    plt.tight_layout()
 
     outfile = "{}/{}_perf.png".format(plots_dir, output_file)
     plt.savefig(outfile)

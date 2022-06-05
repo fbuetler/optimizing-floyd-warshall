@@ -215,7 +215,7 @@ def roofline_plot(
         perf_max = max(p_list + [perf_max])
 
     # configure plot
-    plt.xlabel("I(n) [/cycle]")
+    plt.xlabel("I(n) [bytes/cycle]")
     plt.ylabel("P(n) [flops/cycle]")
     plt.xscale("log", base=2)
     plt.yscale("log", base=2)
