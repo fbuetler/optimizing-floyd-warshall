@@ -8,7 +8,7 @@ import subprocess
 import logging
 import csv
 
-DEBUG = False
+DEBUG = True
 VALIDATING = False
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ parser.add_argument(
     choices=ALGORITHM_CHOICES,
     required=True,
 )
-parser.add_argument("-n", "--input-size", help="input size", type=int, required=True)
+parser.add_argument("-n", "--input-sizes", help="input size", nargs='+', type=int, required=True)
 # parser.add_argument("--min-n", help="minimum input size", type=int, required=True)
 # parser.add_argument("--max-n", help="maximum input size", type=int, required=True)
 parser.add_argument(
@@ -155,8 +155,8 @@ def generate_fw(
     compiler: str,
     c_flags: str,
     parameters: Tuple[int, int],
-) -> str:
-    """Generates a FW source file and returns the implementation and more specific (parametrized) name.
+) -> Tuple[str, str, str]:
+    """Generates a FW source file and returns the implementation, a more specific (parametrized) name, and the output path.
 
     Form needs to be one of 'FWI', 'FWIabc' or 'FWT', requiring parameters
     (Ui,Uj), (Ui',Uj',Uk') or (L1,Ui,Uj,Ui',Uj',Uk'), respectively.
@@ -524,7 +524,10 @@ def find_local_optimum(
         curr_choice = best_neighbour
         curr_perf = perf
 
-    logger.info(f"Reached local maximum at {curr_choice}")
+    logger.debug(f"Visited configurations:")
+    for p in visited:
+        logger.debug(f'{p}')
+    logger.info(f"Reached local maximum at {curr_choice} at {curr_perf} flops/cycle")
     return curr_choice
 
 
@@ -815,7 +818,7 @@ def tune_em_all(
     project_root: str,
     algorithm: str,
     vectorized: bool,
-    input_size: int,
+    input_sizes: List[int],
     l2_cache_bytes: int,
     do_measure: bool = True,
 ):
@@ -837,119 +840,117 @@ def tune_em_all(
     (fwi_guess, fwiabc_guess) = find_initial_guess(project_root, algorithm, vectorized)
     logger.info("Done with step 1\n")
 
-    factors = factors_of(input_size)
-    fwi_optimal = optimize_fwi(
-        project_root, algorithm, vectorized, fwi_guess, input_size, factors
-    )
-    logger.info("Done with step 2\n")
-
-    l1_guess = get_l1_guess(algorithm, l2_cache_bytes, factors, fwi_guess, fwiabc_guess)
-
-    fwt_optimal = optimize_fwt(
-        project_root,
-        algorithm,
-        vectorized,
-        tuple([l1_guess]) + fwi_guess + fwiabc_guess,
-        input_size,
-        factors,
-    )
-    logger.info("Done with step 3\n")
-
-    fwi_optimal = (16, 4)
-    fwt_optimal = (64, 16, 4, 1, 4, 1)
-
-    clean_files(project_root)
-    impl_fwi, p_impl_fwi, outpath_fwi_source = generate_fw(
-        path.join(project_root, TEMPLATE_DIR),
-        path.join(project_root, SOURCE_DIR),
-        algorithm,
-        "FWI",
-        vectorized,
-        COMPILER,
-        C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR,
-        fwi_optimal,
-    )
-    impl_fwt, p_impl_fwt, outpath_fwt_source = generate_fw(
-        path.join(project_root, TEMPLATE_DIR),
-        path.join(project_root, SOURCE_DIR),
-        algorithm,
-        "FWT",
-        vectorized,
-        COMPILER,
-        C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR,
-        fwt_optimal,
-    )
-
-    logger.info(
-        f"""
-
-    Optimal parameters for N = {input_size}:
-        - FWI (Ui,Uj): {fwi_optimal}
-        - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): {fwt_optimal}
-
-    Source files were generated accordingly and stored at:
-        - {outpath_fwi_source}
-        - {outpath_fwt_source}
-    respectively.
-
-    NOTE: Don't rerun this script unless you want to overwrite the generated files!
-    """
-    )
-
-    if do_measure:
-        cflags = C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR
-        input_dir = (
-            BENCH_INPUT_DIR_BITWISE if algorithm == ALGORITHM_TC else BENCH_INPUT_DIR
+    for input_size in input_sizes:
+        factors = factors_of(input_size)
+        fwi_optimal = optimize_fwi(
+            project_root, algorithm, vectorized, fwi_guess, input_size, factors
         )
-        output_dir = path.join(project_root, PERSIST_DIR, algorithm)
+        logger.info("Done with step 2\n")
 
-        retcode = build_files(project_root, "gg", impl_fwi, COMPILER, cflags)
-        if retcode != 0:
-            raise Exception("Building {} failed".format(impl_fwi))
+        l1_guess = get_l1_guess(algorithm, l2_cache_bytes, factors, fwi_guess, fwiabc_guess)
 
-        retcode, outpath_fwi_csv = measure_fw(
+        fwt_optimal = optimize_fwt(
             project_root,
             algorithm,
-            impl_fwi,
-            COMPILER,
-            cflags,
-            input_dir,
+            vectorized,
+            tuple([l1_guess]) + fwi_guess + fwiabc_guess,
             input_size,
-            p_impl_fwi,
-            output_dir,
+            factors,
         )
-        if retcode != 0:
-            raise Exception(
-                "Running measurements for {} failed".format(outpath_fwi_source)
-            )
-        else:
-            logging.info(
-                f"Ran FWI measurements for N = {input_size} and stored them at {outpath_fwi_csv}"
-            )
+        logger.info("Done with step 3\n")
 
-        retcode = build_files(project_root, "gg", impl_fwt, COMPILER, cflags)
-        if retcode != 0:
-            raise Exception("Building {} failed".format(impl_fwt))
-
-        retcode, outpath_fwt_csv = measure_fw(
-            project_root,
+        clean_files(project_root)
+        impl_fwi, p_impl_fwi, outpath_fwi_source = generate_fw(
+            path.join(project_root, TEMPLATE_DIR),
+            path.join(project_root, SOURCE_DIR),
             algorithm,
-            impl_fwt,
+            "FWI",
+            vectorized,
             COMPILER,
-            cflags,
-            input_dir,
-            input_size,
-            p_impl_fwt,
-            output_dir,
+            C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR,
+            fwi_optimal,
         )
-        if retcode != 0:
-            raise Exception(
-                "Running measurements for {} failed".format(outpath_fwt_source)
+        impl_fwt, p_impl_fwt, outpath_fwt_source = generate_fw(
+            path.join(project_root, TEMPLATE_DIR),
+            path.join(project_root, SOURCE_DIR),
+            algorithm,
+            "FWT",
+            vectorized,
+            COMPILER,
+            C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR,
+            fwt_optimal,
+        )
+
+        logger.info(
+            f"""
+
+        Optimal parameters for N = {input_size}:
+            - FWI (Ui,Uj): {fwi_optimal}
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): {fwt_optimal}
+
+        Source files were generated accordingly and stored at:
+            - {outpath_fwi_source}
+            - {outpath_fwt_source}
+        respectively.
+
+        NOTE: Don't rerun this script unless you want to overwrite the generated files!
+        """
+        )
+
+        if do_measure:
+            cflags = C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR
+            input_dir = (
+                BENCH_INPUT_DIR_BITWISE if algorithm == ALGORITHM_TC else BENCH_INPUT_DIR
             )
-        else:
-            logging.info(
-                f"Ran FWT measurements for N = {input_size} and stored them at {outpath_fwt_csv}"
+            output_dir = path.join(project_root, PERSIST_DIR, algorithm)
+
+            retcode = build_files(project_root, "gg", impl_fwi, COMPILER, cflags)
+            if retcode != 0:
+                raise Exception("Building {} failed".format(impl_fwi))
+
+            retcode, outpath_fwi_csv = measure_fw(
+                project_root,
+                algorithm,
+                impl_fwi,
+                COMPILER,
+                cflags,
+                input_dir,
+                input_size,
+                p_impl_fwi,
+                output_dir,
             )
+            if retcode != 0:
+                raise Exception(
+                    "Running measurements for {} failed".format(outpath_fwi_source)
+                )
+            else:
+                logging.info(
+                    f"Ran FWI measurements for N = {input_size} and stored them at {outpath_fwi_csv}"
+                )
+
+            retcode = build_files(project_root, "gg", impl_fwt, COMPILER, cflags)
+            if retcode != 0:
+                raise Exception("Building {} failed".format(impl_fwt))
+
+            retcode, outpath_fwt_csv = measure_fw(
+                project_root,
+                algorithm,
+                impl_fwt,
+                COMPILER,
+                cflags,
+                input_dir,
+                input_size,
+                p_impl_fwt,
+                output_dir,
+            )
+            if retcode != 0:
+                raise Exception(
+                    "Running measurements for {} failed".format(outpath_fwt_source)
+                )
+            else:
+                logging.info(
+                    f"Ran FWT measurements for N = {input_size} and stored them at {outpath_fwt_csv}"
+                )
 
 
 if __name__ == "__main__":
@@ -958,7 +959,7 @@ if __name__ == "__main__":
         args.project_root,
         args.algorithm,
         args.vectorized,
-        args.input_size,
+        args.input_sizes,
         args.l2_cache,
         args.run_measurements,
     )
