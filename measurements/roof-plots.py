@@ -105,6 +105,7 @@ def roofline_plot(
 
     # Goal: See slide 4 of lecture 'roofline'
     mpl.rcParams["axes.prop_cycle"] = mpl.cycler(color=COLOR_LIST)
+    mpl.rcParams["figure.figsize"] = [8,5]
 
     print("generating roofline plot...")
 
@@ -131,7 +132,8 @@ def roofline_plot(
     )
 
     perf_max = 0.0
-
+    min_labels = list()
+    max_labels = list()
     for data_file_path in data_file_list:
 
         # generate label
@@ -203,12 +205,16 @@ def roofline_plot(
             if max_n[2] is None or n > max_n[2]:
                 max_n = (I, P, n)
 
-        plt.annotate(
-            int(min_n[2]), xy=(min_n[0], min_n[1]), xytext=(min_n[0], min_n[1] + 0.1)
-        )
-        plt.annotate(
-            int(max_n[2]), xy=(max_n[0], max_n[1]), xytext=(max_n[0], max_n[1] + 0.2)
-        )
+        if (len([(x,y) for (x,y) in min_labels if abs(x-min_n[0]) < 0.3*min_n[0] and abs(y-min_n[1]) < 0.2*min_n[1]]) == 0):
+            plt.annotate(
+                int(min_n[2]), xy=(min_n[0], min_n[1]), xytext=(min_n[0], min_n[1] + 0.05*min_n[1])
+            )
+            min_labels.append((min_n[0], min_n[1]))
+        if (len([(x,y) for (x,y) in max_labels if abs(x-max_n[0]) < 0.3*max_n[0] and abs(y-max_n[1]) < 0.1*max_n[1]]) == 0):
+            plt.annotate(
+                int(max_n[2]), xy=(max_n[0], max_n[1]), xytext=(max_n[0]-0.6*max_n[0], max_n[1] - 0.07*min_n[1])
+            )
+            max_labels.append((max_n[0], max_n[1]))
 
         plt.plot(i_list, p_list, marker="o", label=label)
 

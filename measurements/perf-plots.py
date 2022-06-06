@@ -77,6 +77,8 @@ def main(
         color=COLOR_LIST
     )  # sets colors using given cycle
 
+    mpl.rcParams["figure.figsize"] = [8,5]
+
     if peak != 0.0:
         print(f"plotting non-SIMD performance limit at {peak} flops/cycle")
         _, ax = plt.subplots()
@@ -155,7 +157,7 @@ def main(
     plt.grid(True, which="major", axis="y")
     plt.title(title)
     plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))  # TODO: Label lines directly
-    plt.tight_layout()
+    plt.tight_layout(pad=1.1)
 
     outfile = "{}/{}_perf.png".format(plots_dir, output_file)
     plt.savefig(outfile)
