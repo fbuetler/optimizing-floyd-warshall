@@ -834,7 +834,8 @@ def tune_em_all(
     logger.addHandler(fh)
 
     # log optimized parameters separately
-    param_log = open(path.join(project_root, PERSIST_DIR, algorithm, PERSIST_LOG_FILE), 'a')
+    param_log_path = path.join(project_root, PERSIST_DIR, algorithm, PERSIST_LOG_FILE)
+    param_log = open(param_log_path, 'a')
     localtime = time.asctime( time.localtime(time.time()) )
     param_log.write(f'\n-------- Autotuning run {localtime} --------\n')
 
@@ -941,7 +942,7 @@ def tune_em_all(
                     "Running measurements for {} failed".format(outpath_fwi_source)
                 )
             else:
-                logging.info(
+                logger.info(
                     f"Ran FWI measurements for N = {input_size} and stored them at {outpath_fwi_csv}"
                 )
 
@@ -965,11 +966,15 @@ def tune_em_all(
                     "Running measurements for {} failed".format(outpath_fwt_source)
                 )
             else:
-                logging.info(
+                logger.info(
                     f"Ran FWT measurements for N = {input_size} and stored them at {outpath_fwt_csv}"
                 )
 
     param_log.close()
+
+    logger.info(f"Aight we got some fiiiine(-tuned) performance out of that.\nYou can find the generated optimal parameters at {param_log_path}")
+
+    logger.info("\nThat's all folks!")
 
 
 if __name__ == "__main__":
