@@ -2,6 +2,7 @@ import argparse
 from functools import reduce
 import math
 from os import path
+import time
 from typing import List, Tuple, Callable
 import jinja2
 import subprocess
@@ -71,6 +72,7 @@ BENCH_INPUT_DIR = "bench-inputs"
 BENCH_INPUT_DIR_BITWISE = "bench-inputs-tc"
 TEST_INPUT_DIR = "test-inputs"
 LOG_FILE = 'autotuning/autotune.log'
+PERSIST_LOG_FILE = 'optimal-parameters.log'
 PERSIST_DIR = 'autotuning/generated'
 TEMPLATE_DIR = 'autotuning/templates'
 SOURCE_DIR = 'generic/c/impl'
@@ -831,6 +833,11 @@ def tune_em_all(
     fh.setFormatter(formatter)
     logger.addHandler(fh)
 
+    # log optimized parameters separately
+    param_log = open(path.join(project_root, PERSIST_DIR, algorithm, PERSIST_LOG_FILE), 'a')
+    localtime = time.asctime( time.localtime(time.time()) )
+    param_log.write(f'\n-------- Autotuning run {localtime} --------\n')
+
     # generate main.c file with correct neutral element and datatype
     generate_main(
         path.join(project_root, TEMPLATE_DIR),
@@ -880,6 +887,15 @@ def tune_em_all(
             COMPILER,
             C_FLAGS_VECTOR if vectorized else C_FLAGS_SCALAR,
             fwt_optimal,
+        )
+
+        param_log.write(
+            f"""
+        Optimal parameters for N = {input_size}:
+            - FWI (Ui,Uj): {fwi_optimal}
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): {fwt_optimal}
+
+        """
         )
 
         logger.info(
@@ -952,6 +968,8 @@ def tune_em_all(
                 logging.info(
                     f"Ran FWT measurements for N = {input_size} and stored them at {outpath_fwt_csv}"
                 )
+
+    param_log.close()
 
 
 if __name__ == "__main__":
