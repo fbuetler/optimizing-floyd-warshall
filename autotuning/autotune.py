@@ -351,6 +351,7 @@ def measure_fw(
         f'n{input_size}',
         "--output",
         outpath,
+        "--incremental",
     ]
 
     logger.debug(measure_cmd)
