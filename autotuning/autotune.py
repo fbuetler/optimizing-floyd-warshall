@@ -972,7 +972,9 @@ def tune_em_all(
 
     param_log.close()
 
-    logger.info(f"Aight we got some fiiiine(-tuned) performance out of that.\nYou can find the generated optimal parameters at {param_log_path}")
+    logger.info("Aight we got some fiiiine(-tuned) performance out of that.")
+    logger.info(f"You can find the generated optimal parameters at {param_log_path}")
+    logger.info("Or a cute cat video here: https://www.youtube.com/watch?v=dQw4w9WgXcQ")
 
     logger.info("\nThat's all folks!")
 
