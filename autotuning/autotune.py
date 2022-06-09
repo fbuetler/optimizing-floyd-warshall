@@ -66,6 +66,9 @@ parser.add_argument(
 )
 
 COMPILER = "clang"
+# use the _TC lines for transitive closure testcases (to ignore inputs)
+C_FLAGS_SCALAR_TC = "-O3 -fno-unroll-loops -fno-slp-vectorize -DRANDOM_INPUT"
+C_FLAGS_VECTOR_TC = "-O3 -march=native -ffast-math -DRANDOM_INPUT"
 C_FLAGS_SCALAR = "-O3 -fno-unroll-loops -fno-slp-vectorize"
 C_FLAGS_VECTOR = "-O3 -march=native -ffast-math"
 BENCH_INPUT_DIR = "bench-inputs"
@@ -621,9 +624,17 @@ def optimize_fwi(
 
         # vector size in number of elements
         vector_size = 32 if algorithm == ALGORITHM_TC else 4
-        uj_factors = (
-            [f for f in factors if f % vector_size == 0] if vectorized else factors
-        )
+        if algorithm == ALGORITHM_TC:
+            factors_too = list(map(lambda x: x // 8,
+                                   filter(lambda y: y % 8 == 0,
+                                          factors)))
+            uj_factors = (
+                [f for f in factors_too if f % vector_size == 0] if vectorized else factors_too
+            )
+        else:
+            uj_factors = (
+                [f for f in factors if f % vector_size == 0] if vectorized else factors
+            )
 
         ui_ind = factors.index(ui)
         uj_ind = uj_factors.index(uj)
@@ -677,12 +688,40 @@ def optimize_fwt(
             # vector size in number of elements
             vector_size = 32 if algorithm == ALGORITHM_TC else 4
             # if column unrollment and vectorized, multiple of vector size
-            p_factors = (
-                [f for f in factors if f % vector_size == 0]
-                if (vectorized and (i == 2 or i == 4))
-                else factors
-            )
+            if algorithm == ALGORITHM_TC:
+                factors_too = list(map(lambda x: x // 8,
+                                       filter(lambda y: y % 8 == 0,
+                                              factors)))
+                p_factors = (
+                    [f for f in factors_too if f % vector_size == 0]
+                    if (vectorized and (i == 2 or i == 4))
+                    else (factors_too if i in (2, 4) else factors)
+                )
+            else:
+                p_factors = (
+                    [f for f in factors if f % vector_size == 0]
+                    if (vectorized and (i == 2 or i == 4))
+                    else factors
+                )
             p_ind = p_factors.index(p)
+
+            multf = 8 if (algorithm == ALGORITHM_TC and i in (2, 4)) else 1
+            def reduce_tc(remaining_params: Tuple[int, int, int, int, int],
+                          np_ind: int, p_factors: List[int]) -> bool:
+                """Special reduce function for transitive closure checks.
+
+                :param remaining_params: curr_params[1:]
+                :param np_ind: p_ind +- 1
+                :param p_factors: list of possible factors
+                """
+                for i, u_factor in enumerate(remaining_params, start=1):
+                    multf = 8 if i in (2, 4) else 1
+                    if (u_factor * multf <= p_factors[np_ind] and 
+                        p_factors[np_ind] % (u_factor * multf) == 0):
+                        continue
+                    else:
+                        return False
+                return True
 
             if (
                 p_ind > 0  # neighbour exists
@@ -691,13 +730,17 @@ def optimize_fwt(
                 + curr_params[i + 1 :]
                 not in visited  # neighbour not visited
                 and (
-                    (p_factors[p_ind - 1] <= l1 and l1 % p_factors[p_ind - 1] == 0)
+                    (p_factors[p_ind - 1] * multf <= l1 and l1 % (p_factors[p_ind - 1] * multf) == 0)
                     if i != 0
-                    else reduce(
-                        lambda x, u_factor: x
-                        & (u_factor <= p_factors[p_ind - 1])
-                        & (p_factors[p_ind - 1] % u_factor == 0),
-                        tuple([True]) + curr_params[1:],
+                    else (
+                            reduce_tc(curr_params[1:], p_ind - 1, p_factors)
+                            if algorithm == ALGORITHM_TC else
+                            reduce(
+                                lambda x, u_factor: x
+                                & (u_factor <= p_factors[p_ind - 1])
+                                & (p_factors[p_ind - 1] % u_factor == 0),
+                                tuple([True]) + curr_params[1:],
+                            )
                     )
                 )  # ensure new parameters still divide l1
             ):
@@ -714,13 +757,17 @@ def optimize_fwt(
                 + curr_params[i + 1 :]
                 not in visited  # neighbour not visited
                 and (
-                    (p_factors[p_ind + 1] <= l1 and l1 % p_factors[p_ind + 1] == 0)
+                    (p_factors[p_ind + 1] * multf <= l1 and l1 % (p_factors[p_ind + 1] * multf) == 0)
                     if i != 0
-                    else reduce(
-                        lambda x, u_factor: x
-                        & (u_factor <= p_factors[p_ind + 1])
-                        & (p_factors[p_ind + 1] % u_factor == 0),
-                        tuple([True]) + curr_params[1:],
+                    else (
+                            reduce_tc(curr_params[1:], p_ind + 1, p_factors)
+                            if algorithm == ALGORITHM_TC else
+                            reduce(
+                                lambda x, u_factor: x
+                                & (u_factor <= p_factors[p_ind + 1])
+                                & (p_factors[p_ind + 1] % u_factor == 0),
+                                tuple([True]) + curr_params[1:],
+                            )
                     )
                 )  # ensure new parameters still divide l1
             ):
