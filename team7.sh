@@ -135,7 +135,7 @@ function measure() {
         --testsuite "${INPUT_CATEGORY_DIR}/${INPUT_CATEGORY}" \
         --testcases "${TESTCASES}" \
         --output "${MEASUREMENTS_DIR}/${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}_${INPUT_CATEGORY}" \
-        --incremental  # remove this to overwrite existing results
+        --incremental # remove this to overwrite existing results
 }
 
 function plot() {
@@ -153,6 +153,45 @@ function plot() {
         --title "$PLOT_TITLE" \
         --labels "${PLOT_LABELS[@]}" \
         --output "${ALGORITHM}_${IMPLEMENTATION}_${COMPILER}_${OPTIMIZATIONS}_${INPUT_CATEGORY}"
+}
+
+function plot-final() {
+    python3 measurements/perf-plots.py \
+        --data $(
+            cat <<EOM
+measurements/data-mhaessig/fw_boost_g++_-O3_-ffast-math_-march=native_bench-inputs.csv
+measurements/data-mhaessig/fw_c-autotuning-tile_clang_-O3_-fno-unroll-loops_-fno-slp-vectorize_bench-inputs.csv
+measurements/data-mhaessig/fw_c-autotuning-unroll_clang_-O3_-fno-unroll-loops_-fno-slp-vectorize_bench-inputs.csv
+measurements/data-mhaessig/fw_c-autotuning-vector-tile_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
+measurements/data-mhaessig/fw_c-autotuning-vector-unroll_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
+measurements/data-mhaessig/fw_c-naive_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
+measurements/data-mhaessig/fw_c-tile_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
+measurements/data-mhaessig/fw_c-unroll_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
+measurements/data-mhaessig/fw_c-vector-tile_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
+EOM
+        ) \
+        --plot measurements/plots \
+        --title 'Shortest-Path Optimizations' \
+        --labels 'impl' \
+        --output 'sp-optimizations-large' \
+        -vpi=8.0
+
+    python3 measurements/perf-plots.py \
+        --data measurements/data-lasse/* \
+        --plot measurements/plots \
+        --title 'Min-Max Optimizations' \
+        --labels 'impl' \
+        --output 'mm-optimizations-large' \
+        -vpi=8.0
+
+    python3 measurements/perf-plots.py \
+        --data measurements/data-roman/*.csv \
+        --plot measurements/plots \
+        --title 'Transitive-Closure Optimizations' \
+        --labels 'impl' \
+        --output 'tc-optimizations-large' \
+        --bit-packed \
+        -pi=2.0
 }
 
 function clean() {
@@ -308,6 +347,11 @@ plot)
             done
         done
     done
+    ;;
+plot-final)
+    echo "Plotting"
+    plot-final
+    echo
     ;;
 clean)
     echo "Cleaning"
