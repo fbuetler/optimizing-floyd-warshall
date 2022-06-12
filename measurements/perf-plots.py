@@ -14,6 +14,23 @@ COLOR_LIST = [
     "#e6ab02",
     "#a6761d",
     "#666666",
+    "#332288",
+    "#88CCEE",
+    "#44AA99",
+    "#117733",
+    "#999933",
+    "#DDCC77",
+    "#CC6677",
+    "#882255",
+    "#AA4499",
+    "#f58231",
+    "#0082C8",
+    "#F58231",
+    "#911EB4",
+    "#008080",
+    "#AA6E28",
+    "#800000",
+    "#808000",
 ]
 
 LABEL_ALGORITHM = "algo"
@@ -77,7 +94,7 @@ def main(
         color=COLOR_LIST
     )  # sets colors using given cycle
 
-    mpl.rcParams["figure.figsize"] = [8,5]
+    mpl.rcParams["figure.figsize"] = [8, 5]
 
     if peak != 0.0:
         print(f"plotting non-SIMD performance limit at {peak} flops/cycle")
@@ -100,7 +117,6 @@ def main(
         )
 
     perf_max = 0.0
-
     for data_file_path in data_file_list:
 
         # generate label
@@ -156,8 +172,15 @@ def main(
     plt.xscale("log", base=2)
     plt.grid(True, which="major", axis="y")
     plt.title(title)
-    plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))  # TODO: Label lines directly
+    plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.tight_layout(pad=1.1)
+
+    # reorder legend
+    handles, labels = plt.gca().get_legend_handles_labels()
+    labels, handles = zip(
+        *sorted(zip(labels, handles), key=lambda t: t[1]._y[0], reverse=True)
+    )
+    plt.legend(handles, labels, loc="center left", bbox_to_anchor=(1, 0.5))
 
     outfile = "{}/{}_perf.png".format(plots_dir, output_file)
     plt.savefig(outfile)
