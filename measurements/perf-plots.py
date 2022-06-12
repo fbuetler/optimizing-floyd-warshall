@@ -78,6 +78,12 @@ parser.add_argument(
     type=float,
     default=0.0,
 )
+parser.add_argument(
+    "-bp",
+    "--bit-packed",
+    help="implementation of plot is bit-packed",
+    action="store_true",
+)
 parser.add_argument("-o", "--output", help="output file name", type=str, required=True)
 
 
@@ -88,6 +94,7 @@ def main(
     title,
     peak,
     peak_simd,
+    bit_packed,
     output_file,
 ):
     mpl.rcParams["axes.prop_cycle"] = mpl.cycler(
@@ -154,6 +161,9 @@ def main(
         for (n, c, r) in zip(n_list, cycles_list, runs_list):
             perf_list.append((2 * n * n * n) / c)
 
+        if bit_packed:
+            perf_list = list(map(lambda x: x / 8, perf_list))
+
         plt.plot(n_list, perf_list, label=label, marker="o")
 
         perf_max = max(perf_list + [perf_max])
@@ -166,8 +176,11 @@ def main(
     )
 
     # configure plot
+    if bit_packed:
+        plt.ylabel("P(n) [ops/cycle]")
+    else:
+        plt.ylabel("P(n) [flops/cycle]")
     plt.xlabel("n")
-    plt.ylabel("P(n) [flops/cycle]")
     # plt.semilogx(base=2)
     plt.xscale("log", base=2)
     plt.grid(True, which="major", axis="y")
@@ -198,5 +211,6 @@ if __name__ == "__main__":
         args.title,
         args.peak,
         args.simd_peak,
+        args.bit_packed,
         args.output,
     )
