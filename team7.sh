@@ -199,6 +199,26 @@ EOM
         -vpi=8.0 \
         -b=7.53
 
+    python3 measurements/roof-plots.py \
+        --data $(
+            cat <<EOM
+measurements/data-mhaessig/fw_boost_g++_-O3_-ffast-math_-march=native_bench-inputs.csv
+measurements/data-mhaessig/fw_c-autotuning-vector-tile_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
+measurements/data-mhaessig/fw_c-autotuning-vector-unroll_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
+measurements/data-mhaessig/fw_c-naive_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
+measurements/data-mhaessig/fw_c-tile_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
+measurements/data-mhaessig/fw_c-unroll_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
+measurements/data-mhaessig/fw_c-vector-tile_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
+EOM
+        ) \
+        --plot measurements/plots \
+        --title 'Shortest Path Roofline' \
+        --labels impl \
+        --output 'compilers_&_flags' \
+        -pi=2.0 \
+        -vpi=8.0 \
+        -b=7.53
+
     # mm
     python3 measurements/perf-plots.py \
         --data measurements/data-lasse/*.csv \
