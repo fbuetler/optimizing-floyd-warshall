@@ -156,6 +156,7 @@ function plot() {
 }
 
 function plot-final() {
+    # sp
     python3 measurements/perf-plots.py \
         --data $(
             cat <<EOM
@@ -176,6 +177,7 @@ EOM
         --output 'sp-optimizations-large' \
         -vpi=8.0
 
+    # mm
     python3 measurements/perf-plots.py \
         --data measurements/data-lasse/* \
         --plot measurements/plots \
@@ -184,6 +186,16 @@ EOM
         --output 'mm-optimizations-large' \
         -vpi=8.0
 
+    python3 measurements/roof-plots.py \
+        --data measurements/data-lasse/* \
+        --plot measurements/plots \
+        --title 'Max-Min Roofline' \
+        --labels impl \
+        --output 'mm-optimizations-large' \
+        -pi=2.0 \
+        -b=7.53
+
+    # tc
     python3 measurements/perf-plots.py \
         --data measurements/data-roman/*.csv \
         --plot measurements/plots \

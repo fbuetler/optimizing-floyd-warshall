@@ -20,6 +20,23 @@ COLOR_LIST = [
     "#e6ab02",
     "#a6761d",
     "#666666",
+    "#332288",
+    "#88CCEE",
+    "#44AA99",
+    "#117733",
+    "#999933",
+    "#DDCC77",
+    "#CC6677",
+    "#882255",
+    "#AA4499",
+    "#f58231",
+    "#0082C8",
+    "#F58231",
+    "#911EB4",
+    "#008080",
+    "#AA6E28",
+    "#800000",
+    "#808000",
 ]
 
 
@@ -105,7 +122,7 @@ def roofline_plot(
 
     # Goal: See slide 4 of lecture 'roofline'
     mpl.rcParams["axes.prop_cycle"] = mpl.cycler(color=COLOR_LIST)
-    mpl.rcParams["figure.figsize"] = [8,5]
+    mpl.rcParams["figure.figsize"] = [8, 5]
 
     print("generating roofline plot...")
 
@@ -205,14 +222,38 @@ def roofline_plot(
             if max_n[2] is None or n > max_n[2]:
                 max_n = (I, P, n)
 
-        if (len([(x,y) for (x,y) in min_labels if abs(x-min_n[0]) < 0.3*min_n[0] and abs(y-min_n[1]) < 0.2*min_n[1]]) == 0):
+        if (
+            len(
+                [
+                    (x, y)
+                    for (x, y) in min_labels
+                    if abs(x - min_n[0]) < 0.3 * min_n[0]
+                    and abs(y - min_n[1]) < 0.2 * min_n[1]
+                ]
+            )
+            == 0
+        ):
             plt.annotate(
-                int(min_n[2]), xy=(min_n[0], min_n[1]), xytext=(min_n[0], min_n[1] + 0.05*min_n[1])
+                int(min_n[2]),
+                xy=(min_n[0], min_n[1]),
+                xytext=(min_n[0], min_n[1] + 0.05 * min_n[1]),
             )
             min_labels.append((min_n[0], min_n[1]))
-        if (len([(x,y) for (x,y) in max_labels if abs(x-max_n[0]) < 0.3*max_n[0] and abs(y-max_n[1]) < 0.1*max_n[1]]) == 0):
+        if (
+            len(
+                [
+                    (x, y)
+                    for (x, y) in max_labels
+                    if abs(x - max_n[0]) < 0.3 * max_n[0]
+                    and abs(y - max_n[1]) < 0.1 * max_n[1]
+                ]
+            )
+            == 0
+        ):
             plt.annotate(
-                int(max_n[2]), xy=(max_n[0], max_n[1]), xytext=(max_n[0]-0.6*max_n[0], max_n[1] - 0.07*min_n[1])
+                int(max_n[2]),
+                xy=(max_n[0], max_n[1]),
+                xytext=(max_n[0] - 0.75 * max_n[0], max_n[1] - 0.07 * min_n[1]),
             )
             max_labels.append((max_n[0], max_n[1]))
 
@@ -229,6 +270,17 @@ def roofline_plot(
     plt.title(title)
     plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))  # TODO: Label lines directly
     plt.tight_layout()
+
+    # reorder legend
+    handles, labels = plt.gca().get_legend_handles_labels()
+    labels, handles = zip(
+        *sorted(
+            zip(labels, handles),
+            key=lambda t: t[1]._y[0] if t[1]._y is not None else 100,
+            reverse=True,
+        )
+    )
+    plt.legend(handles, labels, loc="center left", bbox_to_anchor=(1, 0.5))
 
     print("storing results to {}...".format(output_file))
     outfile = "{}/{}_roof.png".format(plots_dir, output_file)
