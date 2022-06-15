@@ -92,6 +92,12 @@ parser.add_argument(
     type=float,
     default=16.0,
 )
+parser.add_argument(
+    "-bp",
+    "--bit-packed",
+    help="implementation of plot is bit-packed",
+    action="store_true",
+)
 parser.add_argument("-o", "--output", help="output file name", type=str, required=True)
 
 
@@ -113,6 +119,7 @@ def roofline_plot(
     pi: float,
     pi_simd: float,
     beta: float,
+    bit_packed: bool,
     label_choices: List[str],
     plots_dir: str,
     title: str,
@@ -208,11 +215,13 @@ def roofline_plot(
         max_n = (0, 0, None)
         for (n, c, _, Q) in zip(n_list, cycles_list, runs_list, bytes_list):
             logging.info(f"---- For n = {n} ----")
+            if Q == 0:
+                continue
             W = 2 * n * n * n
             logging.info(f"\tW = {W}")
             logging.info(f"\tQ = {Q}")
             I = W / Q
-            P = W / c
+            P = (W / c) / 8 if bit_packed else W / c
             logging.info(f"\t=> I = {round(I, 2)}")
             logging.info(f"\t=> P = {round(P, 2)}")
             i_list.append(I)
@@ -262,13 +271,16 @@ def roofline_plot(
         perf_max = max(p_list + [perf_max])
 
     # configure plot
+    if bit_packed:
+        plt.ylabel("P(n) [ops/cycle]")
+    else:
+        plt.ylabel("P(n) [flops/cycle]")
     plt.xlabel("I(n) [bytes/cycle]")
-    plt.ylabel("P(n) [flops/cycle]")
     plt.xscale("log", base=2)
     plt.yscale("log", base=2)
     plt.grid(True, which="both", axis="both")
     plt.title(title)
-    plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))  # TODO: Label lines directly
+    plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
 
     # reorder legend
@@ -295,6 +307,7 @@ if __name__ == "__main__":
         args.peak,
         args.simd_peak,
         args.beta,
+        args.bit_packed,
         args.labels,
         args.plot,
         args.title,

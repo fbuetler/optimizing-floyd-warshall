@@ -204,6 +204,17 @@ EOM
         --output 'tc-optimizations-large' \
         --bit-packed \
         -pi=2.0
+
+    python3 measurements/roof-plots.py \
+        --data measurements/data-roman/*.csv \
+        --plot measurements/plots \
+        --title 'Transitive-Closure Roofline' \
+        --labels impl \
+        --output 'tc-optimizations-large' \
+        -pi=2.0 \
+        -vpi=64.0 \
+        -b=7.03 \
+        -bp
 }
 
 function clean() {
