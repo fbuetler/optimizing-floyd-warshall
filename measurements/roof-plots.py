@@ -135,7 +135,6 @@ def roofline_plot(
 
     # set up bound visualizations
     _, ax = plt.subplots()
-    ymax = pi_simd * 1.1
 
     # plot performance bounds
     plt.axhline(
@@ -155,11 +154,7 @@ def roofline_plot(
         color=next(ax._get_lines.prop_cycler)["color"],
     )
 
-    perf_max = 0.0
-    min_labels = list()
-    max_labels = list()
     for data_file_path in data_file_list:
-
         # generate label
         data_file = pathlib.Path(data_file_path).stem
         parts = data_file.split("_")
@@ -211,8 +206,6 @@ def roofline_plot(
         # compute performance (flops = 2 * n^3)
         i_list = list()
         p_list = list()
-        min_n = (0, 0, None)
-        max_n = (0, 0, None)
         for (n, c, _, Q) in zip(n_list, cycles_list, runs_list, bytes_list):
             logging.info(f"---- For n = {n} ----")
             if Q == 0:
@@ -226,49 +219,27 @@ def roofline_plot(
             logging.info(f"\t=> P = {round(P, 2)}")
             i_list.append(I)
             p_list.append(P)
-            if min_n[2] is None or n < min_n[2]:
-                min_n = (I, P, n)
-            if max_n[2] is None or n > max_n[2]:
-                max_n = (I, P, n)
 
-        if (
-            len(
-                [
-                    (x, y)
-                    for (x, y) in min_labels
-                    if abs(x - min_n[0]) < 0.3 * min_n[0]
-                    and abs(y - min_n[1]) < 0.2 * min_n[1]
-                ]
-            )
-            == 0
-        ):
-            plt.annotate(
-                int(min_n[2]),
-                xy=(min_n[0], min_n[1]),
-                xytext=(min_n[0], min_n[1] + 0.05 * min_n[1]),
-            )
-            min_labels.append((min_n[0], min_n[1]))
-        if (
-            len(
-                [
-                    (x, y)
-                    for (x, y) in max_labels
-                    if abs(x - max_n[0]) < 0.3 * max_n[0]
-                    and abs(y - max_n[1]) < 0.1 * max_n[1]
-                ]
-            )
-            == 0
-        ):
-            plt.annotate(
-                int(max_n[2]),
-                xy=(max_n[0], max_n[1]),
-                xytext=(max_n[0] - 0.75 * max_n[0], max_n[1] - 0.07 * min_n[1]),
-            )
-            max_labels.append((max_n[0], max_n[1]))
-
-        plt.plot(i_list, p_list, marker="o", label=label)
-
-        perf_max = max(p_list + [perf_max])
+        # ensure scatter points and lines have the same color
+        color = next(ax._get_lines.prop_cycler)["color"]
+        # scatter points such that the same line has different pointsizes
+        plt.scatter(
+            i_list,
+            p_list,
+            marker="o",
+            s=[5 + 8 * i for i in range(len(i_list))],
+            label=label,
+            color=color,
+        )
+        # plot the point such that we have lines connecting the points
+        plt.plot(
+            i_list,
+            p_list,
+            marker="o",
+            markersize=1,
+            label=label,
+            color=color,
+        )
 
     # configure plot
     if bit_packed:
@@ -283,12 +254,17 @@ def roofline_plot(
     plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
 
-    # reorder legend
+    # reorder legend and dont add scatter to the legend
     handles, labels = plt.gca().get_legend_handles_labels()
-    labels, handles = zip(
+    handles, labels = zip(
         *sorted(
-            zip(labels, handles),
-            key=lambda t: t[1]._y[0] if t[1]._y is not None else 100,
+            list(
+                filter(
+                    lambda t: not isinstance(t[0], mpl.collections.PathCollection),
+                    zip(handles, labels),
+                )
+            ),
+            key=lambda t: t[0]._y[0] if t[0]._y is not None else 100,
             reverse=True,
         )
     )
