@@ -195,7 +195,7 @@ def main(
     )
     plt.legend(handles, labels, loc="center left", bbox_to_anchor=(1, 0.5))
 
-    outfile = "{}/{}_perf.png".format(plots_dir, output_file)
+    outfile = "{}/{}_perf.eps".format(plots_dir, output_file)
     plt.savefig(outfile)
     plt.clf()
 

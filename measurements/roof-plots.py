@@ -271,7 +271,7 @@ def roofline_plot(
     plt.legend(handles, labels, loc="center left", bbox_to_anchor=(1, 0.5))
 
     print("storing results to {}...".format(output_file))
-    outfile = "{}/{}_roof.png".format(plots_dir, output_file)
+    outfile = "{}/{}_roof.eps".format(plots_dir, output_file)
     plt.savefig(outfile)
     plt.clf()
 
