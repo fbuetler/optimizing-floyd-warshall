@@ -2,11 +2,24 @@ import argparse
 import csv
 import logging
 import pathlib
+from jinja2 import pass_eval_context
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 logging.basicConfig(level=logging.INFO)
+
+SMALL_SIZE = 10
+MEDIUM_SIZE = 11
+BIGGER_SIZE = 16
+
+plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=MEDIUM_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 COLOR_LIST = [
     "#1b9e77",
@@ -125,7 +138,10 @@ def main(
     ax.annotate('P ≤ π', xy=(0.9,peak), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=pi_color)
     ax.annotate('P ≤ π-SIMD', xy=(0.85,peak_simd), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=piv_color)
 
+    naive_max = 0.0
     perf_max = 0.0
+    perf_max_scalar = 0.0
+    perf_max_simd = 0.0
     for data_file_path in data_file_list:
 
         # generate label
@@ -165,7 +181,19 @@ def main(
 
         plt.plot(n_list, perf_list, label=label, marker="o")
 
-        perf_max = max(perf_list + [perf_max])
+        if implementation == 'naive':
+            naive_max = max(perf_list + [naive_max])
+        else:
+            perf_max = max(perf_list + [perf_max])
+
+        if 'SIMD' in implementation:
+            perf_max_simd = max(perf_list + [perf_max_simd])
+        else:
+            perf_max_scalar = max(perf_list + [perf_max_scalar])
+
+    logging.info(f"For {algorithm}: Maximum speedup is {perf_max/naive_max}")
+    logging.info(f"For {algorithm}: Maximum % of peak for SIMD is {perf_max_simd / peak_simd * 100}%")
+    logging.info(f"For {algorithm}: Maximum % of peak for scalar is {perf_max_scalar / peak * 100}%")
 
 
 
