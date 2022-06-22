@@ -131,28 +131,32 @@ def roofline_plot(
     mpl.rcParams["axes.prop_cycle"] = mpl.cycler(color=COLOR_LIST)
     mpl.rcParams["figure.figsize"] = [8, 5]
 
-    print("generating roofline plot...")
+    logging.info("generating roofline plot...")
 
     # set up bound visualizations
     _, ax = plt.subplots()
 
     # plot performance bounds
+    pi_color = next(ax._get_lines.prop_cycler)["color"]
+    piv_color = next(ax._get_lines.prop_cycler)["color"]
+    b_color = next(ax._get_lines.prop_cycler)["color"]
     plt.axhline(
-        y=pi, label="P ≤ π", linewidth=1, color=next(ax._get_lines.prop_cycler)["color"]
+        y=pi, linewidth=1, color=pi_color
     )
     plt.axhline(
         y=pi_simd,
-        label="P ≤ π-SIMD",
         linewidth=1,
-        color=next(ax._get_lines.prop_cycler)["color"],
+        color=piv_color,
     )
     plt.axline(
         xy1=(pi / beta, pi),
         xy2=(pi_simd / beta, pi_simd),
-        label="P ≤ βI",
         linewidth=1,
-        color=next(ax._get_lines.prop_cycler)["color"],
+        color=b_color,
     )
+    ax.annotate('P ≤ π', xy=(0.005,pi), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=pi_color)
+    ax.annotate('P ≤ βI', xy=(pi / beta + (pi_simd / beta - pi / beta) / 2,pi + (pi_simd - pi) / 2), xytext=(-35.0, 0.0), xycoords='data', textcoords='offset points', color=b_color)
+    ax.annotate('P ≤ π-SIMD', xy=(0.005,pi_simd), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=piv_color)
 
     for data_file_path in data_file_list:
         # generate label
@@ -207,16 +211,17 @@ def roofline_plot(
         i_list = list()
         p_list = list()
         for (n, c, _, Q) in zip(n_list, cycles_list, runs_list, bytes_list):
-            logging.info(f"---- For n = {n} ----")
+            logging.debug(f"---- For n = {n} ----")
             if Q == 0:
                 continue
             W = 2 * n * n * n
-            logging.info(f"\tW = {W}")
-            logging.info(f"\tQ = {Q}")
+            logging.debug(f"\tW = {W}")
+            logging.debug(f"\tQ = {Q}")
             I = W / Q
-            P = (W / c) / 8 if bit_packed else W / c
-            logging.info(f"\t=> I = {round(I, 2)}")
-            logging.info(f"\t=> P = {round(P, 2)}")
+            # P = (W / c) / 8 if bit_packed else W / c
+            P = W / c
+            logging.debug(f"\t=> I = {round(I, 2)}")
+            logging.debug(f"\t=> P = {round(P, 2)}")
             i_list.append(I)
             p_list.append(P)
 
@@ -242,10 +247,7 @@ def roofline_plot(
         )
 
     # configure plot
-    if bit_packed:
-        plt.ylabel("P(n) [ops/cycle]")
-    else:
-        plt.ylabel("P(n) [flops/cycle]")
+    plt.ylabel("P(n) [flops/cycle]")
     plt.xlabel("I(n) [bytes/cycle]")
     plt.xscale("log", base=2)
     plt.yscale("log", base=2)
@@ -270,7 +272,7 @@ def roofline_plot(
     )
     plt.legend(handles, labels, loc="center left", bbox_to_anchor=(1, 0.5))
 
-    print("storing results to {}...".format(output_file))
+    logging.info("storing results to {}...".format(output_file))
     outfile = "{}/{}_roof.eps".format(plots_dir, output_file)
     plt.savefig(outfile)
     plt.clf()

@@ -1,9 +1,12 @@
 import argparse
 import csv
+import logging
 import pathlib
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+
+logging.basicConfig(level=logging.INFO)
 
 COLOR_LIST = [
     "#1b9e77",
@@ -69,14 +72,14 @@ parser.add_argument(
     "--peak",
     help="maximum achievable performance in flops/cycle",
     type=float,
-    default=0.0,
+    default=4.0,
 )
 parser.add_argument(
     "-vpi",
     "--simd-peak",
     help="maximum achievable performance in flops/cycle using SIMD instructions",
     type=float,
-    default=0.0,
+    default=16.0,
 )
 parser.add_argument(
     "-bp",
@@ -103,25 +106,24 @@ def main(
 
     mpl.rcParams["figure.figsize"] = [8, 5]
 
-    if peak != 0.0:
-        print(f"plotting non-SIMD performance limit at {peak} flops/cycle")
-        _, ax = plt.subplots()
-        plt.axhline(
-            y=peak,
-            label="P ≤ π",
-            linewidth=1,
-            color=next(ax._get_lines.prop_cycler)["color"],
-        )
+    logging.info("generating performance plot...")
 
-    if peak_simd != 0.0:
-        print(f"plotting SIMD performance limit at {peak_simd} flops/cycle")
-        _, ax = plt.subplots()
-        plt.axhline(
-            y=peak_simd,
-            label="P ≤ π-SIMD",
-            linewidth=1,
-            color=next(ax._get_lines.prop_cycler)["color"],
-        )
+    # set up bound visualizations
+    _, ax = plt.subplots()
+
+    # plot performance bounds
+    pi_color = next(ax._get_lines.prop_cycler)["color"]
+    piv_color = next(ax._get_lines.prop_cycler)["color"]
+    plt.axhline(
+        y=peak,  linewidth=1, color=pi_color
+    )
+    plt.axhline(
+        y=peak_simd,
+        linewidth=1,
+        color=piv_color,
+    )
+    ax.annotate('P ≤ π', xy=(0.9,peak), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=pi_color)
+    ax.annotate('P ≤ π-SIMD', xy=(0.85,peak_simd), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=piv_color)
 
     perf_max = 0.0
     for data_file_path in data_file_list:
@@ -161,28 +163,17 @@ def main(
         for (n, c, r) in zip(n_list, cycles_list, runs_list):
             perf_list.append((2 * n * n * n) / c)
 
-        if bit_packed:
-            perf_list = list(map(lambda x: x / 8, perf_list))
-
         plt.plot(n_list, perf_list, label=label, marker="o")
 
         perf_max = max(perf_list + [perf_max])
 
-    plt.ylim(
-        0,
-        max(
-            [perf_max + 0.1 * perf_max, peak + 0.1 * peak, peak_simd + 0.1 * peak_simd]
-        ),
-    )
+
 
     # configure plot
-    if bit_packed:
-        plt.ylabel("P(n) [ops/cycle]")
-    else:
-        plt.ylabel("P(n) [flops/cycle]")
+    plt.ylabel("P(n) [flops/cycle]")
     plt.xlabel("n")
-    # plt.semilogx(base=2)
     plt.xscale("log", base=2)
+    plt.yscale("log", base=2)
     plt.grid(True, which="major", axis="y")
     plt.title(title)
     plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
@@ -195,11 +186,11 @@ def main(
     )
     plt.legend(handles, labels, loc="center left", bbox_to_anchor=(1, 0.5))
 
+    logging.info("storing performance plot to {}".format(output_file))
     outfile = "{}/{}_perf.eps".format(plots_dir, output_file)
     plt.savefig(outfile)
     plt.clf()
 
-    print("stored performance plot to {}".format(outfile))
 
 
 if __name__ == "__main__":
