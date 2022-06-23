@@ -157,64 +157,84 @@ function plot() {
 
 function plot-final() {
     # sp
+#     python3 measurements/perf-plots.py \
+#         --data $(
+#             cat <<EOM
+# measurements/data-mhaessig/fw_boost_g++_-O3_-ffast-math_-march=native_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-autotuning-tile_clang_-O3_-fno-unroll-loops_-fno-slp-vectorize_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-autotuning-unroll_clang_-O3_-fno-unroll-loops_-fno-slp-vectorize_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-autotuning-vector-tile_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-autotuning-vector-unroll_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-naive_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-tile_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-unroll_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-vector-tile_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
+# EOM
+#         ) \
+#         --plot measurements/plots \
+#         --title 'Shortest-Path Optimizations' \
+#         --labels 'impl' \
+#         --output 'sp-optimizations-large' \
+#         -vpi=8.0
+
+#     python3 measurements/roof-plots.py \
+#         --data $(
+#             cat <<EOM
+# measurements/data-mhaessig/fw_boost_g++_-O3_-ffast-math_-march=native_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-autotuning-tile_clang_-O3_-fno-unroll-loops_-fno-slp-vectorize_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-autotuning-unroll_clang_-O3_-fno-unroll-loops_-fno-slp-vectorize_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-autotuning-vector-tile_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-autotuning-vector-unroll_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-naive_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-tile_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-unroll_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-vector-tile_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
+# EOM
+#         ) \
+#         --plot measurements/plots \
+#         --title 'Shortest Path Roofline' \
+#         --labels impl \
+#         --output 'sp-optimizations-large' \
+#         -pi=2.0 \
+#         -vpi=8.0 \
+#         -b=7.53
+
+#     python3 measurements/roof-plots.py \
+#         --data $(
+#             cat <<EOM
+# measurements/data-mhaessig/fw_boost_g++_-O3_-ffast-math_-march=native_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-autotuning-vector-tile_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-autotuning-vector-unroll_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-naive_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-tile_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-unroll_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
+# measurements/data-mhaessig/fw_c-vector-tile_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
+# EOM
+#         ) \
+#         --plot measurements/plots \
+#         --title 'Shortest Path Roofline' \
+#         --labels impl \
+#         --output 'compilers_&_flags' \
+#         -pi=2.0 \
+#         -vpi=8.0 \
+#         -b=7.53
+
+    # sp
     python3 measurements/perf-plots.py \
-        --data $(
-            cat <<EOM
-measurements/data-mhaessig/fw_boost_g++_-O3_-ffast-math_-march=native_bench-inputs.csv
-measurements/data-mhaessig/fw_c-autotuning-tile_clang_-O3_-fno-unroll-loops_-fno-slp-vectorize_bench-inputs.csv
-measurements/data-mhaessig/fw_c-autotuning-unroll_clang_-O3_-fno-unroll-loops_-fno-slp-vectorize_bench-inputs.csv
-measurements/data-mhaessig/fw_c-autotuning-vector-tile_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
-measurements/data-mhaessig/fw_c-autotuning-vector-unroll_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
-measurements/data-mhaessig/fw_c-naive_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
-measurements/data-mhaessig/fw_c-tile_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
-measurements/data-mhaessig/fw_c-unroll_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
-measurements/data-mhaessig/fw_c-vector-tile_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
-EOM
-        ) \
+        --data measurements/data-mhaessig/*.csv \
         --plot measurements/plots \
         --title 'Shortest-Path Optimizations' \
         --labels 'impl' \
         --output 'sp-optimizations-large' \
+        -pi=2.0 \
         -vpi=8.0
 
     python3 measurements/roof-plots.py \
-        --data $(
-            cat <<EOM
-measurements/data-mhaessig/fw_boost_g++_-O3_-ffast-math_-march=native_bench-inputs.csv
-measurements/data-mhaessig/fw_c-autotuning-tile_clang_-O3_-fno-unroll-loops_-fno-slp-vectorize_bench-inputs.csv
-measurements/data-mhaessig/fw_c-autotuning-unroll_clang_-O3_-fno-unroll-loops_-fno-slp-vectorize_bench-inputs.csv
-measurements/data-mhaessig/fw_c-autotuning-vector-tile_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
-measurements/data-mhaessig/fw_c-autotuning-vector-unroll_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
-measurements/data-mhaessig/fw_c-naive_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
-measurements/data-mhaessig/fw_c-tile_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
-measurements/data-mhaessig/fw_c-unroll_clang_-O3_-fno-tree-vectorize_-fno-slp-vectorize_-fno-unroll-loops_bench-inputs.csv
-measurements/data-mhaessig/fw_c-vector-tile_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
-EOM
-        ) \
+        --data measurements/data-mhaessig/*.csv \
         --plot measurements/plots \
         --title 'Shortest Path Roofline' \
         --labels impl \
         --output 'sp-optimizations-large' \
-        -pi=2.0 \
-        -vpi=8.0 \
-        -b=7.53
-
-    python3 measurements/roof-plots.py \
-        --data $(
-            cat <<EOM
-measurements/data-mhaessig/fw_boost_g++_-O3_-ffast-math_-march=native_bench-inputs.csv
-measurements/data-mhaessig/fw_c-autotuning-vector-tile_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
-measurements/data-mhaessig/fw_c-autotuning-vector-unroll_clang_-O3_-march=native_-ffast-math_bench-inputs.csv
-measurements/data-mhaessig/fw_c-naive_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
-measurements/data-mhaessig/fw_c-tile_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
-measurements/data-mhaessig/fw_c-unroll_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
-measurements/data-mhaessig/fw_c-vector-tile_clang_-O3_-ffast-math_-march=native_bench-inputs.csv
-EOM
-        ) \
-        --plot measurements/plots \
-        --title 'Shortest Path Roofline' \
-        --labels impl \
-        --output 'compilers_&_flags' \
         -pi=2.0 \
         -vpi=8.0 \
         -b=7.53
@@ -226,6 +246,7 @@ EOM
         --title 'Min-Max Optimizations' \
         --labels 'impl' \
         --output 'mm-optimizations-large' \
+        -pi=2.0 \
         -vpi=8.0
 
     python3 measurements/roof-plots.py \
@@ -235,6 +256,7 @@ EOM
         --labels impl \
         --output 'mm-optimizations-large' \
         -pi=2.0 \
+        -vpi=8.0 \
         -b=7.53
 
     # tc
@@ -245,7 +267,8 @@ EOM
         --labels 'impl' \
         --output 'tc-optimizations-large' \
         --bit-packed \
-        -pi=2.0
+        -pi=16.0 \
+        -vpi=512.0
 
     python3 measurements/roof-plots.py \
         --data measurements/data-roman/*.csv \
@@ -253,8 +276,8 @@ EOM
         --title 'Transitive-Closure Roofline' \
         --labels impl \
         --output 'tc-optimizations-large' \
-        -pi=2.0 \
-        -vpi=64.0 \
+        -pi=16.0 \
+        -vpi=512.0 \
         -b=7.03 \
         -bp
 }
