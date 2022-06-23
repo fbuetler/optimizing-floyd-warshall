@@ -166,9 +166,12 @@ def roofline_plot(
         linewidth=1,
         color=b_color,
     )
-    ax.annotate('P ≤ π', xy=(0.005,pi), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=pi_color)
-    ax.annotate('P ≤ βI', xy=(pi / beta + (pi_simd / beta - pi / beta) / 2,pi + (pi_simd - pi) / 2), xytext=(-35.0, 0.0), xycoords='data', textcoords='offset points', color=b_color)
-    ax.annotate('P ≤ π-SIMD', xy=(0.005,pi_simd), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=piv_color)
+    mpl.rcParams["font.size"] = 13
+    ax.annotate('P ≤ π', xy=(0.9,pi), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=pi_color)
+    ax.annotate('P ≤ βI', xy=(pi / beta + (pi_simd / beta - pi / beta) / 2 - 0.2,pi + (pi_simd - pi) / 2), xytext=(-35.0, 0.0), xycoords='data', textcoords='offset points', color=b_color)
+    ax.annotate('P ≤ π-SIMD', xy=(0.8,pi_simd - 1.3), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=piv_color)
+
+    mpl.rcParams["font.size"] = 16
 
     for data_file_path in data_file_list:
         # generate label
@@ -259,12 +262,13 @@ def roofline_plot(
         )
 
     # configure plot
+    ax.tick_params(axis = 'both', which = 'major', labelsize = 12)
     plt.ylabel("P(n) [flops/cycle]")
     plt.xlabel("I(n) [bytes/cycle]")
     plt.xscale("log", base=2)
     plt.yscale("log", base=2)
     plt.grid(True, which="both", axis="both")
-    plt.title(title)
+    plt.title(title, fontsize=16)
     plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
 
