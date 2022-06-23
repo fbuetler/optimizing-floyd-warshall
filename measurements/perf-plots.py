@@ -135,10 +135,8 @@ def main(
         linewidth=1,
         color=piv_color,
     )
-    mpl.rcParams["font.size"] = 13
     ax.annotate('P ≤ π', xy=(0.9,peak), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=pi_color)
-    ax.annotate('P ≤ π-SIMD', xy=(0.81,peak_simd-1.2), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=piv_color)
-    mpl.rcParams["font.size"] = 16
+    ax.annotate('P ≤ π-SIMD', xy=(0.85,peak_simd), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=piv_color)
 
     naive_max = 0.0
     perf_max = 0.0
@@ -200,13 +198,12 @@ def main(
 
 
     # configure plot
-    ax.tick_params(axis = 'both', which = 'major', labelsize = 12)
     plt.ylabel("P(n) [flops/cycle]")
     plt.xlabel("n")
     plt.xscale("log", base=2)
     plt.yscale("log", base=2)
     plt.grid(True, which="major", axis="y")
-    plt.title(title, fontsize=16)
+    plt.title(title)
     plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.tight_layout(pad=1.1)
 
