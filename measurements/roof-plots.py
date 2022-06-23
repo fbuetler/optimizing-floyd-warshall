@@ -11,11 +11,11 @@ logging.basicConfig(level=logging.INFO)
 
 USE_Q_ESTIMATE = False
 
-SMALL_SIZE = 10
-MEDIUM_SIZE = 11
-BIGGER_SIZE = 16
+SMALL_SIZE = 13
+MEDIUM_SIZE = 15
+BIGGER_SIZE = 18
 
-plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+plt.rc('font', size=MEDIUM_SIZE)          # controls default text sizes
 plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
 plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
 plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
@@ -166,9 +166,9 @@ def roofline_plot(
         linewidth=1,
         color=b_color,
     )
-    ax.annotate('P ≤ π', xy=(0.005,pi), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=pi_color)
-    ax.annotate('P ≤ βI', xy=(pi / beta + (pi_simd / beta - pi / beta) / 2,pi + (pi_simd - pi) / 2), xytext=(-35.0, 0.0), xycoords='data', textcoords='offset points', color=b_color)
-    ax.annotate('P ≤ π-SIMD', xy=(0.005,pi_simd), xytext=(0.0, 3), xycoords=('axes fraction', 'data'), textcoords='offset points', color=piv_color)
+    ax.annotate('P ≤ π', xy=(1.01,pi), xytext=(0.0, -5), xycoords=('axes fraction', 'data'), textcoords='offset points', color=pi_color)
+    ax.annotate('P ≤ βI', xy=(pi / beta + (pi_simd / beta - pi / beta) / 2,pi + (pi_simd - pi) / 2), xytext=(-48.0, 0.0), xycoords='data', textcoords='offset points', color=b_color)
+    ax.annotate('P ≤ π-SIMD', xy=(1.01,pi_simd), xytext=(0.0, -5), xycoords=('axes fraction', 'data'), textcoords='offset points', color=piv_color)
 
     for data_file_path in data_file_list:
         # generate label
@@ -265,8 +265,6 @@ def roofline_plot(
     plt.yscale("log", base=2)
     plt.grid(True, which="both", axis="both")
     plt.title(title)
-    plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-    plt.tight_layout()
 
     # reorder legend and dont add scatter to the legend
     handles, labels = plt.gca().get_legend_handles_labels()
@@ -282,7 +280,8 @@ def roofline_plot(
             reverse=True,
         )
     )
-    plt.legend(handles, labels, loc="center left", bbox_to_anchor=(1, 0.5))
+    plt.legend(handles, labels, loc="center left", bbox_to_anchor=(1, 0.7))
+    plt.tight_layout()
 
     logging.info("storing results to {}...".format(output_file))
     outfile = "{}/{}_roof.eps".format(plots_dir, output_file)
