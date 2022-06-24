@@ -1,0 +1,36 @@
+\section{Contributions of Team Members}
+
+In this section we briefly list what each team member contributed to the project in terms of code written for optimization and analysis. Please note that while infrastructure- and testing-related code is not included here, props go out to Manuel for setting up an awesome build system utilizing Docker containers to ensure identical dependencies and to Florian for setting up a highly-convenient, all-powerful development pipeline.
+
+\mypar{Florian} I built the foundation of the autotuner including generic code templates for all three algorithms with cache tiling, loop unrolling and vectorization. The autotuner is initially using an exhaustive search and then applies hill climbing to find the optimal parameters.
+
+\mypar{Roman}
+I added bit-packing to the transitive closure infrastructure by adjusting the code to read and write input, and the naive implementation. I wrote the initial vectorized versions for all three problems. I helped in applying other optimizations to transitive closure, and fixing some of the problems that arose in the process.
+
+\mypar{Manuel} I set up the measurements using PAPI counters needed for the plots and the autotuner. I polished Florian's initial autotuner implementation with an improved hill climbing algorithm. Further, I applied and fine-tuned optimizations for the shortest path implementation.
+
+\mypar{Lasse} I implemented vectorized and non-vectorized versions of the FW, FWI, FWIabc and FWT algorithms for the widest-path, that is, Max-Min, algorithm. I supported Manuel and Roman in applying FWI and FWT optimizations to their programs and built on Manuel's and Florian's work to integrate FWT optimizations and vectorization in the final version of the autotuner.
+
+%{\color{red}TODO: REMOVE}
+%In this mandatory section (which is not included in the 8 pages limit) each team member should very briefly (telegram style is welcome) explain what she/he did for the project. I imagine this section to be between one column and one page (absolute maximum).
+%
+%Include only 
+%\begin{itemize}
+%	\item What relates to optimizing your chosen algorithm / application. This means writing actual code for optimization or for analysis.
+%	\item What you did before the submission of the presentation.
+%\end{itemize}
+%Do not include
+%\begin{itemize}
+%	\item Work on infrastructure and testing.
+%	\item Work done after the presentation took place.
+%\end{itemize}
+%
+%Example and structure follows.
+%
+%\mypar{Marylin} Focused on non-SIMD optimization for the variant 2 of the algorithm. Cache optimization, basic block optimizations, small generator for the innermost kernel (Section 3.2). Roofline plot. Worked with Cary and Jane on the SIMD optimization of variant 1, in particular implemented the bit-masking trick discussed.
+%
+%\mypar{Cary} ...
+%
+%\mypar{Gregory} ...
+%
+%\mypar{Jane} ...

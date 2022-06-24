@@ -1,0 +1,196 @@
+\section{Background on Warshall-Floyd-Kleene's Algorithm}\label{sec:background}
+
+In this section, we give short definition of closed semi-rings, define the structure of the
+generalized standard Floyd-Warshall (FW) algorithm, present the two alternative versions we use
+and perform a simple cost analysis.
+
+\mypar{Closed semi-rings}
+A closed semi-ring is an algebra $\langle R,+,\cdot,*,0,1\rangle$, where $R$ is a set,
+$+: R \times R \rightarrow R$ and $\cdot: R \times R \rightarrow R$ are binary operations
+called addition and multiplication, resp., $*: R \rightarrow R$ is a unary operation
+called closure, and $0 \in R$, $1 \in R$ are constants. The algebra must fulfil the
+following axioms:
+\begin{itemize}
+    \item $\langle R, + \rangle$ is a commutative monoid with identity element 0:
+            \begin{itemize}[noitemsep,topsep=0pt]
+                \item $a + (b + c) = (a + b) + c$
+                \item $a + b = b + a$
+                \item $a + 0 = a$
+            \end{itemize}
+    \item $\langle R, \cdot \rangle$ is a monoid with identity element 1:
+             \begin{itemize}[noitemsep,topsep=0pt]
+                 \item $(a \cdot b) \cdot c = a \cdot (b \cdot c)$
+                 \item $1 \cdot a = a = a \cdot 1$
+             \end{itemize}
+    \item Multiplication distributes over addition:
+            \begin{itemize}[noitemsep,topsep=0pt]
+                \item $a \cdot (b + c) = a \cdot b + a \cdot c = (b + c) \cdot a = b \cdot a + c \cdot a$
+            \end{itemize}
+    \item Closure satisfies the following equation:\\
+        $a^* = 1 + a \cdot a^* = 1 + a^* \cdot a$
+\end{itemize}
+Lehman \cite{lehmann77algebraic} shows that the
+Floyd-Warshall algorithm computes the closure of a matrix $A \in R^{N \times N}$
+for any simple closed semi-ring over $R$. 
+
+We introduce specific examples in the next section. For simplicity, we omit $*$, $0$
+and $1$ from the algebra definitions, as all three can easily be deduced from
+$\langle R, +, \cdot \rangle$.
+
+\mypar{Generalized FW algorithm}
+The generalized standard Floyd-Warshall algorithm can be seen in Alg. \ref{alg:fw}.
+It consists of three nested loops, where the outermost loop updates each entry in
+the $N \times N$ matrix C $N$ times, and \textit{cannot} be reordered with the two
+inner loops. 
+
+For a particular semi-ring \(\langle R,\,+,\,\cdot\rangle\), we create an instance
+of the algorithm by setting \texttt{ADD} to be the additive operation $+$,
+\texttt{MUL} to be the multiplicative operation $\cdot$, and \texttt{C} to be such
+that $C \in R^{N \times N}$. For example, the generalized FW algorithm instantiated
+with the semi-ring \(\langle\R^{\infty},\min,\,+\rangle\), where
+\texttt{C} is the \textit{cost matrix} of the underlying graph, solves the all-pairs
+shortest path (APSP) problem.
+
+A comparison of the two algorithms reveals that the structure of the FW algorithm is
+very similar to that of Matrix-Matrix Multiplication (MMM). Due to cache locality,
+the loop order $k-i-j$ would to be changed to $i-j-k$, in order to achieve peak performance
+as is the case for MMM. However, in the case of FW, the iterations of the outer loop
+are not independent, that is, such a reordering without any other transformations
+would result in an incorrect version of the algorithm.
+
+\begin{algorithm}
+  \caption{Structure of the generalized Floyd-Warshall algorithm.}\label{alg:fw}
+  \begin{algorithmic}[1]
+    \Function{floydWarshall}{$C,N$}
+      \For{$k \gets 1$ to $N$}
+      \EndFor
+      \For{$i \gets 1$ to $N$}
+      \EndFor
+      \For{$j \gets 1$ to $N$}
+        \State $C[i][j] \gets$ \Call{ADD}{$C[i][j]$, \Call{MUL}{$C[i][k]$, $C[k][j]$}}
+      \EndFor
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+
+\mypar{Iterative FW algorithm: FWI}
+Han, Franchetti and Püschel \cite{han06generation} introduced a tiled and unrolled
+version of the FW algorithm for the APSP problem. For simplicity, we repeat its definition
+here for the generalized version, which can be seen in Alg. \ref{alg:fwi}. The generalized
+FWI algorithm introduces two variations on the standard FW algorithm. First, to facilitate
+tiling in later optimizations, we now iterate over matrices \texttt{A}, \texttt{B} and
+\texttt{C}. The matrix \texttt{A} contains the distances from \texttt{i} to \texttt{k},
+\texttt{B} those from \texttt{k} to \texttt{j}, and \texttt{C} those from \texttt{i} to
+\texttt{j}. Second, the two innermost loops are unrolled by factors $U_i$ and $U_j$, respectively.
+
+We further introduce a special version of FWI, algorithm \ref{alg:fwiabc} FWIabc, which assumes that
+matrices \texttt{A}, \texttt{B} and \texttt{C} \emph{do not} alias. Under this assumption,
+we can reorder the three loops. Thus, we can now additionally unroll the \texttt{k}-loop.
+
+For simplicity, we assume the unrolling factors $U_i$, $U_j$, $U_i^\prime$, $U_j^\prime$,
+$U_k^\prime$ divide the matrix size $N$.
+
+\begin{algorithm}
+  \caption{FWI parameterized by unrolling parameters $U_i$, $U_j$ and semi-ring parameters \texttt{ADD}, \texttt{MUL}.}\label{alg:fwi}
+  \begin{algorithmic}[1]
+    \Function{FWI}{$A,B,C,N$}
+      \For{$k \gets 1$ to $N$}
+      \EndFor
+      \For{$i \gets 1$ to $N$}
+      \EndFor
+      \For{$j \gets 1$ to $N$}
+        \Statex\Comment{Loops below are completely unrolled}
+        \For{$i^\prime \gets i$ to $i + U_i - 1$}
+        \EndFor
+        \For{$j^\prime \gets j$ to $j + U_j - 1$}
+          \State $C[i^\prime][j^\prime] \gets$ \Call{ADD}{$C[i^\prime][j^\prime]$, \Call{MUL}{$A[i^\prime][k]$, $B[k][j^\prime]$}}
+        \EndFor
+      \EndFor
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+  \caption{FWIabc parametrized by unrolling parameters $U_i^\prime$, $U_j^\prime$, $U_k^\prime$ and semi-ring parameters \texttt{ADD}, \texttt{MUL}.}\label{alg:fwiabc}
+  \begin{algorithmic}[1]
+    \Function{FWIabc}{$A,B,C,N$}\Comment{$A,B,C$ do not alias}
+      \For{$i \gets 1$ to $N$}
+      \EndFor
+      \For{$j \gets 1$ to $N$}
+      \EndFor
+      \For{$k \gets 1$ to $N$}
+        \Statex\Comment{Loops below are completely unrolled}
+        \For{$i^\prime \gets i$ to $i + U_i^\prime - 1$}
+        \EndFor
+        \For{$j^\prime \gets j$ to $j + U_j^\prime - 1$}
+        \EndFor
+        \For{$k^\prime \gets j$ to $k + U_k^\prime - 1$}
+          \State $C[i^\prime][j^\prime] \gets$ \Call{OP1}{$C[i^\prime][j^\prime]$, \Call{OP2}{$A[i^\prime][k^\prime]$, $B[k^\prime][j^\prime]$}}
+        \EndFor
+      \EndFor
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+
+\mypar{Tiled FW algorithm: FWT}
+Building on the previously introduced algorithms, Han, Franchetti and Püschel
+\cite{han06generation} introduced a singly cache-tiled version of the FW algorithm. We
+again state its definition here for the generalized version. The algorithm \ref{alg:fwt} FWT
+iterates over tiles of size $L1 \times L1$,
+proceeding in four phases. In the first phase, the diagonal tile $C_{kk}$ is updated.
+In the second and third phases, the tiles in the column and row of $C_{kk}$ are updated.
+In the fourth phase, all remaining tiles are updated. The three tiles under
+consideration are guaranteed to be independent in the fourth phase and we can therefore
+use the \texttt{FWIabc} subroutine. Note that the fourth phase encompasses the bulk of
+the computation. Therefore, this separation of the algorithm into four phases allows us to run
+the majority of the computation without the aforementioned outer-loop dependency.
+
+For simplicity, we assume the tile size $L1$ divides the matrix size $N$.
+
+\begin{algorithm}
+  \caption{FWT parameterized by tile size $L1$, and the parameters for \texttt{FWI} and \texttt{FWIabc}}\label{alg:fwt}
+  \begin{algorithmic}[1]
+    \Function{FWT}{$A,B,C,N,L1$}
+      \State // $A_{ij}$: $L1 \times L1$ submatrix $(i,j)$ of $A$
+      \State $M\gets N/L1$
+      \For{$k \gets 1$ to $M$}
+        \State \Call{FWI}{$A_{kk}, B_{kk}, C_{kk}, L1$}
+        \Comment{Phase 1}
+        \For{$j \gets 1$ to $M$, $j \neq k$}
+          \State \Call{FWI}{$A_{kk}, B_{kj}, C_{kj}, L1$}
+          \Comment{Phase 2}
+        \EndFor
+        \For{$i \gets 1$ to $M$, $i \neq k$}
+          \State \Call{FWI}{$A_{ik}, B_{kk}, C_{ik}, L1$}
+          \Comment{Phase 3}
+        \EndFor
+        \For{$i \gets 1$ to $M$, $i \neq k$}
+        \For{$j \gets 1$ to $M$, $j \neq k$}
+          \State \Call{FWIabc}{$A_{ik}, B_{kj}, C_{ij}, L1$}
+          \Comment{Phase 4}
+        \EndFor
+        \EndFor
+      \EndFor
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+
+\mypar{Cost Analysis}
+We define the cost of the FW algorithm to be the total number of operations on the
+semi-ring, that is, the number of \texttt{ADD} and \texttt{MUL} operations.
+%%%%% we changed that
+%Please
+%note that for the (bit-packed) transitive closure implementation, we counted one
+%operation per byte (as opposed to per element) to simplify calculations regarding
+%theoretically achievable peak performance.
+Note that if the additive and
+multiplicative operations are not equally expensive in terms of the number of CPU
+cycles on a particular system, this cost measure will not accurately represent the
+performance of an implementation. In our case, however, this does not pose a problem,
+as the two operations are equal in cost for all three FW instances under consideration.
+
+The general FW algorithm consists of three nested loops with two operations in the
+innermost loop and therefore we have $2N^3$ operations according to our cost function.
+Thus, it is trivial to see that the asymptotic complexity of the FW
+algorithm is $\mathcal{O}(N^3)$. As this report does not deal with instances of the FW
+algorithm for sparse matrices, the upper asymptotic bound simplifies to a tight one.

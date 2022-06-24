@@ -1,0 +1,121 @@
+\newpage
+
+\appendix
+
+\section{Appendix}
+
+\subsection{Code Samples}\label{app:code}
+\begin{listing}[h!]
+\caption{An unrolled implementation of the APSP FW instance.}\label{lst:unrolled}
+\begin{minted}{c}
+int floydWarshall(double *C, int N) {
+  for (int k = 0; k < N; k++) {
+    for (int i = 0; i < N; i ++) {
+      double cik = C[i * N + k];
+      for (int j = 0; j < N - 1; j += 2) {
+        // load
+        double cij0 = C[i * N + j + 0];
+        double cij1 = C[i * N + j + 1];
+
+        double ckj0 = C[k * N + j + 0];
+        double ckj1 = C[k * N + j + 1];
+
+        // compute 1
+        double sum0 = cik + ckj0;
+        double sum1 = cik + ckj1;
+
+        // compute 2
+        double res0 = MIN(cij0, sum0);
+        double res1 = MIN(cij1, sum1);
+
+        // store
+        C[i * N + j + 0] = res0;
+        C[i * N + j + 1] = res1;
+      }
+    }
+  }
+  return 0;
+}
+\end{minted}
+\end{listing}
+
+\subsection{Autotuner Parameter Choices}
+The following are the autotuner's choices of unrolling factors and tile sizes, all stemming from the MM instance.
+In the tables, N denotes the input size, $L_1$ the tile size, and $U_{i, j, k}$ the unrolling factors of the various loops.
+
+In the case of \texttt{FWT}, the unrolling factors $U_{i, j}$ concern the function \texttt{FWI}, and the unrolling factors $U_{i, j, k}'$ concern the function \texttt{FWIabc}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+N & $U_i$ & $U_j$ \\
+\hline
+432 & 3 & 1\\
+576 & 3 & 1\\
+1152 & 3 & 1\\
+1728 & 3 & 1\\
+2304 & 3 & 1\\
+2880 & 3 & 1\\
+3456 & 3 & 1\\
+4032 & 3 & 1\\
+\hline
+\end{tabular}
+\caption{Parameters for scalar \texttt{FWI}}
+\end{table}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|c|c|c|}
+\hline
+N & $L_1$ & $U_i$ & $U_j$ & $U_i'$ & $U_j'$ & $U_k'$ \\
+\hline
+432 & 144 & 3 & 1 & 1 & 9 & 16\\
+576 & 576 & 3 & 1 & 1 & 8 & 18\\
+1152 & 96 & 3 & 1 & 1 & 8 & 16\\
+1728 & 144 & 3 & 1 & 1 & 8 & 18\\
+2304 & 96 & 1 & 1 & 1 & 8 & 16\\
+2880 & 192 & 2 & 1 & 1 & 6 & 4\\
+3456 & 128 & 2 & 1 & 1 & 8 & 16\\
+4032 & 224 & 2 & 1 & 1 & 8 & 16\\
+\hline
+\end{tabular}
+\caption{Parameters for scalar \texttt{FWT}}
+\end{table}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+N & $U_i$ & $U_j$ \\
+\hline
+432 & 4 & 8\\
+576 & 3 & 4\\
+1152 & 8 & 4\\
+1728 & 9 & 4\\
+2304 & 8 & 4\\
+2880 & 8 & 4\\
+3456 & 4 & 12\\
+\hline
+\end{tabular}
+\caption{Parameters for vectorized \texttt{FWI}}
+\end{table}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|c|c|c|}
+\hline
+N & $L_1$ & $U_i$ & $U_j$ & $U_i'$ & $U_j'$ & $U_k'$ \\
+\hline
+432 & 144 & 9 & 4 & 4 & 12 & 16\\
+576 & 96 & 8 & 8 & 4 & 16 & 16\\
+1152 & 96 & 8 & 4 & 4 & 8 & 16\\
+1728 & 144 & 8 & 4 & 4 & 8 & 16\\
+2304 & 96 & 4 & 4 & 3 & 16 & 16\\
+2880 & 192 & 8 & 8 & 4 & 8 & 16\\
+3456 & 128 & 8 & 4 & 4 & 16 & 16\\
+4032 & 192 & 8 & 4 & 4 & 8 & 16\\
+\hline
+\end{tabular}
+\caption{Parameters for vectorized \texttt{FWT}}
+\end{table}

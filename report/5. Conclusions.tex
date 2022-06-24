@@ -1,0 +1,22 @@
+\section{Conclusions}
+To summarize, we examined three instances of the generalized Floyd-Warshall algorithm. Respectively, they solve the all-pairs shortest-path, widest-path and transitive closure problems. We implemented various optimizations for each, namely \texttt{FWI}, \texttt{FWT}, and corresponding vectorized versions.
+Finally, we implemented an autotuner that finds locally optimal unrolling and tiling factors and generates corresponding code.
+
+Our benchmarks confirm that the optimization techniques for the all-pairs shortest-path problem by Han, Franchetti and Püschel \cite{han06generation} work, and we show that they generalize to the other two examined closed semi-rings of the widest-path and transitive closure instances. Further, we showed that a single autotuner implementation is
+able to successfully apply the same optimizations to all three problems.
+
+However, we also found limits to the generality of our autotuner as soon as the data representation changes.
+This leads us to conjecture that our autotuner should be easily generalizable to other closed semi-rings over
+$\mathbb{R}^\infty$.
+
+\mypar{Future Work}
+An obvious next step would be to implement other closed semi-rings in our autotuner. A good choice would be
+the unpivoted Gauss-Jordan transform, as it is a semi-ring over $\mathbb{R}\cup\{\text{undefined}\}$. For further
+generalization we would likely need an autotuner which is aware of the program structure and is able to apply
+transforms based on the structure as needed for different data representations. Ideally, one would implement
+an autotuner fully generic over a closed semi-ring.
+
+There are also more optimizations that could be applied to the Floyd-Warshall algorithm. One example is the
+doubly tiled version described by Han et al. \cite{han06generation}. Another possible optimization would be
+to explore different algorithms for matrix closure. One possible candidate might be R-Kleene 
+\cite{dalberto2007r-kleene}.

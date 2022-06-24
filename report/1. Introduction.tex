@@ -1,0 +1,101 @@
+\section{Introduction}\label{sec:intro}
+The well-known Floyd-Warshall algorithm \cite{floyd62shortest} for computing the all-pairs shortest path problem
+underlies a more general structure that solves several related problems. Some examples are the computation of the
+transitive closure of a graph \cite{warshall62boolean, roy1959transitivite}, the computation of the widest path
+\cite{pollack60widest}, Kleene's algorithm to transform a nondeterministic automaton to a regular expression
+\cite{kleene1956representation} or the inversion of a matrix using the Gauss-Jordan method. Lehmann
+\cite{lehmann77algebraic} relates these algorithms using the notion of computing the \emph{closure of a matrix}
+with respect to a closed semi-ring.
+The computation of the closure with the Floyd-Warshall method is a $k$-$i$-$j$ nested loop where the computation in
+the innermost loop uses the operations of a particular closed semi-ring suitable to a given application.
+
+\mypar{Motivation}
+In the era without free speedup due to Moore's law where we have hit the memory, instruction level parallelism, and power walls, it is
+as important as ever to write optimized programs to fully take advantage of the power of today's computers.
+However, optimizing numerical code often leads to a large
+unreadable tangled mess of unrolled and tiled loops, and single-static-assignment style code. Moreover, writing programs with very large
+unrolling factors stops being just boring and becomes downright infeasible to do by hand.
+
+The natural reaction to this is of course to automate the process of writing highly optimized code. Generating
+optimized programs using autotuners, which generate a program specifically optimized for a given machine
+configuration. However, algorithm specific autotuners need to be reimplemented for
+each new algorithm, which often is a significant undertaking.
+
+However, with sufficient structural similarity between algorithms (e.g. identical loop structure,
+similar data representation, instruction latency and throughput) the same optimizations techniques should intuitively
+lead to good results for all similar algorithms. For example, consider different algorithms with nested loops
+where the inner loop performs different operations. An autotuner capable of unrolling loop in the
+loop structure of this class of algorithm can optimize the unrolling factors for all such algorithms.
+
+In this work we aim to exploit the structural similarity between the specializations of the general
+Floyd-Warshall algorithm using different closed semi-rings to apply the same optimizations to a whole
+class of algorithms. 
+
+\mypar{Contribution}
+In this work we optimize implementations of the shortest-path, transitive closure and widest path algorithm
+by applying unrolling, cache tiling, and vectorization. Further, we present an autotuner which finds locally
+optimal unrolling and tiling parameters for a given machine.
+
+We aim to exploit the similarities between the algorithms given the common framework of a matrix closure by
+writing an autotuner that is able to apply these optimizations to all three algorithms, i.e. all three closed
+semi-rings. With this autotuner we demonstrate the potential to reuse a general enough autotuner on a class
+of algorithms.
+
+\mypar{Related Work}
+The closed semi-rings Lehmann introduces in \cite{lehmann77algebraic} are a subcategory of Kleene-algebras.
+Kozen provides a survey \cite{kozen1990kleene} about Kleene-algebras, their applications and how closed
+semi-rings relate to them. For an approachable introduction to algorithms based on matrix closure consider
+\cite{aho1974design, mehlhorn1984algo}. Further, Dolan \cite{dolan2013fun} implements a host of
+algorithms based on the closure on closed semi-rings.
+
+There have been several works to autotune single-core numerical computations, especially linear algebra
+subprograms. In his PhD thesis, Nelson \cite{nelson2015dsl} provides a good summary of past efforts.
+Related to the all-pairs shortest path problem, the Han, Franzetti, and Püschel \cite{han06generation}
+created an autotuner for the Floyd-Warshall algorithm and applied unrolling and cache tiling,
+notably removing the k-loop dependency based on techniques from \cite{venkataraman2000blocked, park2004cache}.
+
+
+%While best known for solving the all-pairs-shortest-path problem, the Floyd-Warshall algorithm can be applied on a wide range of problems, as the algorithm essentially computes the transitive closure of a matrix over a closed semi-ring.
+%Hence, by varying the underlying semi-ring, the algorithm can easily be adapted to suit the task at hand, making it one of the more widely used algorithms in computer science. % TODO: examples here
+%
+%Due to its ubiquity in modern computing, it is especially important to have access to efficient implementations. Depending on the use-case, these implementations have to process matrices of tremendous size. And especially in these cases, performing implementations have to be able to scale with large input sizes as well.
+%
+%In this work, we focus our work on three instances of the Floyd-Warshall algorithm, each arising from its own semi-ring:
+%\begin{itemize}
+%\item The shortest-path problem, corresponding to the semi-ring \(\langle\mathbb{R}^{\infty},\,\min,\,+\rangle\)
+%\item The widest-path problem, corresponding to the semi-ring \(\langle\mathbb{R}^{\infty},\,\max,\,\min\rangle\)
+%\item The transitive-closure, corresponding to the semi-ring \(\langle\{0, 1\},\,\lor,\, \land\rangle\)
+%\end{itemize}
+%On each we first apply a few basic optimizations, namely loop unrolling and vectorization. We then implement more advanced optimizations with tiling. Finally, we present an autotuner, capable of searching for locally optimal meta parameters, and generating functional C code with these parameters.
+
+%\mypar{Related Work}
+%Lehman \cite{lehmann77algebraic} shows that the Floyd-Warshall algorithm computes the transitive closure of a matrix over a closed semi-ring, and relates it to the Gauss-Jordan method for inverting a matrix.
+%Sung-Chul Han et al. \cite{han06generation} show how \emph{tiling} allows for several advanced optimizations of the Floyd-Warshall shortest path algorithm.
+%They also present an automatic program generator, capable of significantly oupterforming hand-tuned implementations.
+%
+%%%%%%
+
+%Do not start the introduction with the abstract or a slightly modified
+%version. What follows is a possible structure of the introduction.
+%This structure can be modified, but the content should be the same. The introduction should definitely end on the first page.
+%
+%\mypar{Motivation} The first task is to motivate what you do.  You can
+%start general and zoom in one the specific problem you consider.  In
+%the process you should have explained to the reader: what you are doing,
+%why you are doing, why it is important (order is usually reversed).
+%
+%For example, if my result is the fastest DFT implementation ever, one
+%could roughly go as follows. First explain why the DFT is important
+%(used everywhere with a few examples) and why performance matters (large datasets,
+%realtime). Then explain that fast implementations are very hard and
+%expensive to get (memory hierarchy, vector, parallel).
+%
+%\mypar{Contribution}
+%Now you state what you do in this paper. In our example:
+%presenting a DFT implementation that is
+%faster for some sizes than all the other ones.
+%
+%\mypar{Related work} Next, you have to give a brief overview of
+%related work. For a paper like this, anywhere between 2 and 8
+%references. Briefly explain what they do. In the end contrast to what
+%you do to make now precisely clear what your contribution is.
