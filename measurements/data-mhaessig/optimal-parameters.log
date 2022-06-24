@@ -1,0 +1,128 @@
+
+-------- Autotuning run Tue Jun  7 22:49:07 2022 --------
+
+-------- Autotuning run Tue Jun  7 22:50:28 2022 --------
+        vectorized
+        Optimal parameters for N = 432:
+            - FWI (Ui,Uj): (4, 8)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (144, 9, 4, 4, 12, 16)
+
+        
+        Optimal parameters for N = 576:
+            - FWI (Ui,Uj): (3, 4)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (96, 8, 8, 4, 16, 16)
+
+        
+        Optimal parameters for N = 1152:
+            - FWI (Ui,Uj): (8, 4)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (96, 8, 4, 4, 8, 16)
+
+        
+        Optimal parameters for N = 2304:
+            - FWI (Ui,Uj): (4, 4)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (96, 4, 4, 3, 16, 16)
+
+        
+        Optimal parameters for N = 2880:
+            - FWI (Ui,Uj): (8, 4)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (192, 8, 8, 4, 8, 16)
+
+        
+        Optimal parameters for N = 3456:
+            - FWI (Ui,Uj): (8, 4)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (128, 8, 4, 4, 16, 16)
+
+        
+        Optimal parameters for N = 4032:
+            - FWI (Ui,Uj): (4, 12)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (192, 8, 4, 4, 8, 16)
+
+        
+-------- Autotuning run Thu Jun  9 00:29:52 2022 --------
+
+        scalar
+        Optimal parameters for N = 432:
+            - FWI (Ui,Uj): (3, 1)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (144, 3, 1, 1, 9, 16)
+
+        
+        Optimal parameters for N = 576:
+            - FWI (Ui,Uj): (3, 1)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (576, 3, 1, 1, 8, 18)
+
+        
+        Optimal parameters for N = 1152:
+            - FWI (Ui,Uj): (3, 1)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (96, 3, 1, 1, 8, 16)
+
+        
+        Optimal parameters for N = 2304:
+            - FWI (Ui,Uj): (3, 1)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (96, 1, 1, 1, 8, 16)
+
+        
+        Optimal parameters for N = 3456:
+            - FWI (Ui,Uj): (3, 1)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (128, 2, 1, 1, 8, 16)
+
+        
+-------- Autotuning run Fri Jun 10 01:23:42 2022 --------
+        vectorized
+        Optimal parameters for N = 1728:
+            - FWI (Ui,Uj): (9, 4)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (144, 8, 4, 4, 8, 16)
+
+        
+-------- Autotuning run Fri Jun 10 02:00:01 2022 --------
+
+        scalar
+
+        Optimal parameters for N = 1728:
+            - FWI (Ui,Uj): (3, 1)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (144, 3, 1, 1, 8, 18)
+
+        
+        Optimal parameters for N = 4032:
+            - FWI (Ui,Uj): (3, 1)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (224, 2, 1, 1, 8, 16)
+
+        
+-------- Autotuning run Thu Jun 23 16:35:11 2022 --------
+
+-------- Autotuning run Thu Jun 23 23:02:53 2022 --------
+        scalar
+        Optimal parameters for N = 432:
+            - FWI (Ui,Uj): (3, 1)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (432, 3, 1, 1, 8, 6)
+
+        
+        Optimal parameters for N = 576:
+            - FWI (Ui,Uj): (3, 1)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (576, 3, 1, 1, 8, 3)
+
+        
+        Optimal parameters for N = 1152:
+            - FWI (Ui,Uj): (3, 1)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (144, 2, 1, 1, 6, 4)
+
+        
+        Optimal parameters for N = 1728:
+            - FWI (Ui,Uj): (3, 1)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (144, 3, 1, 1, 8, 3)
+
+        
+        Optimal parameters for N = 2304:
+            - FWI (Ui,Uj): (3, 1)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (96, 2, 1, 1, 8, 3)
+
+        
+        Optimal parameters for N = 2880:
+            - FWI (Ui,Uj): (3, 1)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (192, 2, 1, 1, 6, 4)
+
+        
+        Optimal parameters for N = 3456:
+            - FWI (Ui,Uj): (3, 1)
+            - FWT (L1, Ui, Uj, Ui', Uj'. Uk'): (144, 3, 1, 1, 8, 3)
+
+        
