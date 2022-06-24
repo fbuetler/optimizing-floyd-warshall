@@ -223,7 +223,7 @@ function plot-final() {
     python3 measurements/perf-plots.py \
         --data measurements/data-mhaessig/*.csv \
         --plot measurements/plots \
-        --title 'Shortest-Path Optimizations' \
+        --title 'Shortest-Path Performance' \
         --labels 'impl' \
         --output 'sp-optimizations-large' \
         -pi=2.0 \
@@ -243,7 +243,7 @@ function plot-final() {
     python3 measurements/perf-plots.py \
         --data measurements/data-lasse/*.csv \
         --plot measurements/plots \
-        --title 'Min-Max Optimizations' \
+        --title 'Min-Max Performance' \
         --labels 'impl' \
         --output 'mm-optimizations-large' \
         -pi=2.0 \
@@ -263,7 +263,7 @@ function plot-final() {
     python3 measurements/perf-plots.py \
         --data measurements/data-roman/*.csv \
         --plot measurements/plots \
-        --title 'Transitive-Closure Optimizations' \
+        --title 'Transitive-Closure Performance' \
         --labels 'impl' \
         --output 'tc-optimizations-large' \
         --bit-packed \
