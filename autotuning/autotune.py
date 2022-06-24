@@ -67,10 +67,10 @@ parser.add_argument(
 
 COMPILER = "clang"
 # use the _TC lines for transitive closure testcases (to ignore inputs)
-C_FLAGS_SCALAR_TC = "-O3 -fno-unroll-loops -fno-slp-vectorize -DRANDOM_INPUT"
-C_FLAGS_VECTOR_TC = "-O3 -march=native -ffast-math -DRANDOM_INPUT"
-C_FLAGS_SCALAR = "-O3 -fno-unroll-loops -fno-slp-vectorize"
-C_FLAGS_VECTOR = "-O3 -march=native -ffast-math"
+C_FLAGS_SCALAR = "-O3 -fno-unroll-loops -fno-slp-vectorize -DRANDOM_INPUT"
+C_FLAGS_VECTOR = "-O3 -march=native -ffast-math -DRANDOM_INPUT"
+# C_FLAGS_SCALAR = "-O3 -fno-unroll-loops -fno-slp-vectorize"
+# C_FLAGS_VECTOR = "-O3 -march=native -ffast-math"
 BENCH_INPUT_DIR = "bench-inputs"
 BENCH_INPUT_DIR_BITWISE = "bench-inputs-tc"
 TEST_INPUT_DIR = "test-inputs"
@@ -554,13 +554,13 @@ def find_initial_guess(
                 return [
                     (2**i, 2**j)
                     for i in range(5)
-                    for j in (range(5, 6) if vectorized else range(6))
+                    for j in (range(5, 6) if vectorized else range(3, 6))
                 ]
             else:
                 return [
                     (2**i, 2**j)
                     for i in range(5)
-                    for j in (range(2, 6) if vectorized else range(6))
+                    for j in (range(2, 6) if vectorized else range(3, 6))
                 ]
 
     def exhaustive_FWIabc_search(
